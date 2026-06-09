@@ -96,6 +96,7 @@ textarea {
 }
 
 .panel {
+  overflow-x: auto;
   padding: 1rem;
   border: 1px solid #ededed;
   border-radius: 0.5rem;
