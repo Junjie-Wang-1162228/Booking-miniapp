@@ -5,6 +5,7 @@ dist
 .DS_Store
 coverage
 *.tsbuildinfo
+.swc
 apps/api/generated
 apps/miniapp/dist
 apps/admin/dist
