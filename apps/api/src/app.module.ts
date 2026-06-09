@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ClassesModule } from './classes/classes.module';
+import { LessonDeductionsModule } from './lesson-deductions/lesson-deductions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -16,7 +17,8 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     ClassesModule,
     NotificationsModule,
-    BookingsModule
+    BookingsModule,
+    LessonDeductionsModule
   ],
   controllers: [AppController]
 })
