@@ -1,0 +1,161 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ClassStatus {
+  SCHEDULED
+  CANCELED
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELED
+}
+
+enum AttendanceStatus {
+  PENDING
+  ATTENDED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  role             UserRole
+  status           UserStatus        @default(ACTIVE)
+  displayName      String
+  phone            String?           @unique
+  username         String?           @unique
+  passwordHash     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  wechatAccounts   WechatAccount[]
+  bookings         Booking[]
+  lessonBalance    LessonBalance?
+  lessonDeductions LessonDeduction[] @relation("MemberDeductions")
+  adminDeductions  LessonDeduction[] @relation("AdminDeductions")
+}
+
+model WechatAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  appId     String
+  openid    String
+  unionid   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([appId, openid])
+  @@index([userId])
+}
+
+model BoxingClass {
+  id          String      @id @default(cuid())
+  title       String
+  coach       String
+  startsAt    DateTime
+  durationMin Int
+  capacity    Int
+  status      ClassStatus @default(SCHEDULED)
+  description String      @db.VarChar(500)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  bookings    Booking[]
+
+  @@index([startsAt])
+  @@index([status])
+}
+
+model Booking {
+  id               String             @id @default(cuid())
+  userId           String
+  classId          String
+  status           BookingStatus      @default(BOOKED)
+  attendanceStatus AttendanceStatus   @default(PENDING)
+  canceledAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User               @relation(fields: [userId], references: [id])
+  boxingClass      BoxingClass        @relation(fields: [classId], references: [id])
+  lessonDeduction  LessonDeduction?
+  notificationJobs NotificationJob[]
+
+  @@unique([userId, classId, status])
+  @@index([classId])
+  @@index([userId])
+}
+
+model LessonBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  remaining Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LessonDeduction {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  userId    String
+  adminId   String
+  amount    Int      @default(1)
+  note      String?  @db.VarChar(300)
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  user      User     @relation("MemberDeductions", fields: [userId], references: [id])
+  admin     User     @relation("AdminDeductions", fields: [adminId], references: [id])
+
+  @@index([userId])
+  @@index([adminId])
+}
+
+model NotificationJob {
+  id          String             @id @default(cuid())
+  bookingId   String
+  userId      String
+  type        String
+  scheduledAt DateTime
+  status      NotificationStatus @default(PENDING)
+  templateId  String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  booking     Booking            @relation(fields: [bookingId], references: [id])
+  logs        NotificationLog[]
+
+  @@index([scheduledAt, status])
+  @@index([userId])
+}
+
+model NotificationLog {
+  id        String             @id @default(cuid())
+  jobId     String
+  status    NotificationStatus
+  message   String             @db.VarChar(500)
+  createdAt DateTime           @default(now())
+  job       NotificationJob     @relation(fields: [jobId], references: [id])
+
+  @@index([jobId])
+}
