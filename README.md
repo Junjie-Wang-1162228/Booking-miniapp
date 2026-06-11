@@ -15,6 +15,18 @@ The current MVP supports one gym with multiple branches. Branch-scoped records i
 
 For real WeChat-account testing, set `MINIAPP_APP_ID` and `MINIAPP_APP_SECRET` in `apps/api/.env`, then restart the API. The current local `.env` is prepared for AppID `wxcb2a788d3230d901`; fill the matching AppSecret from the WeChat mini program management console before using real `wx.login`.
 
+Check the WeChat login configuration before opening DevTools:
+
+```bash
+pnpm --filter @booking/api wechat:check
+```
+
+After filling AppSecret, you can also verify a fresh `wx.login` code from DevTools:
+
+```bash
+WECHAT_LOGIN_TEST_CODE="code-from-devtools" pnpm --filter @booking/api wechat:check
+```
+
 ## Useful Commands
 
 ```bash
@@ -31,6 +43,12 @@ Run the old fake-member mini program mode when you need local debugging without 
 
 ```bash
 TARO_APP_AUTH_MODE=dev pnpm miniapp:dev
+```
+
+Run the API config self-check without real WeChat credentials:
+
+```bash
+WECHAT_LOGIN_MOCK_ENABLED=true pnpm --filter @booking/api wechat:check
 ```
 
 Run automated checks:

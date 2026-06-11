@@ -5,6 +5,7 @@
 - [ ] Set `MINIAPP_APP_ID` in `apps/api/.env` to the current DevTools AppID.
 - [ ] Fill `MINIAPP_APP_SECRET` in `apps/api/.env` from the WeChat mini program management console.
 - [ ] Confirm `WECHAT_AUTO_PROVISION_ENABLED="true"` and `WECHAT_AUTO_PROVISION_LESSONS="10"` for internal testing.
+- [ ] Run `pnpm --filter @booking/api wechat:check` and confirm it passes.
 - [ ] Start API with `pnpm api:dev`.
 - [ ] Start admin with `pnpm admin:dev`.
 - [ ] Log in admin at `http://localhost:5173` with `admin` / `admin123456`.
