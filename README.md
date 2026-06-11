@@ -2,6 +2,8 @@
 
 MVP for a boxing gym booking mini program and admin dashboard.
 
+The current MVP supports one gym with multiple branches. Branch-scoped records include classes, bookings, lesson balances, lesson deductions, and notification jobs. Members only see branches they belong to. Admin staff access is controlled through branch assignments: owners can operate across all branches, while managers operate only inside assigned branches.
+
 ## Local Development
 
 1. Copy `.env.example` to `apps/api/.env`.
@@ -27,6 +29,7 @@ Run automated checks:
 
 ```bash
 pnpm test
+pnpm lint
 pnpm build
 ```
 
@@ -38,16 +41,27 @@ Admin dashboard:
 URL: http://localhost:5173
 Username: admin
 Password: admin123456
+
+Username: east-manager
+Password: manager123456
 ```
 
 Mini program MVP members:
 
 ```text
-member-a: 阿杰 / 18800000001 / 10 lessons
-member-b: 小林 / 18800000002 / 6 lessons
+member-a: 阿杰 / 18800000001 / 城东店 / 10 lessons
+member-b: 小林 / 18800000002 / 城西店 / 6 lessons
+member-c: 东店同学 / 18800000003 / 城东店 / 4 lessons
 ```
 
 The mini program uses `POST /auth/dev-login` for MVP testing. Production WeChat login should replace this flow while keeping the booking APIs unchanged.
+
+## Branch Isolation Checks
+
+- Owner `admin` can select all branches in the web dashboard and can create classes in both `城东店` and `城西店`.
+- Manager `east-manager` can list and deduct `城东店` bookings, but cannot operate `城西店`.
+- `member-a` can list and book `城东店` classes, but cannot book `城西店` classes.
+- Booking, deduction, lesson balance, and reminder data all carry `gymId` and `branchId`.
 
 ## Mini Program Build Note
 
