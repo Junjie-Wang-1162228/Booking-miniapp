@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
-import { AdminLoginDto, DevLoginDto } from './dto';
+import { AdminLoginDto, DevLoginDto, WechatLoginDto } from './dto';
 import { JwtUser } from './auth.types';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -17,6 +17,11 @@ export class AuthController {
   @Post('dev-login')
   devLogin(@Body() dto: DevLoginDto) {
     return this.auth.devLogin(dto.member);
+  }
+
+  @Post('wechat-login')
+  wechatLogin(@Body() dto: WechatLoginDto) {
+    return this.auth.wechatLogin(dto.code);
   }
 
   @UseGuards(JwtAuthGuard)

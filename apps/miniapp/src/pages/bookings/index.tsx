@@ -1,7 +1,7 @@
 import { Button, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { useState } from 'react';
-import { cancelBooking, devLogin, getMe, getMyBookings, getStoredMember, getStoredToken, setStoredBranchId } from '../../api';
+import { cancelBooking, getMe, getMyBookings, getStoredToken, loginWithConfiguredAuth, setStoredBranchId } from '../../api';
 import { resolveSelectedMemberBranch } from '../../branch-session';
 import { AuthUser, Booking, MemberBranch } from '../../types';
 import { formatTime } from '../../utils';
@@ -24,7 +24,7 @@ export default function BookingsPage() {
       setToken(stored);
       return { token: stored, user: await getMe(stored) };
     }
-    const session = await devLogin(getStoredMember());
+    const session = await loginWithConfiguredAuth();
     setToken(session.accessToken);
     return { token: session.accessToken, user: session.user };
   }

@@ -8,10 +8,12 @@ import {
   getMe,
   getStoredMember,
   getStoredToken,
+  isDevAuthMode,
+  loginWithConfiguredAuth,
   setStoredBranchId
 } from '../../api';
 import { resolveSelectedMemberBranch } from '../../branch-session';
-import { AuthUser, BoxingClass, MemberBranch, MemberKey } from '../../types';
+import { AuthResponse, AuthUser, BoxingClass, MemberBranch, MemberKey } from '../../types';
 import { formatTime } from '../../utils';
 import { AppIcon } from '../../components/AppIcon';
 import { BrandLogo } from '../../components/BrandLogo';
@@ -31,6 +33,7 @@ export default function ClassesPage() {
   const [classes, setClasses] = useState<BoxingClass[]>([]);
   const [reminder, setReminder] = useState(true);
   const [loading, setLoading] = useState(false);
+  const devAuthMode = isDevAuthMode();
   const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
   const selectedBalance = selectedBranch?.lessonBalance.remaining ?? user?.lessonBalance?.remaining ?? 0;
 
@@ -52,18 +55,34 @@ export default function ClassesPage() {
     }
   }
 
+  async function applySession(session: AuthResponse) {
+    setToken(session.accessToken);
+    setUser(session.user);
+    const branchSession = resolveSelectedMemberBranch(session.user);
+    const classList = branchSession.selectedBranchId ? await getClasses(session.accessToken, branchSession.selectedBranchId) : [];
+    setBranches(branchSession.accessibleBranches);
+    setSelectedBranchId(branchSession.selectedBranchId);
+    setClasses(classList);
+  }
+
+  async function startSession() {
+    setLoading(true);
+    try {
+      const session = await loginWithConfiguredAuth(member);
+      await applySession(session);
+    } catch (error) {
+      Taro.showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function switchMember(nextMember: MemberKey) {
     setLoading(true);
     try {
       const session = await devLogin(nextMember);
       setMember(nextMember);
-      setToken(session.accessToken);
-      setUser(session.user);
-      const branchSession = resolveSelectedMemberBranch(session.user);
-      const classList = branchSession.selectedBranchId ? await getClasses(session.accessToken, branchSession.selectedBranchId) : [];
-      setBranches(branchSession.accessibleBranches);
-      setSelectedBranchId(branchSession.selectedBranchId);
-      setClasses(classList);
+      await applySession(session);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' });
     } finally {
@@ -106,7 +125,7 @@ export default function ClassesPage() {
       setToken(stored);
       void load(stored);
     } else {
-      void switchMember(member);
+      void startSession();
     }
   });
 
@@ -122,19 +141,21 @@ export default function ClassesPage() {
         </Text>
       </View>
 
-      <View className="member-switch">
-        {(['member-a', 'member-b'] as MemberKey[]).map((key) => (
-          <Button
-            key={key}
-            className={`member-button ${member === key ? 'active' : ''}`}
-            disabled={loading}
-            onClick={() => void switchMember(key)}
-          >
-            <AppIcon name="member" />
-            {memberNames[key]}
-          </Button>
-        ))}
-      </View>
+      {devAuthMode && (
+        <View className="member-switch">
+          {(['member-a', 'member-b'] as MemberKey[]).map((key) => (
+            <Button
+              key={key}
+              className={`member-button ${member === key ? 'active' : ''}`}
+              disabled={loading}
+              onClick={() => void switchMember(key)}
+            >
+              <AppIcon name="member" />
+              {memberNames[key]}
+            </Button>
+          ))}
+        </View>
+      )}
 
       {branches.length > 0 && (
         <View className="branch-selector">

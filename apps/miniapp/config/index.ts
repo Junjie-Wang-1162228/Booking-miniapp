@@ -2,6 +2,7 @@ import { defineConfig } from '@tarojs/cli';
 
 const nodeProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
 const apiBaseUrl = nodeProcess?.env?.TARO_APP_API_BASE_URL || 'http://localhost:4000';
+const authMode = nodeProcess?.env?.TARO_APP_AUTH_MODE || 'wechat';
 
 export default defineConfig({
   projectName: 'boxing-booking-miniapp',
@@ -17,7 +18,8 @@ export default defineConfig({
   framework: 'react',
   compiler: 'webpack5',
   defineConstants: {
-    __API_BASE_URL__: JSON.stringify(apiBaseUrl)
+    __API_BASE_URL__: JSON.stringify(apiBaseUrl),
+    __AUTH_MODE__: JSON.stringify(authMode)
   },
   mini: {
     postcss: {

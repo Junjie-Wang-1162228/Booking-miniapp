@@ -13,3 +13,9 @@ export class DevLoginDto {
   @IsIn(['member-a', 'member-b', 'member-c'])
   member!: 'member-a' | 'member-b' | 'member-c';
 }
+
+export class WechatLoginDto {
+  @IsString()
+  @MinLength(1)
+  code!: string;
+}
