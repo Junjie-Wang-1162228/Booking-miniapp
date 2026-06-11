@@ -125,6 +125,20 @@ async function main() {
     }
   });
 
+  const memberC = await prisma.user.upsert({
+    where: { phone: '18800000003' },
+    update: {
+      displayName: '东店同学',
+      role: UserRole.USER,
+      status: 'ACTIVE'
+    },
+    create: {
+      phone: '18800000003',
+      displayName: '东店同学',
+      role: UserRole.USER
+    }
+  });
+
   const now = new Date();
 
   await prisma.staffBranchAssignment.createMany({
@@ -179,6 +193,13 @@ async function main() {
       },
       {
         gymId: gym.id,
+        branchId: eastBranch.id,
+        userId: memberC.id,
+        memberNo: 'E-002',
+        isDefault: true
+      },
+      {
+        gymId: gym.id,
         branchId: westBranch.id,
         userId: memberB.id,
         memberNo: 'W-001',
@@ -200,6 +221,12 @@ async function main() {
         branchId: westBranch.id,
         userId: memberB.id,
         remaining: 6
+      },
+      {
+        gymId: gym.id,
+        branchId: eastBranch.id,
+        userId: memberC.id,
+        remaining: 4
       }
     ]
   });
@@ -243,7 +270,7 @@ async function main() {
   });
 
   console.log(
-    `Seeded ${gym.name}, branches ${eastBranch.name}/${westBranch.name}, admin ${admin.username}, and members ${memberA.displayName}/${memberB.displayName}.`
+    `Seeded ${gym.name}, branches ${eastBranch.name}/${westBranch.name}, admin ${admin.username}, and members ${memberA.displayName}/${memberB.displayName}/${memberC.displayName}.`
   );
 }
 

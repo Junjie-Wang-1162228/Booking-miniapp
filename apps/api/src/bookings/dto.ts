@@ -6,10 +6,9 @@ export class CreateBookingDto {
   @MinLength(1)
   classId!: string;
 
-  @IsOptional()
   @IsString()
   @MinLength(1)
-  branchId?: string;
+  branchId!: string;
 
   @IsOptional()
   @Type(() => Number)

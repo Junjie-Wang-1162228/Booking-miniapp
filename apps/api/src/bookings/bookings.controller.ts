@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -14,8 +14,8 @@ export class BookingsController {
   constructor(private readonly bookings: BookingsService) {}
 
   @Get('me')
-  listMine(@CurrentUser() user: JwtUser) {
-    return this.bookings.listMine(user.sub);
+  listMine(@CurrentUser() user: JwtUser, @Query('branchId') branchId: string) {
+    return this.bookings.listMine(user.sub, branchId);
   }
 
   @Post()

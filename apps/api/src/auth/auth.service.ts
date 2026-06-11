@@ -6,6 +6,14 @@ import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtUser } from './auth.types';
 
+const developmentMemberPhones = {
+  'member-a': '18800000001',
+  'member-b': '18800000002',
+  'member-c': '18800000003'
+} as const;
+
+type DevelopmentMember = keyof typeof developmentMemberPhones;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -31,8 +39,8 @@ export class AuthService {
     return this.createSession(user);
   }
 
-  async devLogin(member: 'member-a' | 'member-b') {
-    const phone = member === 'member-a' ? '18800000001' : '18800000002';
+  async devLogin(member: DevelopmentMember) {
+    const phone = developmentMemberPhones[member];
     const user = await this.prisma.user.findUnique({
       where: { phone }
     });

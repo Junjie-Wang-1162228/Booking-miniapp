@@ -78,6 +78,11 @@ describe('Boxing booking API', () => {
       update: { displayName: '小林', role: UserRole.USER, status: 'ACTIVE' },
       create: { phone: '18800000002', displayName: '小林', role: UserRole.USER }
     });
+    const memberC = await prisma.user.upsert({
+      where: { phone: '18800000003' },
+      update: { displayName: '东店同学', role: UserRole.USER, status: 'ACTIVE' },
+      create: { phone: '18800000003', displayName: '东店同学', role: UserRole.USER }
+    });
 
     const now = new Date();
     await prisma.staffBranchAssignment.createMany({
@@ -92,6 +97,7 @@ describe('Boxing booking API', () => {
     await prisma.memberBranch.createMany({
       data: [
         { gymId: gym.id, branchId: eastBranch.id, userId: memberA.id, memberNo: 'E-001', isDefault: true },
+        { gymId: gym.id, branchId: eastBranch.id, userId: memberC.id, memberNo: 'E-002', isDefault: true },
         { gymId: gym.id, branchId: westBranch.id, userId: memberB.id, memberNo: 'W-001', isDefault: true }
       ]
     });
@@ -104,6 +110,11 @@ describe('Boxing booking API', () => {
       where: { userId_branchId: { userId: memberB.id, branchId: westBranch.id } },
       update: { remaining: 6 },
       create: { gymId: gym.id, branchId: westBranch.id, userId: memberB.id, remaining: 6 }
+    });
+    await prisma.lessonBalance.upsert({
+      where: { userId_branchId: { userId: memberC.id, branchId: eastBranch.id } },
+      update: { remaining: 4 },
+      create: { gymId: gym.id, branchId: eastBranch.id, userId: memberC.id, remaining: 4 }
     });
 
     await prisma.boxingClass.createMany({
@@ -450,9 +461,16 @@ describe('Boxing booking API', () => {
       return response.body.accessToken as string;
     }
 
-    async function userToken(member: 'member-a' | 'member-b' = 'member-a') {
+    async function memberSession(member: 'member-a' | 'member-b' | 'member-c' = 'member-a') {
       const response = await request(app.getHttpServer()).post('/auth/dev-login').send({ member }).expect(201);
-      return response.body.accessToken as string;
+      return {
+        token: response.body.accessToken as string,
+        defaultBranchId: response.body.user.defaultBranchId as string
+      };
+    }
+
+    async function userToken(member: 'member-a' | 'member-b' | 'member-c' = 'member-a') {
+      return (await memberSession(member)).token;
     }
 
     async function branchIdByName(name: string) {
@@ -460,9 +478,9 @@ describe('Boxing booking API', () => {
       return branch.id;
     }
 
-    async function createClass(capacity = 4) {
+    async function createClass(capacity = 4, branchName = '城东店') {
       const admin = await adminToken();
-      const branchId = await branchIdByName('城东店');
+      const branchId = await branchIdByName(branchName);
       const response = await request(app.getHttpServer())
         .post('/admin/classes')
         .set('Authorization', `Bearer ${admin}`)
@@ -479,15 +497,66 @@ describe('Boxing booking API', () => {
       return response.body as { id: string; branchId: string };
     }
 
+    it('rejects a member booking a class outside their branch', async () => {
+      const boxingClass = await createClass(4, '城西店');
+      const memberA = await memberSession('member-a');
+
+      await request(app.getHttpServer())
+        .post('/bookings')
+        .set('Authorization', `Bearer ${memberA.token}`)
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
+        .expect(403);
+    });
+
+    it('rejects mismatched booking branch and class branch', async () => {
+      const boxingClass = await createClass(4, '城东店');
+      const memberB = await memberSession('member-b');
+
+      await request(app.getHttpServer())
+        .post('/bookings')
+        .set('Authorization', `Bearer ${memberB.token}`)
+        .send({ classId: boxingClass.id, branchId: memberB.defaultBranchId })
+        .expect(400);
+    });
+
+    it('scopes member booking list by branch', async () => {
+      const boxingClass = await createClass();
+      const memberA = await memberSession('member-a');
+      const westBranchId = await branchIdByName('城西店');
+
+      const created = await request(app.getHttpServer())
+        .post('/bookings')
+        .set('Authorization', `Bearer ${memberA.token}`)
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
+        .expect(201);
+
+      const branchScopedBookings = await request(app.getHttpServer())
+        .get(`/bookings/me?branchId=${memberA.defaultBranchId}`)
+        .set('Authorization', `Bearer ${memberA.token}`)
+        .expect(200);
+
+      expect(branchScopedBookings.body.some((item: { id: string }) => item.id === created.body.id)).toBe(true);
+      expect(
+        branchScopedBookings.body.every(
+          (booking: { boxingClass: { branchId: string } }) => booking.boxingClass.branchId === memberA.defaultBranchId
+        )
+      ).toBe(true);
+
+      await request(app.getHttpServer())
+        .get(`/bookings/me?branchId=${westBranchId}`)
+        .set('Authorization', `Bearer ${memberA.token}`)
+        .expect(403);
+    });
+
     it('lets a member book a class and see only their own booking', async () => {
       const boxingClass = await createClass();
       const memberA = await userToken('member-a');
-      const memberB = await userToken('member-b');
+      const memberC = await userToken('member-c');
 
       const created = await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(201);
 
       expect(created.body).toMatchObject({
@@ -498,16 +567,16 @@ describe('Boxing booking API', () => {
       });
 
       const memberABookings = await request(app.getHttpServer())
-        .get('/bookings/me')
+        .get(`/bookings/me?branchId=${boxingClass.branchId}`)
         .set('Authorization', `Bearer ${memberA}`)
         .expect(200);
       expect(memberABookings.body.some((item: { id: string }) => item.id === created.body.id)).toBe(true);
 
-      const memberBBookings = await request(app.getHttpServer())
-        .get('/bookings/me')
-        .set('Authorization', `Bearer ${memberB}`)
+      const memberCBookings = await request(app.getHttpServer())
+        .get(`/bookings/me?branchId=${boxingClass.branchId}`)
+        .set('Authorization', `Bearer ${memberC}`)
         .expect(200);
-      expect(memberBBookings.body.some((item: { id: string }) => item.id === created.body.id)).toBe(false);
+      expect(memberCBookings.body.some((item: { id: string }) => item.id === created.body.id)).toBe(false);
     });
 
     it('rejects duplicate active booking for the same class', async () => {
@@ -517,48 +586,48 @@ describe('Boxing booking API', () => {
       await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(201);
 
       await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(409);
     });
 
     it('enforces class capacity', async () => {
       const boxingClass = await createClass(1);
       const memberA = await userToken('member-a');
-      const memberB = await userToken('member-b');
+      const memberC = await userToken('member-c');
 
       await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(201);
 
       await request(app.getHttpServer())
         .post('/bookings')
-        .set('Authorization', `Bearer ${memberB}`)
-        .send({ classId: boxingClass.id })
+        .set('Authorization', `Bearer ${memberC}`)
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(409);
     });
 
     it('lets a member cancel only their own booking before class start', async () => {
       const boxingClass = await createClass();
       const memberA = await userToken('member-a');
-      const memberB = await userToken('member-b');
+      const memberC = await userToken('member-c');
 
       const created = await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(201);
 
       await request(app.getHttpServer())
         .post(`/bookings/${created.body.id}/cancel`)
-        .set('Authorization', `Bearer ${memberB}`)
+        .set('Authorization', `Bearer ${memberC}`)
         .expect(403);
 
       const canceled = await request(app.getHttpServer())
@@ -579,7 +648,7 @@ describe('Boxing booking API', () => {
       const created = await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${memberA}`)
-        .send({ classId: boxingClass.id, remindBeforeMinutes: 120 })
+        .send({ classId: boxingClass.id, branchId: boxingClass.branchId, remindBeforeMinutes: 120 })
         .expect(201);
 
       const jobs = await prisma.notificationJob.findMany({
@@ -589,6 +658,7 @@ describe('Boxing booking API', () => {
       expect(jobs).toHaveLength(1);
       expect(jobs[0]).toMatchObject({
         bookingId: created.body.id,
+        branchId: boxingClass.branchId,
         type: 'CLASS_REMINDER',
         status: 'PENDING'
       });
@@ -637,7 +707,7 @@ describe('Boxing booking API', () => {
       const booking = await request(app.getHttpServer())
         .post('/bookings')
         .set('Authorization', `Bearer ${user}`)
-        .send({ classId: boxingClass.body.id })
+        .send({ classId: boxingClass.body.id, branchId })
         .expect(201);
 
       return { bookingId: booking.body.id, classId: boxingClass.body.id };

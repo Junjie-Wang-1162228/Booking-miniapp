@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { AttendanceStatus, Booking, BookingStatus, ClassStatus, Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto';
 
@@ -28,12 +29,19 @@ type BookingWithClass = Booking & {
 export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly branchAccess: BranchAccessService
   ) {}
 
-  async listMine(userId: string) {
+  async listMine(userId: string, branchId: string) {
+    if (!branchId) {
+      throw new BadRequestException('branchId is required');
+    }
+
+    await this.branchAccess.ensureMemberBranchAccess(userId, branchId);
+
     const bookings = await this.prisma.booking.findMany({
-      where: { userId },
+      where: { userId, branchId },
       include: { boxingClass: true },
       orderBy: { createdAt: 'desc' }
     });
@@ -42,6 +50,8 @@ export class BookingsService {
   }
 
   async createBooking(userId: string, dto: CreateBookingDto) {
+    await this.branchAccess.ensureMemberBranchAccess(userId, dto.branchId);
+
     return this.prisma.$transaction(async (tx) => {
       const boxingClass = await tx.boxingClass.findUnique({
         where: { id: dto.classId },
@@ -57,8 +67,16 @@ export class BookingsService {
         throw new NotFoundException('Class not found');
       }
 
-      if (dto.branchId && boxingClass.branchId !== dto.branchId) {
+      if (boxingClass.branchId !== dto.branchId) {
         throw new BadRequestException('Class does not belong to requested branch');
+      }
+
+      const lessonBalance = await tx.lessonBalance.findUnique({
+        where: { userId_branchId: { userId, branchId: dto.branchId } }
+      });
+
+      if (!lessonBalance || lessonBalance.remaining <= 0) {
+        throw new ConflictException('Member has no remaining lessons');
       }
 
       if (boxingClass.status !== ClassStatus.SCHEDULED) {
@@ -119,6 +137,8 @@ export class BookingsService {
         throw new ForbiddenException('Cannot cancel another member booking');
       }
 
+      await this.branchAccess.ensureMemberBranchAccess(userId, booking.branchId);
+
       if (booking.status !== BookingStatus.BOOKED) {
         throw new BadRequestException('Booking is not active');
       }
@@ -171,6 +191,8 @@ export class BookingsService {
   private toBookingView(booking: BookingWithClass) {
     return {
       id: booking.id,
+      gymId: booking.gymId,
+      branchId: booking.branchId,
       status: booking.status,
       attendanceStatus: booking.attendanceStatus,
       canceledAt: booking.canceledAt,

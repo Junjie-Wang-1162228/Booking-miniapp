@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
+import { BranchesModule } from '../branches/branches.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [BranchesModule, NotificationsModule],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService]

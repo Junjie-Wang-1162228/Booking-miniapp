@@ -10,6 +10,6 @@ export class AdminLoginDto {
 }
 
 export class DevLoginDto {
-  @IsIn(['member-a', 'member-b'])
-  member!: 'member-a' | 'member-b';
+  @IsIn(['member-a', 'member-b', 'member-c'])
+  member!: 'member-a' | 'member-b' | 'member-c';
 }
