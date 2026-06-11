@@ -19,6 +19,12 @@ enum UserStatus {
   DISABLED
 }
 
+enum StaffRole {
+  OWNER
+  MANAGER
+  COACH
+}
+
 enum ClassStatus {
   SCHEDULED
   CANCELED
@@ -41,21 +47,97 @@ enum NotificationStatus {
   SKIPPED
 }
 
-model User {
-  id               String            @id @default(cuid())
-  role             UserRole
-  status           UserStatus        @default(ACTIVE)
-  displayName      String
-  phone            String?           @unique
-  username         String?           @unique
-  passwordHash     String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  wechatAccounts   WechatAccount[]
+model Gym {
+  id        String     @id @default(cuid())
+  name      String
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  branches  Branch[]
+
+  @@index([status])
+}
+
+model Branch {
+  id               String                  @id @default(cuid())
+  gymId            String
+  name             String
+  address          String?
+  phone            String?
+  status           UserStatus              @default(ACTIVE)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  gym              Gym                     @relation(fields: [gymId], references: [id])
+  memberBranches   MemberBranch[]
+  staffAssignments StaffBranchAssignment[]
+  classes          BoxingClass[]
   bookings         Booking[]
-  lessonBalance    LessonBalance?
-  lessonDeductions LessonDeduction[] @relation("MemberDeductions")
-  adminDeductions  LessonDeduction[] @relation("AdminDeductions")
+  lessonBalances   LessonBalance[]
+  lessonDeductions LessonDeduction[]
+  notificationJobs NotificationJob[]
+
+  @@index([gymId])
+  @@index([status])
+}
+
+model MemberBranch {
+  id        String     @id @default(cuid())
+  gymId     String
+  branchId  String
+  userId    String
+  memberNo  String?
+  status    UserStatus @default(ACTIVE)
+  isDefault Boolean    @default(false)
+  joinedAt  DateTime   @default(now())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id])
+  branch    Branch     @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([gymId])
+  @@index([branchId])
+  @@index([status])
+}
+
+model StaffBranchAssignment {
+  id        String     @id @default(cuid())
+  gymId     String
+  branchId  String
+  userId    String
+  role      StaffRole
+  startsAt  DateTime
+  endsAt    DateTime?
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id])
+  branch    Branch     @relation(fields: [branchId], references: [id])
+
+  @@index([userId, role])
+  @@index([branchId, role])
+  @@index([gymId])
+  @@index([status])
+}
+
+model User {
+  id                     String                  @id @default(cuid())
+  role                   UserRole
+  status                 UserStatus              @default(ACTIVE)
+  displayName            String
+  phone                  String?                 @unique
+  username               String?                 @unique
+  passwordHash           String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  wechatAccounts         WechatAccount[]
+  bookings               Booking[]
+  lessonBalances         LessonBalance[]
+  lessonDeductions       LessonDeduction[]       @relation("MemberDeductions")
+  adminDeductions        LessonDeduction[]       @relation("AdminDeductions")
+  memberBranches         MemberBranch[]
+  staffBranchAssignments StaffBranchAssignment[]
+  coachedClasses         BoxingClass[]           @relation("ClassCoach")
 }
 
 model WechatAccount {
@@ -72,52 +154,73 @@ model WechatAccount {
 }
 
 model BoxingClass {
-  id          String      @id @default(cuid())
-  title       String
-  coach       String
-  startsAt    DateTime
-  durationMin Int
-  capacity    Int
-  status      ClassStatus @default(SCHEDULED)
-  description String      @db.VarChar(500)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  bookings    Booking[]
+  id                String      @id @default(cuid())
+  gymId             String
+  branchId          String
+  coachId           String?
+  title             String
+  coachNameSnapshot String
+  startsAt          DateTime
+  durationMin       Int
+  capacity          Int
+  status            ClassStatus @default(SCHEDULED)
+  description       String      @db.VarChar(500)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  branch            Branch      @relation(fields: [branchId], references: [id])
+  coachUser         User?       @relation("ClassCoach", fields: [coachId], references: [id])
+  bookings          Booking[]
 
-  @@index([startsAt])
+  @@index([gymId])
+  @@index([branchId, startsAt])
+  @@index([coachId])
   @@index([status])
 }
 
 model Booking {
-  id               String             @id @default(cuid())
+  id               String            @id @default(cuid())
+  gymId            String
+  branchId         String
   userId           String
   classId          String
-  status           BookingStatus      @default(BOOKED)
-  attendanceStatus AttendanceStatus   @default(PENDING)
+  status           BookingStatus     @default(BOOKED)
+  attendanceStatus AttendanceStatus  @default(PENDING)
   canceledAt       DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  user             User               @relation(fields: [userId], references: [id])
-  boxingClass      BoxingClass        @relation(fields: [classId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  user             User              @relation(fields: [userId], references: [id])
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  boxingClass      BoxingClass       @relation(fields: [classId], references: [id])
   lessonDeduction  LessonDeduction?
   notificationJobs NotificationJob[]
 
   @@unique([userId, classId, status])
+  @@index([gymId])
+  @@index([branchId])
   @@index([classId])
   @@index([userId])
 }
 
 model LessonBalance {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  gymId     String
+  branchId  String
+  userId    String
   remaining Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([gymId])
+  @@index([branchId])
 }
 
 model LessonDeduction {
   id        String   @id @default(cuid())
+  gymId     String
+  branchId  String
   bookingId String   @unique
   userId    String
   adminId   String
@@ -125,15 +228,20 @@ model LessonDeduction {
   note      String?  @db.VarChar(300)
   createdAt DateTime @default(now())
   booking   Booking  @relation(fields: [bookingId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
   user      User     @relation("MemberDeductions", fields: [userId], references: [id])
   admin     User     @relation("AdminDeductions", fields: [adminId], references: [id])
 
+  @@index([gymId])
+  @@index([branchId])
   @@index([userId])
   @@index([adminId])
 }
 
 model NotificationJob {
   id          String             @id @default(cuid())
+  gymId       String
+  branchId    String
   bookingId   String
   userId      String
   type        String
@@ -143,8 +251,11 @@ model NotificationJob {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   booking     Booking            @relation(fields: [bookingId], references: [id])
+  branch      Branch             @relation(fields: [branchId], references: [id])
   logs        NotificationLog[]
 
+  @@index([gymId])
+  @@index([branchId])
   @@index([scheduledAt, status])
   @@index([userId])
 }
@@ -155,7 +266,7 @@ model NotificationLog {
   status    NotificationStatus
   message   String             @db.VarChar(500)
   createdAt DateTime           @default(now())
-  job       NotificationJob     @relation(fields: [jobId], references: [id])
+  job       NotificationJob    @relation(fields: [jobId], references: [id])
 
   @@index([jobId])
 }

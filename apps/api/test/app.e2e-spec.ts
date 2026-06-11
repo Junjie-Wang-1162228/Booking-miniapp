@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { UserRole } from '@prisma/client';
+import { StaffRole, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -33,11 +33,29 @@ describe('Boxing booking API', () => {
     await prisma.lessonDeduction.deleteMany();
     await prisma.booking.deleteMany();
     await prisma.boxingClass.deleteMany();
+    await prisma.lessonBalance.deleteMany();
+    await prisma.staffBranchAssignment.deleteMany();
+    await prisma.memberBranch.deleteMany();
+    await prisma.branch.deleteMany();
+    await prisma.gym.deleteMany();
+
+    const gym = await prisma.gym.create({ data: { name: '拳馆约课' } });
+    const eastBranch = await prisma.branch.create({
+      data: { gymId: gym.id, name: '城东店', address: '城东训练中心', phone: '18810000001' }
+    });
+    const westBranch = await prisma.branch.create({
+      data: { gymId: gym.id, name: '城西店', address: '城西训练中心', phone: '18810000002' }
+    });
 
     const admin = await prisma.user.upsert({
       where: { username: 'admin' },
       update: { displayName: '馆长', role: UserRole.ADMIN, passwordHash, status: 'ACTIVE' },
       create: { username: 'admin', displayName: '馆长', role: UserRole.ADMIN, passwordHash }
+    });
+    const coach = await prisma.user.upsert({
+      where: { username: 'coach-leo' },
+      update: { displayName: 'Coach Leo', role: UserRole.USER, status: 'ACTIVE' },
+      create: { username: 'coach-leo', displayName: 'Coach Leo', role: UserRole.USER }
     });
     const memberA = await prisma.user.upsert({
       where: { phone: '18800000001' },
@@ -50,39 +68,62 @@ describe('Boxing booking API', () => {
       create: { phone: '18800000002', displayName: '小林', role: UserRole.USER }
     });
 
-    await prisma.lessonBalance.upsert({
-      where: { userId: memberA.id },
-      update: { remaining: 10 },
-      create: { userId: memberA.id, remaining: 10 }
+    const now = new Date();
+    await prisma.staffBranchAssignment.createMany({
+      data: [
+        { gymId: gym.id, branchId: eastBranch.id, userId: admin.id, role: StaffRole.OWNER, startsAt: now },
+        { gymId: gym.id, branchId: westBranch.id, userId: admin.id, role: StaffRole.OWNER, startsAt: now },
+        { gymId: gym.id, branchId: eastBranch.id, userId: coach.id, role: StaffRole.COACH, startsAt: now },
+        { gymId: gym.id, branchId: westBranch.id, userId: coach.id, role: StaffRole.COACH, startsAt: now }
+      ]
+    });
+    await prisma.memberBranch.createMany({
+      data: [
+        { gymId: gym.id, branchId: eastBranch.id, userId: memberA.id, memberNo: 'E-001', isDefault: true },
+        { gymId: gym.id, branchId: westBranch.id, userId: memberB.id, memberNo: 'W-001', isDefault: true }
+      ]
     });
     await prisma.lessonBalance.upsert({
-      where: { userId: memberB.id },
+      where: { userId_branchId: { userId: memberA.id, branchId: eastBranch.id } },
+      update: { remaining: 10 },
+      create: { gymId: gym.id, branchId: eastBranch.id, userId: memberA.id, remaining: 10 }
+    });
+    await prisma.lessonBalance.upsert({
+      where: { userId_branchId: { userId: memberB.id, branchId: westBranch.id } },
       update: { remaining: 6 },
-      create: { userId: memberB.id, remaining: 6 }
+      create: { gymId: gym.id, branchId: westBranch.id, userId: memberB.id, remaining: 6 }
     });
 
-    const now = new Date();
     await prisma.boxingClass.createMany({
       data: [
         {
+          gymId: gym.id,
+          branchId: eastBranch.id,
+          coachId: coach.id,
           title: '基础拳击燃脂',
-          coach: 'Coach Leo',
+          coachNameSnapshot: 'Coach Leo',
           startsAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
           durationMin: 60,
           capacity: 8,
           description: '适合新手和恢复训练，重点练习步伐、直拳和基础组合。'
         },
         {
+          gymId: gym.id,
+          branchId: westBranch.id,
+          coachId: coach.id,
           title: '进阶组合拳',
-          coach: 'Coach Mina',
+          coachNameSnapshot: 'Coach Leo',
           startsAt: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
           durationMin: 75,
           capacity: 6,
           description: '强化组合拳、闪躲和节奏控制，适合有基础的会员。'
         },
         {
+          gymId: gym.id,
+          branchId: eastBranch.id,
+          coachId: coach.id,
           title: '周末实战体能',
-          coach: 'Coach Han',
+          coachNameSnapshot: 'Coach Leo',
           startsAt: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
           durationMin: 90,
           capacity: 10,
@@ -123,6 +164,16 @@ describe('Boxing booking API', () => {
       displayName: '阿杰',
       phone: '18800000001'
     });
+    expect(response.body.user.accessibleBranches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(String),
+          name: '城东店',
+          lessonBalance: { remaining: 10 }
+        })
+      ])
+    );
+    expect(response.body.user.defaultBranchId).toEqual(expect.any(String));
   });
 
   it('returns the current member with lesson balance from a JWT', async () => {
@@ -142,6 +193,50 @@ describe('Boxing booking API', () => {
       phone: '18800000001',
       lessonBalance: { remaining: 10 }
     });
+    expect(response.body.accessibleBranches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.any(String),
+          name: '城东店',
+          lessonBalance: { remaining: 10 }
+        })
+      ])
+    );
+    expect(response.body.defaultBranchId).toEqual(expect.any(String));
+  });
+
+  it('returns the current member branch list', async () => {
+    const login = await request(app.getHttpServer())
+      .post('/auth/dev-login')
+      .send({ member: 'member-a' })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/branches/me')
+      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        name: '城东店',
+        lessonBalance: { remaining: 10 }
+      })
+    ]);
+  });
+
+  it('returns admin accessible branches', async () => {
+    const login = await request(app.getHttpServer())
+      .post('/auth/admin-login')
+      .send({ username: 'admin', password: 'admin123456' })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/admin/branches')
+      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .expect(200);
+
+    expect(response.body.map((branch: { name: string }) => branch.name).sort()).toEqual(['城东店', '城西店']);
   });
 
   describe('classes', () => {

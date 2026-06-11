@@ -14,7 +14,9 @@ type BookingWithClass = Booking & {
   boxingClass: {
     id: string;
     title: string;
-    coach: string;
+    coachNameSnapshot: string;
+    branchId: string;
+    coachId: string | null;
     startsAt: Date;
     durationMin: number;
     status: ClassStatus;
@@ -55,6 +57,10 @@ export class BookingsService {
         throw new NotFoundException('Class not found');
       }
 
+      if (dto.branchId && boxingClass.branchId !== dto.branchId) {
+        throw new BadRequestException('Class does not belong to requested branch');
+      }
+
       if (boxingClass.status !== ClassStatus.SCHEDULED) {
         throw new BadRequestException('Class is not available for booking');
       }
@@ -74,6 +80,8 @@ export class BookingsService {
 
       const booking = await tx.booking.create({
         data: {
+          gymId: boxingClass.gymId,
+          branchId: boxingClass.branchId,
           userId,
           classId: boxingClass.id
         },
@@ -85,6 +93,8 @@ export class BookingsService {
           tx,
           booking.id,
           userId,
+          boxingClass.gymId,
+          boxingClass.branchId,
           boxingClass.startsAt,
           dto.remindBeforeMinutes
         );
@@ -140,11 +150,15 @@ export class BookingsService {
     tx: Prisma.TransactionClient,
     bookingId: string,
     userId: string,
+    gymId: string,
+    branchId: string,
     classStartsAt: Date,
     remindBeforeMinutes: number
   ) {
     await tx.notificationJob.create({
       data: {
+        gymId,
+        branchId,
         bookingId,
         userId,
         type: 'CLASS_REMINDER',
@@ -165,7 +179,9 @@ export class BookingsService {
       boxingClass: {
         id: booking.boxingClass.id,
         title: booking.boxingClass.title,
-        coach: booking.boxingClass.coach,
+        coach: booking.boxingClass.coachNameSnapshot,
+        branchId: booking.boxingClass.branchId,
+        coachId: booking.boxingClass.coachId,
         startsAt: booking.boxingClass.startsAt,
         durationMin: booking.boxingClass.durationMin,
         status: booking.boxingClass.status,

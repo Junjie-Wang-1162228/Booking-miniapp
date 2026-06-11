@@ -7,6 +7,11 @@ export class CreateBookingDto {
   classId!: string;
 
   @IsOptional()
+  @IsString()
+  @MinLength(1)
+  branchId?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsIn([60, 120, 180, 1440])
   remindBeforeMinutes?: number;

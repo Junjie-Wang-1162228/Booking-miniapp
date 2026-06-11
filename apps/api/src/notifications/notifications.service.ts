@@ -13,6 +13,8 @@ export class NotificationsService {
   async createClassReminder(
     bookingId: string,
     userId: string,
+    gymId: string,
+    branchId: string,
     classStartsAt: Date,
     remindBeforeMinutes: number
   ): Promise<void> {
@@ -20,6 +22,8 @@ export class NotificationsService {
 
     await this.prisma.notificationJob.create({
       data: {
+        gymId,
+        branchId,
         bookingId,
         userId,
         type: 'CLASS_REMINDER',

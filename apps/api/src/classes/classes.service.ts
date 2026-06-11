@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BoxingClass, BookingStatus, ClassStatus } from '@prisma/client';
+import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClassDto, UpdateClassDto } from './dto';
 
@@ -9,7 +10,10 @@ type ClassWithBookings = BoxingClass & {
 
 @Injectable()
 export class ClassesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly branchAccess: BranchAccessService
+  ) {}
 
   async listAvailable(now = new Date()) {
     const classes = await this.prisma.boxingClass.findMany({
@@ -44,10 +48,16 @@ export class ClassesService {
   }
 
   async create(dto: CreateClassDto) {
+    const branch = dto.branchId
+      ? await this.branchAccess.ensureBranchExists(dto.branchId)
+      : await this.branchAccess.getDefaultBranch();
     const boxingClass = await this.prisma.boxingClass.create({
       data: {
+        gymId: branch.gymId,
+        branchId: branch.id,
+        coachId: dto.coachId,
         title: dto.title,
-        coach: dto.coach,
+        coachNameSnapshot: dto.coach,
         startsAt: new Date(dto.startsAt),
         durationMin: dto.durationMin,
         capacity: dto.capacity,
@@ -71,7 +81,8 @@ export class ClassesService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.coach !== undefined ? { coach: dto.coach } : {}),
+        ...(dto.coach !== undefined ? { coachNameSnapshot: dto.coach } : {}),
+        ...(dto.coachId !== undefined ? { coachId: dto.coachId } : {}),
         ...(dto.startsAt !== undefined ? { startsAt: new Date(dto.startsAt) } : {}),
         ...(dto.durationMin !== undefined ? { durationMin: dto.durationMin } : {}),
         ...(dto.capacity !== undefined ? { capacity: dto.capacity } : {}),
@@ -117,8 +128,11 @@ export class ClassesService {
 
     return {
       id: boxingClass.id,
+      gymId: boxingClass.gymId,
+      branchId: boxingClass.branchId,
       title: boxingClass.title,
-      coach: boxingClass.coach,
+      coach: boxingClass.coachNameSnapshot,
+      coachId: boxingClass.coachId,
       startsAt: boxingClass.startsAt,
       durationMin: boxingClass.durationMin,
       capacity: boxingClass.capacity,

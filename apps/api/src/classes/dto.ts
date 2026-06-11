@@ -2,6 +2,16 @@ import { Type } from 'class-transformer';
 import { IsInt, IsISO8601, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class CreateClassDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  branchId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  coachId?: string;
+
   @IsString()
   @MinLength(1)
   title!: string;
@@ -31,6 +41,11 @@ export class CreateClassDto {
 }
 
 export class UpdateClassDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  coachId?: string;
+
   @IsOptional()
   @IsString()
   @MinLength(1)

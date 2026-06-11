@@ -58,7 +58,8 @@ export class LessonDeductionsService {
       boxingClass: {
         id: booking.boxingClass.id,
         title: booking.boxingClass.title,
-        coach: booking.boxingClass.coach,
+        coach: booking.boxingClass.coachNameSnapshot,
+        branchId: booking.branchId,
         startsAt: booking.boxingClass.startsAt,
         durationMin: booking.boxingClass.durationMin,
         status: booking.boxingClass.status
@@ -71,7 +72,7 @@ export class LessonDeductionsService {
       const booking = await tx.booking.findUnique({
         where: { id: bookingId },
         include: {
-          user: { include: { lessonBalance: true } },
+          user: true,
           boxingClass: true,
           lessonDeduction: true
         }
@@ -89,12 +90,18 @@ export class LessonDeductionsService {
         throw new ConflictException('Booking has already been deducted');
       }
 
-      if (!booking.user.lessonBalance || booking.user.lessonBalance.remaining <= 0) {
+      const lessonBalance = await tx.lessonBalance.findUnique({
+        where: { userId_branchId: { userId: booking.userId, branchId: booking.branchId } }
+      });
+
+      if (!lessonBalance || lessonBalance.remaining <= 0) {
         throw new ConflictException('Member has no remaining lessons');
       }
 
       const deduction = await tx.lessonDeduction.create({
         data: {
+          gymId: booking.gymId,
+          branchId: booking.branchId,
           bookingId: booking.id,
           userId: booking.userId,
           adminId,
@@ -109,7 +116,7 @@ export class LessonDeductionsService {
       });
 
       await tx.lessonBalance.update({
-        where: { userId: booking.userId },
+        where: { userId_branchId: { userId: booking.userId, branchId: booking.branchId } },
         data: { remaining: { decrement: 1 } }
       });
 
@@ -178,7 +185,8 @@ export class LessonDeductionsService {
       boxingClass: {
         id: deduction.booking.boxingClass.id,
         title: deduction.booking.boxingClass.title,
-        coach: deduction.booking.boxingClass.coach,
+        coach: deduction.booking.boxingClass.coachNameSnapshot,
+        branchId: deduction.branchId,
         startsAt: deduction.booking.boxingClass.startsAt
       }
     };
