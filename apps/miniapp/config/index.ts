@@ -1,5 +1,8 @@
 import { defineConfig } from '@tarojs/cli';
 
+const nodeProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+const apiBaseUrl = nodeProcess?.env?.TARO_APP_API_BASE_URL || 'http://localhost:4000';
+
 export default defineConfig({
   projectName: 'boxing-booking-miniapp',
   date: '2026-06-09',
@@ -13,6 +16,9 @@ export default defineConfig({
   outputRoot: 'dist',
   framework: 'react',
   compiler: 'webpack5',
+  defineConstants: {
+    __API_BASE_URL__: JSON.stringify(apiBaseUrl)
+  },
   mini: {
     postcss: {
       pxtransform: {

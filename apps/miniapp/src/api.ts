@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro';
 import { AuthResponse, Booking, BoxingClass, Deduction, MemberBranch, MemberKey } from './types';
 
-const API_BASE = process.env.TARO_APP_API_BASE_URL || 'http://localhost:4000';
+const API_BASE = __API_BASE_URL__;
 const TOKEN_KEY = 'member_token';
 const MEMBER_KEY = 'member_key';
 const BRANCH_KEY = 'selected_branch_id';
