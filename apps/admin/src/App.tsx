@@ -19,13 +19,14 @@ import {
   cancelClass,
   createClass,
   deductBooking,
+  getAdminBranches,
   getAdminBookings,
   getAdminClasses,
   getAdminDeductions,
   loginAdmin,
   updateClass
 } from './api';
-import { AdminBooking, AdminClass, AuthUser, CreateClassInput, Deduction } from './types';
+import { AdminBooking, AdminBranch, AdminClass, AuthUser, CreateClassInput, Deduction } from './types';
 
 type ClassFormValues = Omit<CreateClassInput, 'startsAt'> & {
   startsAtLocal: string;
@@ -33,6 +34,7 @@ type ClassFormValues = Omit<CreateClassInput, 'startsAt'> & {
 
 const storedToken = localStorage.getItem('admin_token');
 const storedUser = localStorage.getItem('admin_user');
+const storedBranchId = localStorage.getItem('admin_branch_id') ?? '';
 
 function statusTag(status: string) {
   if (status === 'BOOKED' || status === 'SCHEDULED') return <Tag color="green">{status}</Tag>;
@@ -49,10 +51,23 @@ function toLocalInputValue(value: string) {
   return dayjs(value).format('YYYY-MM-DDTHH:mm');
 }
 
+function canSelectAllBranches(branches: AdminBranch[]) {
+  return branches.some((branch) => branch.staffRole === 'OWNER');
+}
+
+function resolveAdminBranchId(branches: AdminBranch[], preferredBranchId: string) {
+  const canSelectAll = canSelectAllBranches(branches);
+  if (canSelectAll && preferredBranchId === '') return '';
+  if (preferredBranchId && branches.some((branch) => branch.id === preferredBranchId)) return preferredBranchId;
+  return canSelectAll ? '' : branches[0]?.id ?? '';
+}
+
 export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [token, setToken] = useState<string | null>(storedToken);
   const [user, setUser] = useState<AuthUser | null>(storedUser ? (JSON.parse(storedUser) as AuthUser) : null);
+  const [branches, setBranches] = useState<AdminBranch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(storedBranchId);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [classes, setClasses] = useState<AdminClass[]>([]);
   const [deductions, setDeductions] = useState<Deduction[]>([]);
@@ -64,30 +79,54 @@ export default function App() {
   const [classForm] = Form.useForm<ClassFormValues>();
 
   const isLoggedIn = Boolean(token && user);
+  const selectedBranchName =
+    selectedBranchId === ''
+      ? '全部门店'
+      : branches.find((branch) => branch.id === selectedBranchId)?.name ?? '当前门店';
+  const branchOptions = useMemo(
+    () => [
+      ...(canSelectAllBranches(branches) ? [{ value: '', label: '全部门店' }] : []),
+      ...branches.map((branch) => ({ value: branch.id, label: `${branch.name} · ${branch.staffRole}` }))
+    ],
+    [branches]
+  );
+  const branchNameById = useMemo(
+    () => new Map(branches.map((branch) => [branch.id, branch.name])),
+    [branches]
+  );
 
-  async function loadBookings(currentToken = token) {
+  async function loadBookings(currentToken = token, branchId = selectedBranchId) {
     if (!currentToken) return;
-    const data = await getAdminBookings(currentToken, bookingFilters);
+    const data = await getAdminBookings(currentToken, { ...bookingFilters, branchId });
     setBookings(data);
   }
 
-  async function loadClasses(currentToken = token) {
+  async function loadClasses(currentToken = token, branchId = selectedBranchId) {
     if (!currentToken) return;
-    const data = await getAdminClasses(currentToken);
+    const data = await getAdminClasses(currentToken, branchId || undefined);
     setClasses(data);
   }
 
-  async function loadDeductions(currentToken = token) {
+  async function loadDeductions(currentToken = token, branchId = selectedBranchId) {
     if (!currentToken) return;
-    const data = await getAdminDeductions(currentToken);
+    const data = await getAdminDeductions(currentToken, branchId || undefined);
     setDeductions(data);
   }
 
-  async function refreshAll(currentToken = token) {
+  async function refreshAll(currentToken = token, preferredBranchId = selectedBranchId) {
     if (!currentToken) return;
     setLoading(true);
     try {
-      await Promise.all([loadBookings(currentToken), loadClasses(currentToken), loadDeductions(currentToken)]);
+      const nextBranches = await getAdminBranches(currentToken);
+      const nextBranchId = resolveAdminBranchId(nextBranches, preferredBranchId);
+      localStorage.setItem('admin_branch_id', nextBranchId);
+      setBranches(nextBranches);
+      setSelectedBranchId(nextBranchId);
+      await Promise.all([
+        loadBookings(currentToken, nextBranchId),
+        loadClasses(currentToken, nextBranchId),
+        loadDeductions(currentToken, nextBranchId)
+      ]);
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : '加载失败');
     } finally {
@@ -121,17 +160,27 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_branch_id');
     setToken(null);
     setUser(null);
+    setBranches([]);
+    setSelectedBranchId('');
     setBookings([]);
     setClasses([]);
     setDeductions([]);
+  }
+
+  async function handleBranchChange(branchId: string) {
+    localStorage.setItem('admin_branch_id', branchId);
+    setSelectedBranchId(branchId);
+    await refreshAll(token, branchId);
   }
 
   function startCreateClass() {
     setEditingClass(null);
     classForm.resetFields();
     classForm.setFieldsValue({
+      branchId: selectedBranchId || branches[0]?.id,
       durationMin: 60,
       capacity: 8,
       startsAtLocal: dayjs().add(1, 'day').hour(19).minute(30).format('YYYY-MM-DDTHH:mm')
@@ -141,6 +190,7 @@ export default function App() {
   function startEditClass(record: AdminClass) {
     setEditingClass(record);
     classForm.setFieldsValue({
+      branchId: record.branchId,
       title: record.title,
       coach: record.coach,
       startsAtLocal: toLocalInputValue(record.startsAt),
@@ -152,7 +202,7 @@ export default function App() {
 
   async function submitClass(values: ClassFormValues) {
     if (!token) return;
-    const payload: CreateClassInput = {
+    const classDetails = {
       title: values.title,
       coach: values.coach,
       startsAt: toIsoFromLocal(values.startsAtLocal),
@@ -164,9 +214,13 @@ export default function App() {
     setLoading(true);
     try {
       if (editingClass) {
-        await updateClass(token, editingClass.id, payload);
+        await updateClass(token, editingClass.id, classDetails);
         messageApi.success('课程已更新');
       } else {
+        const payload: CreateClassInput = {
+          ...classDetails,
+          branchId: values.branchId
+        };
         await createClass(token, payload);
         messageApi.success('课程已创建');
       }
@@ -230,6 +284,10 @@ export default function App() {
         render: (value: string) => dayjs(value).format('MM月DD日 HH:mm')
       },
       {
+        title: '门店',
+        render: (_value, record) => <Tag>{branchNameById.get(record.branchId) ?? '-'}</Tag>
+      },
+      {
         title: '会员',
         dataIndex: ['member', 'displayName'],
         render: (_value, record) => (
@@ -261,7 +319,7 @@ export default function App() {
         )
       }
     ],
-    []
+    [branchNameById]
   );
 
   const classColumns: ColumnsType<AdminClass> = useMemo(
@@ -276,6 +334,10 @@ export default function App() {
         )
       },
       { title: '教练', dataIndex: 'coach' },
+      {
+        title: '门店',
+        render: (_value, record) => <Tag>{record.branchName ?? branchNameById.get(record.branchId) ?? '-'}</Tag>
+      },
       {
         title: '时间',
         dataIndex: 'startsAt',
@@ -302,7 +364,7 @@ export default function App() {
         )
       }
     ],
-    []
+    [branchNameById]
   );
 
   const deductionColumns: ColumnsType<Deduction> = useMemo(
@@ -326,6 +388,10 @@ export default function App() {
         )
       },
       {
+        title: '门店',
+        render: (_value, record) => <Tag>{branchNameById.get(record.branchId) ?? '-'}</Tag>
+      },
+      {
         title: '消课时间',
         dataIndex: 'createdAt',
         render: (value: string) => dayjs(value).format('MM月DD日 HH:mm')
@@ -333,7 +399,7 @@ export default function App() {
       { title: '数量', dataIndex: 'amount' },
       { title: '备注', dataIndex: 'note', render: (value: string | null) => value || '-' }
     ],
-    []
+    [branchNameById]
   );
 
   const tabItems = [
@@ -390,6 +456,12 @@ export default function App() {
               </Form.Item>
               <Form.Item name="coach" label="教练" rules={[{ required: true, message: '请输入教练' }]}>
                 <Input placeholder="Coach Leo" />
+              </Form.Item>
+              <Form.Item name="branchId" label="门店" rules={[{ required: true, message: '请选择门店' }]}>
+                <Select
+                  disabled={Boolean(editingClass)}
+                  options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+                />
               </Form.Item>
               <Form.Item name="startsAtLocal" label="上课时间" rules={[{ required: true, message: '请选择上课时间' }]}>
                 <input className="native-input full" type="datetime-local" />
@@ -478,6 +550,19 @@ export default function App() {
           </Button>
         </Space>
       </header>
+      <section className="branch-bar">
+        <div>
+          <div className="branch-bar-label">门店范围</div>
+          <div className="branch-bar-value">{selectedBranchName}</div>
+        </div>
+        <Select
+          className="branch-select"
+          value={selectedBranchId}
+          options={branchOptions}
+          disabled={loading || branchOptions.length <= 1}
+          onChange={(value) => void handleBranchChange(value)}
+        />
+      </section>
       <Tabs className="work-tabs" items={tabItems} />
       <Modal
         title="确认消课"

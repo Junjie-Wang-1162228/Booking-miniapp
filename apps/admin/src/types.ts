@@ -2,6 +2,16 @@ export type Role = 'USER' | 'ADMIN';
 export type BookingStatus = 'BOOKED' | 'CANCELED';
 export type AttendanceStatus = 'PENDING' | 'ATTENDED';
 export type ClassStatus = 'SCHEDULED' | 'CANCELED';
+export type StaffRole = 'OWNER' | 'MANAGER' | 'COACH';
+
+export type AdminBranch = {
+  id: string;
+  gymId: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  staffRole: StaffRole;
+};
 
 export type AuthUser = {
   id: string;
@@ -9,6 +19,8 @@ export type AuthUser = {
   displayName: string;
   phone: string | null;
   lessonBalance: { remaining: number } | null;
+  accessibleBranches: AdminBranch[];
+  defaultBranchId: string | null;
 };
 
 export type AuthResponse = {
@@ -17,6 +29,7 @@ export type AuthResponse = {
 };
 
 export type CreateClassInput = {
+  branchId: string;
   title: string;
   coach: string;
   startsAt: string;
@@ -27,6 +40,9 @@ export type CreateClassInput = {
 
 export type AdminClass = CreateClassInput & {
   id: string;
+  gymId: string;
+  branchName: string | null;
+  coachId: string | null;
   remainingSpots: number;
   bookedCount: number;
   status: ClassStatus;
@@ -34,6 +50,8 @@ export type AdminClass = CreateClassInput & {
 
 export type AdminBooking = {
   id: string;
+  gymId: string;
+  branchId: string;
   status: BookingStatus;
   attendanceStatus: AttendanceStatus;
   deductionId: string | null;
@@ -48,6 +66,8 @@ export type AdminBooking = {
     id: string;
     title: string;
     coach: string;
+    branchId: string;
+    coachId: string | null;
     startsAt: string;
     durationMin: number;
     status: ClassStatus;
@@ -56,6 +76,8 @@ export type AdminBooking = {
 
 export type Deduction = {
   id: string;
+  gymId: string;
+  branchId: string;
   bookingId: string;
   userId: string;
   adminId: string;
@@ -75,6 +97,7 @@ export type Deduction = {
     id: string;
     title: string;
     coach: string;
+    branchId: string;
     startsAt: string;
   };
 };

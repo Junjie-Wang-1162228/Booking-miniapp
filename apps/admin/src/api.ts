@@ -1,4 +1,4 @@
-import { AdminBooking, AdminClass, AuthResponse, CreateClassInput, Deduction } from './types';
+import { AdminBooking, AdminBranch, AdminClass, AuthResponse, CreateClassInput, Deduction } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
 
@@ -31,9 +31,15 @@ export function loginAdmin(username: string, password: string) {
   });
 }
 
+export function getAdminBranches(token: string) {
+  return requestJson<AdminBranch[]>('/admin/branches', {
+    headers: authHeaders(token)
+  });
+}
+
 export function getAdminBookings(
   token: string,
-  filters: { date?: string; q?: string; status?: string }
+  filters: { branchId?: string; date?: string; q?: string; status?: string }
 ) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -45,14 +51,16 @@ export function getAdminBookings(
   });
 }
 
-export function getAdminDeductions(token: string) {
-  return requestJson<Deduction[]>('/admin/deductions', {
+export function getAdminDeductions(token: string, branchId?: string) {
+  const query = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+  return requestJson<Deduction[]>(`/admin/deductions${query}`, {
     headers: authHeaders(token)
   });
 }
 
-export function getAdminClasses(token: string) {
-  return requestJson<AdminClass[]>('/admin/classes', {
+export function getAdminClasses(token: string, branchId?: string) {
+  const query = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+  return requestJson<AdminClass[]>(`/admin/classes${query}`, {
     headers: authHeaders(token)
   });
 }

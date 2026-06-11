@@ -95,6 +95,33 @@ textarea {
   background: rgba(255, 255, 255, 0.96);
 }
 
+.branch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 86rem;
+  margin: 0 auto 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.branch-bar-label {
+  color: #777777;
+  font-size: 0.75rem;
+}
+
+.branch-bar-value {
+  margin-top: 0.25rem;
+  font-weight: 800;
+}
+
+.branch-select {
+  width: min(100%, 18rem);
+}
+
 .panel {
   overflow-x: auto;
   padding: 1rem;
@@ -169,6 +196,11 @@ textarea {
     flex-direction: column;
   }
 
+  .branch-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .work-tabs {
     padding: 0.75rem;
   }
@@ -184,7 +216,8 @@ textarea {
   }
 
   .search-input,
-  .status-select {
+  .status-select,
+  .branch-select {
     width: 100%;
   }
 }
