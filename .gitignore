@@ -9,3 +9,4 @@ coverage
 apps/api/generated
 apps/miniapp/dist
 apps/admin/dist
+apps/miniapp/project.private.config.json
