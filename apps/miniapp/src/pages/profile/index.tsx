@@ -5,6 +5,8 @@ import { devLogin, getMe, getMyDeductions, getStoredMember, getStoredToken, setS
 import { resolveSelectedMemberBranch } from '../../branch-session';
 import { AuthUser, Deduction, MemberBranch, MemberKey } from '../../types';
 import { formatTime } from '../../utils';
+import { AppIcon } from '../../components/AppIcon';
+import { BrandLogo } from '../../components/BrandLogo';
 import './index.scss';
 
 const memberNames: Record<MemberKey, string> = {
@@ -92,7 +94,7 @@ export default function ProfilePage() {
   return (
     <View className="page profile-page">
       <View className="hero">
-        <Text className="eyebrow">MEMBER</Text>
+        <BrandLogo subLabel="MEMBER CENTER" />
         <Text className="title">{user?.displayName || memberNames[member]}</Text>
         <Text className="subtitle">
           {selectedBranch?.name ?? '当前门店'} · 剩余课时 {selectedBalance} 节
@@ -107,6 +109,7 @@ export default function ProfilePage() {
             disabled={loading}
             onClick={() => void switchMember(key)}
           >
+            <AppIcon name="member" />
             {memberNames[key]}
           </Button>
         ))}
@@ -122,17 +125,24 @@ export default function ProfilePage() {
                 disabled={loading}
                 onClick={() => void switchBranch(branch.id)}
               >
+                <AppIcon name="branch" />
                 {branch.name}
               </Button>
             ))
           ) : (
-            <Text className="branch-single">{branches[0].name}</Text>
+            <View className="branch-single">
+              <AppIcon name="branch" />
+              <Text>{branches[0].name}</Text>
+            </View>
           )}
         </View>
       )}
 
       <View className="notice-card">
-        <Text className="notice-title">MVP 体验账号</Text>
+        <View className="notice-title-row">
+          <AppIcon name="account" />
+          <Text className="notice-title">MVP 体验账号</Text>
+        </View>
         <Text className="notice-copy">正式上线时应切换到拳馆主体小程序，当前页面用于验证多用户数据隔离。</Text>
       </View>
 

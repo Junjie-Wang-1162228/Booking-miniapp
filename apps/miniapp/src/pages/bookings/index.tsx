@@ -5,6 +5,8 @@ import { cancelBooking, devLogin, getMe, getMyBookings, getStoredMember, getStor
 import { resolveSelectedMemberBranch } from '../../branch-session';
 import { AuthUser, Booking, MemberBranch } from '../../types';
 import { formatTime } from '../../utils';
+import { AppIcon } from '../../components/AppIcon';
+import { BrandLogo } from '../../components/BrandLogo';
 import './index.scss';
 
 export default function BookingsPage() {
@@ -88,7 +90,7 @@ export default function BookingsPage() {
   return (
     <View className="page">
       <View className="hero">
-        <Text className="eyebrow">MY BOOKINGS</Text>
+        <BrandLogo subLabel="MY BOOKINGS" />
         <Text className="title">我的预约</Text>
         <Text className="subtitle">
           {user ? `${user.displayName} · ${selectedBranch?.name ?? '当前门店'}` : '只显示当前登录会员自己的预约记录'}
@@ -105,11 +107,15 @@ export default function BookingsPage() {
                 disabled={loading}
                 onClick={() => void switchBranch(branch.id)}
               >
+                <AppIcon name="branch" />
                 {branch.name}
               </Button>
             ))
           ) : (
-            <Text className="branch-single">{branches[0].name}</Text>
+            <View className="branch-single">
+              <AppIcon name="branch" />
+              <Text>{branches[0].name}</Text>
+            </View>
           )}
         </View>
       )}
@@ -131,6 +137,7 @@ export default function BookingsPage() {
               <Text className="meta">{item.attendanceStatus === 'ATTENDED' ? '已到课消课' : '待上课'}</Text>
               {item.canCancel && (
                 <Button className="ghost-action" disabled={loading} onClick={() => void cancel(item)}>
+                  <AppIcon name="cancel" />
                   取消预约
                 </Button>
               )}

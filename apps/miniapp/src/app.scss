@@ -1,6 +1,6 @@
 page {
   min-height: 100%;
-  background: #111111;
+  background: #101010;
   color: #f7f7f7;
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -10,30 +10,78 @@ text {
   box-sizing: border-box;
 }
 
+button {
+  box-sizing: border-box;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+button::after {
+  border: 0;
+}
+
 .page {
   min-height: 100vh;
-  padding: 32px 28px 48px;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(231, 53, 53, 0.25), transparent 320px),
-    linear-gradient(180deg, #171717 0%, #101010 100%);
+  padding: 28px 28px 48px;
+  background: #101010;
 }
 
 .hero {
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border-radius: 8px;
+  background: #181818;
 }
 
-.eyebrow {
-  color: #e73535;
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-logo__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: #e73535;
+}
+
+.brand-logo__mark-text {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.brand-logo__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand-logo__label,
+.brand-logo__sub-label {
+  display: block;
+}
+
+.brand-logo__label {
+  color: #ffffff;
   font-size: 24px;
+  font-weight: 900;
+}
+
+.brand-logo__sub-label {
+  color: #909090;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .title {
   display: block;
-  margin-top: 10px;
+  margin-top: 24px;
   color: #ffffff;
   font-size: 44px;
   font-weight: 800;
@@ -50,7 +98,7 @@ text {
 
 .section-title {
   display: block;
-  margin: 32px 0 18px;
+  margin: 34px 0 18px;
   color: #ffffff;
   font-size: 30px;
   font-weight: 800;
@@ -60,7 +108,7 @@ text {
   margin-bottom: 20px;
   padding: 26px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #f7f7f7;
   color: #151515;
 }
@@ -96,9 +144,10 @@ text {
 .pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #191919;
   color: #ffffff;
   font-size: 22px;
@@ -114,7 +163,9 @@ text {
 }
 
 .empty {
-  padding: 60px 20px;
+  padding: 62px 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
   color: #9a9a9a;
   text-align: center;
 }
@@ -128,20 +179,207 @@ text {
 
 .branch-button,
 .branch-single {
-  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 190px;
   min-height: 72px;
   padding: 0 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   font-size: 24px;
   font-weight: 800;
-  line-height: 72px;
+  line-height: 1;
   text-align: center;
 }
 
 .branch-button.active {
   border-color: #e73535;
   background: #e73535;
+}
+
+.app-icon {
+  position: relative;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  color: currentColor;
+}
+
+.app-icon__shape {
+  position: absolute;
+  box-sizing: border-box;
+  border-color: currentColor;
+}
+
+.app-icon--member .app-icon__shape-a,
+.app-icon--account .app-icon__shape-a {
+  top: 3px;
+  left: 11px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--member .app-icon__shape-b,
+.app-icon--account .app-icon__shape-b {
+  bottom: 4px;
+  left: 6px;
+  width: 22px;
+  height: 15px;
+  border: 3px solid currentColor;
+  border-radius: 14px 14px 6px 6px;
+}
+
+.app-icon--account .app-icon__shape-c {
+  right: 2px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.app-icon--branch .app-icon__shape-a {
+  top: 4px;
+  left: 7px;
+  width: 20px;
+  height: 20px;
+  border: 3px solid currentColor;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+}
+
+.app-icon--branch .app-icon__shape-b {
+  top: 11px;
+  left: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.app-icon--bell .app-icon__shape-a {
+  top: 7px;
+  left: 7px;
+  width: 20px;
+  height: 20px;
+  border: 3px solid currentColor;
+  border-radius: 12px 12px 7px 7px;
+}
+
+.app-icon--bell .app-icon__shape-b {
+  top: 3px;
+  left: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.app-icon--bell .app-icon__shape-c {
+  bottom: 2px;
+  left: 13px;
+  width: 8px;
+  height: 4px;
+  border-radius: 0 0 8px 8px;
+  background: currentColor;
+}
+
+.app-icon--calendar .app-icon__shape-a,
+.app-icon--booking .app-icon__shape-a,
+.app-icon--lesson .app-icon__shape-a {
+  top: 6px;
+  left: 5px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid currentColor;
+  border-radius: 6px;
+}
+
+.app-icon--calendar .app-icon__shape-b {
+  top: 13px;
+  left: 8px;
+  width: 18px;
+  height: 3px;
+  background: currentColor;
+}
+
+.app-icon--calendar .app-icon__shape-c {
+  right: 8px;
+  bottom: 8px;
+  width: 8px;
+  height: 8px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.app-icon--booking .app-icon__shape-b,
+.app-icon--lesson .app-icon__shape-b {
+  top: 14px;
+  left: 11px;
+  width: 12px;
+  height: 3px;
+  background: currentColor;
+}
+
+.app-icon--booking .app-icon__shape-c,
+.app-icon--lesson .app-icon__shape-c {
+  top: 22px;
+  left: 11px;
+  width: 12px;
+  height: 3px;
+  background: currentColor;
+}
+
+.app-icon--cancel .app-icon__shape-a {
+  top: 5px;
+  left: 5px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--cancel .app-icon__shape-b,
+.app-icon--cancel .app-icon__shape-c {
+  top: 16px;
+  left: 10px;
+  width: 14px;
+  height: 3px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
+.app-icon--cancel .app-icon__shape-b {
+  transform: rotate(45deg);
+}
+
+.app-icon--cancel .app-icon__shape-c {
+  transform: rotate(-45deg);
+}
+
+.app-icon--check .app-icon__shape-a {
+  top: 5px;
+  left: 5px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--check .app-icon__shape-b {
+  top: 14px;
+  left: 11px;
+  width: 13px;
+  height: 8px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(38deg);
 }

@@ -13,6 +13,8 @@ import {
 import { resolveSelectedMemberBranch } from '../../branch-session';
 import { AuthUser, BoxingClass, MemberBranch, MemberKey } from '../../types';
 import { formatTime } from '../../utils';
+import { AppIcon } from '../../components/AppIcon';
+import { BrandLogo } from '../../components/BrandLogo';
 import './index.scss';
 
 const memberNames: Record<MemberKey, string> = {
@@ -111,7 +113,7 @@ export default function ClassesPage() {
   return (
     <View className="page classes-page">
       <View className="hero">
-        <Text className="eyebrow">BOXING CLUB</Text>
+        <BrandLogo />
         <Text className="title">今天想打哪节课？</Text>
         <Text className="subtitle">
           {user
@@ -128,6 +130,7 @@ export default function ClassesPage() {
             disabled={loading}
             onClick={() => void switchMember(key)}
           >
+            <AppIcon name="member" />
             {memberNames[key]}
           </Button>
         ))}
@@ -143,19 +146,26 @@ export default function ClassesPage() {
                 disabled={loading}
                 onClick={() => void switchBranch(branch.id)}
               >
+                <AppIcon name="branch" />
                 {branch.name}
               </Button>
             ))
           ) : (
-            <Text className="branch-single">{branches[0].name}</Text>
+            <View className="branch-single">
+              <AppIcon name="branch" />
+              <Text>{branches[0].name}</Text>
+            </View>
           )}
         </View>
       )}
 
       <View className="reminder-row">
-        <View>
-          <Text className="reminder-title">开课前 2 小时提醒</Text>
-          <Text className="reminder-copy">需要微信订阅消息授权后发送</Text>
+        <View className="reminder-copy-wrap">
+          <AppIcon name="bell" />
+          <View>
+            <Text className="reminder-title">开课前 2 小时提醒</Text>
+            <Text className="reminder-copy">需要微信订阅消息授权后发送</Text>
+          </View>
         </View>
         <Switch checked={reminder} color="#e73535" onChange={(event) => setReminder(event.detail.value)} />
       </View>
@@ -181,6 +191,7 @@ export default function ClassesPage() {
               disabled={loading || item.remainingSpots <= 0}
               onClick={() => void bookClass(item)}
             >
+              <AppIcon name={item.remainingSpots > 0 ? 'calendar' : 'cancel'} />
               {item.remainingSpots > 0 ? '立即预约' : '已满员'}
             </Button>
           </View>

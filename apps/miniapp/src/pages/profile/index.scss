@@ -5,8 +5,15 @@
 .notice-card {
   padding: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
+}
+
+.notice-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
 }
 
 .notice-title,
@@ -28,5 +35,5 @@
 }
 
 .deduction-card {
-  border-left: 8px solid #e73535;
+  border-left: 6px solid #e73535;
 }

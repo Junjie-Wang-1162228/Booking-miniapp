@@ -13,9 +13,24 @@ export default defineAppConfig({
     backgroundColor: '#111111',
     borderStyle: 'black',
     list: [
-      { pagePath: 'pages/classes/index', text: '约课' },
-      { pagePath: 'pages/bookings/index', text: '我的' },
-      { pagePath: 'pages/profile/index', text: '账户' }
+      {
+        pagePath: 'pages/classes/index',
+        text: '约课',
+        iconPath: 'assets/tabs/classes.png',
+        selectedIconPath: 'assets/tabs/classes-active.png'
+      },
+      {
+        pagePath: 'pages/bookings/index',
+        text: '我的',
+        iconPath: 'assets/tabs/bookings.png',
+        selectedIconPath: 'assets/tabs/bookings-active.png'
+      },
+      {
+        pagePath: 'pages/profile/index',
+        text: '账户',
+        iconPath: 'assets/tabs/profile.png',
+        selectedIconPath: 'assets/tabs/profile-active.png'
+      }
     ]
   }
 });
