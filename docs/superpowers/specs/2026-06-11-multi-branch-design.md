@@ -47,6 +47,23 @@ There is one `Gym` for the boxing gym owner in this stage. Multiple independent 
 - Backend APIs enforce branch access. Frontend filtering is only a convenience layer.
 - The first upgrade does not implement payments, package purchase, commissions, cross-branch lesson packages, or multi-gym SaaS onboarding.
 
+## Engineering Quality Requirements
+
+The multi-branch upgrade must keep the codebase maintainable as branch logic expands.
+
+Implementation rules:
+
+- Use domain-specific names such as `BranchAccessService`, `BranchScope`, `MemberBranch`, and `StaffBranchAssignment`; avoid vague names such as `data`, `item`, `handleThing`, or `commonHelper` except in narrow local scopes where the meaning is obvious.
+- Do not add empty functions, placeholder branches, unused abstractions, or no-op service methods.
+- Keep branch authorization in focused backend services or guards instead of scattering ad hoc `branchId` checks across controllers.
+- Keep API DTOs explicit. Request fields such as `branchId`, `coachId`, and `classId` must be validated at the DTO boundary.
+- Prefer small, cohesive service methods that each enforce one business rule. Extract helpers only when they remove real duplication or clarify a repeated branch-access check.
+- Preserve transactional boundaries for booking and deduction flows. Do not split deduction record creation, attendance update, and balance decrement into separate non-transactional operations.
+- Frontend state should use clear branch context naming such as `selectedBranchId`, `accessibleBranches`, and `branchScopedBookings`.
+- Avoid coupling mini program branch selection to admin branch filtering. They share API concepts but serve different workflows.
+- Every new branch-scope behavior needs an automated backend test before implementation or in the same task.
+- If a refactor is needed, keep it directly tied to the multi-branch change being implemented.
+
 ## Data Model
 
 ### New Tables
