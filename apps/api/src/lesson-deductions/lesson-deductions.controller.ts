@@ -14,8 +14,8 @@ export class AdminBookingsController {
   constructor(private readonly lessonDeductions: LessonDeductionsService) {}
 
   @Get()
-  list(@Query() query: AdminBookingQueryDto) {
-    return this.lessonDeductions.listAdminBookings(query);
+  list(@CurrentUser() user: JwtUser, @Query() query: AdminBookingQueryDto) {
+    return this.lessonDeductions.listAdminBookings(user.sub, query);
   }
 
   @Post(':id/deduct')
@@ -31,8 +31,8 @@ export class DeductionsController {
   constructor(private readonly lessonDeductions: LessonDeductionsService) {}
 
   @Get('me')
-  listMine(@CurrentUser() user: JwtUser) {
-    return this.lessonDeductions.listMine(user.sub);
+  listMine(@CurrentUser() user: JwtUser, @Query('branchId') branchId: string) {
+    return this.lessonDeductions.listMine(user.sub, branchId);
   }
 }
 
@@ -43,7 +43,7 @@ export class AdminDeductionsController {
   constructor(private readonly lessonDeductions: LessonDeductionsService) {}
 
   @Get()
-  listAdminDeductions() {
-    return this.lessonDeductions.listAdminDeductions();
+  listAdminDeductions(@CurrentUser() user: JwtUser, @Query('branchId') branchId?: string) {
+    return this.lessonDeductions.listAdminDeductions(user.sub, branchId);
   }
 }

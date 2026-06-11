@@ -10,6 +10,10 @@ export class DeductLessonDto {
 export class AdminBookingQueryDto {
   @IsOptional()
   @IsString()
+  branchId?: string;
+
+  @IsOptional()
+  @IsString()
   date?: string;
 
   @IsOptional()

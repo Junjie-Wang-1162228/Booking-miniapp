@@ -4,16 +4,24 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common';
-import { AttendanceStatus, BookingStatus, Prisma } from '@prisma/client';
+import { AttendanceStatus, BookingStatus, Prisma, StaffRole } from '@prisma/client';
+import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminBookingQueryDto, DeductLessonDto } from './dto';
 
 @Injectable()
 export class LessonDeductionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly branchAccess: BranchAccessService
+  ) {}
 
-  async listAdminBookings(query: AdminBookingQueryDto) {
-    const where: Prisma.BookingWhereInput = {};
+  async listAdminBookings(adminId: string, query: AdminBookingQueryDto) {
+    const branchScope = await this.branchAccess.resolveAdminBranchScope(adminId, query.branchId);
+    const where: Prisma.BookingWhereInput = {
+      branchId: { in: branchScope.branchIds }
+    };
+    const andFilters: Prisma.BookingWhereInput[] = [];
 
     if (query.status === 'BOOKED' || query.status === 'CANCELED') {
       where.status = query.status;
@@ -22,15 +30,21 @@ export class LessonDeductionsService {
     if (query.date) {
       const start = new Date(`${query.date}T00:00:00.000Z`);
       const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-      where.boxingClass = { startsAt: { gte: start, lt: end } };
+      andFilters.push({ boxingClass: { startsAt: { gte: start, lt: end } } });
     }
 
     if (query.q) {
-      where.OR = [
-        { user: { displayName: { contains: query.q } } },
-        { user: { phone: { contains: query.q } } },
-        { boxingClass: { title: { contains: query.q } } }
-      ];
+      andFilters.push({
+        OR: [
+          { user: { displayName: { contains: query.q } } },
+          { user: { phone: { contains: query.q } } },
+          { boxingClass: { title: { contains: query.q } } }
+        ]
+      });
+    }
+
+    if (andFilters.length > 0) {
+      where.AND = andFilters;
     }
 
     const bookings = await this.prisma.booking.findMany({
@@ -90,6 +104,11 @@ export class LessonDeductionsService {
         throw new ConflictException('Booking has already been deducted');
       }
 
+      await this.branchAccess.ensureAdminBranchRole(adminId, booking.branchId, [
+        StaffRole.OWNER,
+        StaffRole.MANAGER
+      ]);
+
       const lessonBalance = await tx.lessonBalance.findUnique({
         where: { userId_branchId: { userId: booking.userId, branchId: booking.branchId } }
       });
@@ -129,9 +148,15 @@ export class LessonDeductionsService {
     });
   }
 
-  async listMine(userId: string) {
+  async listMine(userId: string, branchId: string) {
+    if (!branchId) {
+      throw new BadRequestException('branchId is required');
+    }
+
+    await this.branchAccess.ensureMemberBranchAccess(userId, branchId);
+
     const deductions = await this.prisma.lessonDeduction.findMany({
-      where: { userId },
+      where: { userId, branchId },
       include: {
         user: true,
         admin: true,
@@ -143,8 +168,10 @@ export class LessonDeductionsService {
     return deductions.map((deduction) => this.toDeductionView(deduction));
   }
 
-  async listAdminDeductions() {
+  async listAdminDeductions(adminId: string, branchId?: string) {
+    const branchScope = await this.branchAccess.resolveAdminBranchScope(adminId, branchId);
     const deductions = await this.prisma.lessonDeduction.findMany({
+      where: { branchId: { in: branchScope.branchIds } },
       include: {
         user: true,
         admin: true,
@@ -167,6 +194,8 @@ export class LessonDeductionsService {
   ) {
     return {
       id: deduction.id,
+      gymId: deduction.gymId,
+      branchId: deduction.branchId,
       bookingId: deduction.bookingId,
       userId: deduction.userId,
       adminId: deduction.adminId,

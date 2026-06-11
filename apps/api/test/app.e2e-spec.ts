@@ -453,10 +453,10 @@ describe('Boxing booking API', () => {
   describe('bookings', () => {
     const futureIso = () => new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
 
-    async function adminToken() {
+    async function adminToken(username = 'admin', password = 'admin123456') {
       const response = await request(app.getHttpServer())
         .post('/auth/admin-login')
-        .send({ username: 'admin', password: 'admin123456' })
+        .send({ username, password })
         .expect(201);
       return response.body.accessToken as string;
     }
@@ -668,10 +668,10 @@ describe('Boxing booking API', () => {
   describe('admin bookings and lesson deductions', () => {
     const futureIso = () => new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString();
 
-    async function adminToken() {
+    async function adminToken(username = 'admin', password = 'admin123456') {
       const response = await request(app.getHttpServer())
         .post('/auth/admin-login')
-        .send({ username: 'admin', password: 'admin123456' })
+        .send({ username, password })
         .expect(201);
       return response.body.accessToken as string;
     }
@@ -712,6 +712,52 @@ describe('Boxing booking API', () => {
 
       return { bookingId: booking.body.id, classId: boxingClass.body.id };
     }
+
+    it('scopes admin booking lists by staff branch assignment', async () => {
+      const eastBooking = await createBookedClass('member-a');
+      const westBooking = await createBookedClass('member-b');
+      const owner = await adminToken();
+      const eastManager = await adminToken('east-manager', 'manager123456');
+      const eastBranchId = await branchIdByName('城东店');
+      const westBranchId = await branchIdByName('城西店');
+
+      const managerBookings = await request(app.getHttpServer())
+        .get(`/admin/bookings?branchId=${eastBranchId}`)
+        .set('Authorization', `Bearer ${eastManager}`)
+        .expect(200);
+
+      expect(managerBookings.body.some((item: { id: string }) => item.id === eastBooking.bookingId)).toBe(true);
+      expect(managerBookings.body.some((item: { id: string }) => item.id === westBooking.bookingId)).toBe(false);
+      expect(
+        managerBookings.body.every(
+          (booking: { boxingClass: { branchId: string } }) => booking.boxingClass.branchId === eastBranchId
+        )
+      ).toBe(true);
+
+      await request(app.getHttpServer())
+        .get(`/admin/bookings?branchId=${westBranchId}`)
+        .set('Authorization', `Bearer ${eastManager}`)
+        .expect(403);
+
+      const ownerBookings = await request(app.getHttpServer())
+        .get('/admin/bookings')
+        .set('Authorization', `Bearer ${owner}`)
+        .expect(200);
+
+      expect(ownerBookings.body.some((item: { id: string }) => item.id === eastBooking.bookingId)).toBe(true);
+      expect(ownerBookings.body.some((item: { id: string }) => item.id === westBooking.bookingId)).toBe(true);
+    });
+
+    it('rejects managers deducting bookings outside assigned branches', async () => {
+      const { bookingId } = await createBookedClass('member-b');
+      const eastManager = await adminToken('east-manager', 'manager123456');
+
+      await request(app.getHttpServer())
+        .post(`/admin/bookings/${bookingId}/deduct`)
+        .set('Authorization', `Bearer ${eastManager}`)
+        .send({ note: '跨店非法消课' })
+        .expect(403);
+    });
 
     it('lets an admin list bookings and rejects a member from the admin list', async () => {
       const { bookingId } = await createBookedClass();
@@ -795,22 +841,34 @@ describe('Boxing booking API', () => {
         .expect(201);
 
       const mine = await request(app.getHttpServer())
-        .get('/deductions/me')
+        .get(`/deductions/me?branchId=${await branchIdByName('城东店')}`)
         .set('Authorization', `Bearer ${memberA}`)
         .expect(200);
       expect(mine.body.some((item: { id: string }) => item.id === deducted.body.id)).toBe(true);
 
       const otherMember = await request(app.getHttpServer())
-        .get('/deductions/me')
+        .get(`/deductions/me?branchId=${await branchIdByName('城西店')}`)
         .set('Authorization', `Bearer ${memberB}`)
         .expect(200);
       expect(otherMember.body.some((item: { id: string }) => item.id === deducted.body.id)).toBe(false);
+
+      await request(app.getHttpServer())
+        .get(`/deductions/me?branchId=${await branchIdByName('城西店')}`)
+        .set('Authorization', `Bearer ${memberA}`)
+        .expect(403);
 
       const all = await request(app.getHttpServer())
         .get('/admin/deductions')
         .set('Authorization', `Bearer ${admin}`)
         .expect(200);
       expect(all.body.some((item: { id: string }) => item.id === deducted.body.id)).toBe(true);
+
+      const manager = await adminToken('east-manager', 'manager123456');
+      const managerDeductions = await request(app.getHttpServer())
+        .get(`/admin/deductions?branchId=${await branchIdByName('城东店')}`)
+        .set('Authorization', `Bearer ${manager}`)
+        .expect(200);
+      expect(managerDeductions.body.some((item: { id: string }) => item.id === deducted.body.id)).toBe(true);
     });
   });
 });
