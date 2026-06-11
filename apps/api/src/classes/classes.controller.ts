@@ -1,18 +1,21 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ClassesService } from './classes.service';
 import { CreateClassDto, UpdateClassDto } from './dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('USER')
 @Controller('classes')
 export class ClassesController {
   constructor(private readonly classes: ClassesService) {}
 
   @Get()
-  listAvailable() {
-    return this.classes.listAvailable();
+  listAvailable(@CurrentUser() user: JwtUser, @Query('branchId') branchId: string) {
+    return this.classes.listAvailable(user.sub, branchId);
   }
 }
 
@@ -23,23 +26,23 @@ export class AdminClassesController {
   constructor(private readonly classes: ClassesService) {}
 
   @Get()
-  listAdmin() {
-    return this.classes.listAdmin();
+  listAdmin(@CurrentUser() user: JwtUser, @Query('branchId') branchId?: string) {
+    return this.classes.listAdmin(user.sub, branchId);
   }
 
   @Post()
-  create(@Body() dto: CreateClassDto) {
-    return this.classes.create(dto);
+  create(@CurrentUser() user: JwtUser, @Body() dto: CreateClassDto) {
+    return this.classes.create(user.sub, dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateClassDto) {
-    return this.classes.update(id, dto);
+  update(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() dto: UpdateClassDto) {
+    return this.classes.update(user.sub, id, dto);
   }
 
   @Post(':id/cancel')
   @HttpCode(200)
-  cancel(@Param('id') id: string) {
-    return this.classes.cancel(id);
+  cancel(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.classes.cancel(user.sub, id);
   }
 }

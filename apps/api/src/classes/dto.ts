@@ -2,10 +2,9 @@ import { Type } from 'class-transformer';
 import { IsInt, IsISO8601, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class CreateClassDto {
-  @IsOptional()
   @IsString()
   @MinLength(1)
-  branchId?: string;
+  branchId!: string;
 
   @IsOptional()
   @IsString()

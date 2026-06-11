@@ -28,6 +28,7 @@ describe('Boxing booking API', () => {
 
   async function resetTestData() {
     const passwordHash = await bcrypt.hash('admin123456', 10);
+    const managerPasswordHash = await bcrypt.hash('manager123456', 10);
     await prisma.notificationLog.deleteMany();
     await prisma.notificationJob.deleteMany();
     await prisma.lessonDeduction.deleteMany();
@@ -52,6 +53,16 @@ describe('Boxing booking API', () => {
       update: { displayName: '馆长', role: UserRole.ADMIN, passwordHash, status: 'ACTIVE' },
       create: { username: 'admin', displayName: '馆长', role: UserRole.ADMIN, passwordHash }
     });
+    const eastManager = await prisma.user.upsert({
+      where: { username: 'east-manager' },
+      update: { displayName: '东店店长', role: UserRole.ADMIN, passwordHash: managerPasswordHash, status: 'ACTIVE' },
+      create: {
+        username: 'east-manager',
+        displayName: '东店店长',
+        role: UserRole.ADMIN,
+        passwordHash: managerPasswordHash
+      }
+    });
     const coach = await prisma.user.upsert({
       where: { username: 'coach-leo' },
       update: { displayName: 'Coach Leo', role: UserRole.USER, status: 'ACTIVE' },
@@ -73,6 +84,7 @@ describe('Boxing booking API', () => {
       data: [
         { gymId: gym.id, branchId: eastBranch.id, userId: admin.id, role: StaffRole.OWNER, startsAt: now },
         { gymId: gym.id, branchId: westBranch.id, userId: admin.id, role: StaffRole.OWNER, startsAt: now },
+        { gymId: gym.id, branchId: eastBranch.id, userId: eastManager.id, role: StaffRole.MANAGER, startsAt: now },
         { gymId: gym.id, branchId: eastBranch.id, userId: coach.id, role: StaffRole.COACH, startsAt: now },
         { gymId: gym.id, branchId: westBranch.id, userId: coach.id, role: StaffRole.COACH, startsAt: now }
       ]
@@ -242,10 +254,10 @@ describe('Boxing booking API', () => {
   describe('classes', () => {
     const futureIso = () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    async function adminToken() {
+    async function adminToken(username = 'admin', password = 'admin123456') {
       const response = await request(app.getHttpServer())
         .post('/auth/admin-login')
-        .send({ username: 'admin', password: 'admin123456' })
+        .send({ username, password })
         .expect(201);
       return response.body.accessToken as string;
     }
@@ -258,12 +270,67 @@ describe('Boxing booking API', () => {
       return response.body.accessToken as string;
     }
 
+    async function memberSession() {
+      const response = await request(app.getHttpServer())
+        .post('/auth/dev-login')
+        .send({ member: 'member-a' })
+        .expect(201);
+      return {
+        token: response.body.accessToken as string,
+        defaultBranchId: response.body.user.defaultBranchId as string
+      };
+    }
+
+    async function branchIdByName(name: string) {
+      const branch = await prisma.branch.findFirstOrThrow({ where: { name }, select: { id: true } });
+      return branch.id;
+    }
+
+    it('scopes member class list by assigned branch', async () => {
+      const member = await memberSession();
+      const westBranchId = await branchIdByName('城西店');
+
+      await request(app.getHttpServer())
+        .get(`/classes?branchId=${westBranchId}`)
+        .set('Authorization', `Bearer ${member.token}`)
+        .expect(403);
+
+      const eastClasses = await request(app.getHttpServer())
+        .get(`/classes?branchId=${member.defaultBranchId}`)
+        .set('Authorization', `Bearer ${member.token}`)
+        .expect(200);
+
+      expect(eastClasses.body.length).toBeGreaterThan(0);
+      expect(
+        eastClasses.body.every((boxingClass: { branchId: string }) => boxingClass.branchId === member.defaultBranchId)
+      ).toBe(true);
+    });
+
+    it('rejects manager creating classes in an unassigned branch', async () => {
+      const manager = await adminToken('east-manager', 'manager123456');
+      const westBranchId = await branchIdByName('城西店');
+
+      await request(app.getHttpServer())
+        .post('/admin/classes')
+        .set('Authorization', `Bearer ${manager}`)
+        .send({
+          branchId: westBranchId,
+          title: '跨店非法课程',
+          coach: 'Coach No',
+          startsAt: futureIso(),
+          durationMin: 60,
+          capacity: 4,
+          description: '东店店长不应能创建西店课程'
+        })
+        .expect(403);
+    });
+
     it('lets a member list available future scheduled classes', async () => {
-      const token = await userToken();
+      const member = await memberSession();
 
       const response = await request(app.getHttpServer())
-        .get('/classes')
-        .set('Authorization', `Bearer ${token}`)
+        .get(`/classes?branchId=${member.defaultBranchId}`)
+        .set('Authorization', `Bearer ${member.token}`)
         .expect(200);
 
       expect(response.body.length).toBeGreaterThan(0);
@@ -288,6 +355,7 @@ describe('Boxing booking API', () => {
         .post('/admin/classes')
         .set('Authorization', `Bearer ${admin}`)
         .send({
+          branchId: await branchIdByName('城东店'),
           title: '测试拳课',
           coach: 'Coach Test',
           startsAt: futureIso(),
@@ -306,7 +374,7 @@ describe('Boxing booking API', () => {
       });
 
       const classes = await request(app.getHttpServer())
-        .get('/classes')
+        .get(`/classes?branchId=${await branchIdByName('城东店')}`)
         .set('Authorization', `Bearer ${member}`)
         .expect(200);
 
@@ -337,6 +405,7 @@ describe('Boxing booking API', () => {
         .post('/admin/classes')
         .set('Authorization', `Bearer ${admin}`)
         .send({
+          branchId: await branchIdByName('城东店'),
           title: '待编辑课程',
           coach: 'Coach Edit',
           startsAt: futureIso(),
@@ -386,12 +455,19 @@ describe('Boxing booking API', () => {
       return response.body.accessToken as string;
     }
 
+    async function branchIdByName(name: string) {
+      const branch = await prisma.branch.findFirstOrThrow({ where: { name }, select: { id: true } });
+      return branch.id;
+    }
+
     async function createClass(capacity = 4) {
       const admin = await adminToken();
+      const branchId = await branchIdByName('城东店');
       const response = await request(app.getHttpServer())
         .post('/admin/classes')
         .set('Authorization', `Bearer ${admin}`)
         .send({
+          branchId,
           title: `预约测试 ${Date.now()} ${Math.random()}`,
           coach: 'Coach Booking',
           startsAt: futureIso(),
@@ -400,7 +476,7 @@ describe('Boxing booking API', () => {
           description: '预约测试课程'
         })
         .expect(201);
-      return response.body as { id: string };
+      return response.body as { id: string; branchId: string };
     }
 
     it('lets a member book a class and see only their own booking', async () => {
@@ -535,13 +611,20 @@ describe('Boxing booking API', () => {
       return response.body.accessToken as string;
     }
 
+    async function branchIdByName(name: string) {
+      const branch = await prisma.branch.findFirstOrThrow({ where: { name }, select: { id: true } });
+      return branch.id;
+    }
+
     async function createBookedClass(member: 'member-a' | 'member-b' = 'member-a') {
       const admin = await adminToken();
       const user = await userToken(member);
+      const branchId = await branchIdByName(member === 'member-a' ? '城东店' : '城西店');
       const boxingClass = await request(app.getHttpServer())
         .post('/admin/classes')
         .set('Authorization', `Bearer ${admin}`)
         .send({
+          branchId,
           title: `消课测试 ${Date.now()} ${Math.random()}`,
           coach: 'Coach Deduct',
           startsAt: futureIso(),
