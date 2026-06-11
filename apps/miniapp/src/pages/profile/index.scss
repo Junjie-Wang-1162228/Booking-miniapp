@@ -1,0 +1,32 @@
+.profile-switch {
+  margin-bottom: 22px;
+}
+
+.notice-card {
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.notice-title,
+.notice-copy {
+  display: block;
+}
+
+.notice-title {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.notice-copy {
+  margin-top: 8px;
+  color: #bdbdbd;
+  font-size: 23px;
+  line-height: 1.5;
+}
+
+.deduction-card {
+  border-left: 8px solid #e73535;
+}

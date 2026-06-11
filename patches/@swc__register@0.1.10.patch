@@ -1,0 +1,12 @@
+diff --git a/lib/node.js b/lib/node.js
+index f81c64481b5557e344b64bb92c00c1bf65a5264e..eee4d3ea20cbd311bf8b7db41e682739fe9312bf 100644
+--- a/lib/node.js
++++ b/lib/node.js
+@@ -73,6 +73,7 @@ function compile(code, filename) {
+     }
+     delete opts.only;
+     delete opts.ignore;
++    delete opts.cwd;
+     var output = swc.transformSync(code, __assign(__assign({}, opts), { sourceMaps: opts.sourceMaps === undefined ? true : opts.sourceMaps }));
+     if (output.map) {
+         if (Object.keys(maps).length === 0) {

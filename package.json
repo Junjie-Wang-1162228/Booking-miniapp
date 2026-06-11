@@ -1,0 +1,21 @@
+{
+  "name": "boxing-booking-miniapp",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev:db": "docker compose up -d mysql",
+    "stop:db": "docker compose down",
+    "db:logs": "docker compose logs -f mysql",
+    "api:dev": "pnpm --filter @booking/api start:dev",
+    "admin:dev": "pnpm --filter @booking/admin dev",
+    "miniapp:dev": "PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp dev:weapp",
+    "test": "pnpm --filter @booking/api test:e2e",
+    "build": "pnpm --filter @booking/api build && pnpm --filter @booking/admin build && PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp build:weapp",
+    "lint": "pnpm --filter @booking/api lint && pnpm --filter @booking/admin lint"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@swc/register@0.1.10": "patches/@swc__register@0.1.10.patch"
+    }
+  }
+}

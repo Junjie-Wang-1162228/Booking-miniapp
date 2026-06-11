@@ -1,0 +1,22 @@
+# Manual Test Checklist
+
+- [ ] Start MySQL with `pnpm dev:db`.
+- [ ] Run migrations and seed with `pnpm --filter @booking/api prisma:migrate && pnpm --filter @booking/api prisma:seed`.
+- [ ] Start API with `pnpm api:dev`.
+- [ ] Start admin with `pnpm admin:dev`.
+- [ ] Log in admin at `http://localhost:5173` with `admin` / `admin123456`.
+- [ ] Confirm the admin dashboard branch selector can show `全部门店`, `城东店`, and `城西店`.
+- [ ] Create a future class in `城东店`.
+- [ ] Create a future class in `城西店`.
+- [ ] Log out and log in with `east-manager` / `manager123456`.
+- [ ] Confirm the manager can only select `城东店`.
+- [ ] Open miniapp build in WeChat DevTools from `apps/miniapp`.
+- [ ] Log in as 阿杰 and verify only `城东店` classes are visible.
+- [ ] Book the `城东店` class with reminder enabled.
+- [ ] Switch to 小林 and verify 阿杰's booking is not visible.
+- [ ] Verify 小林 sees `城西店` context and cannot see 阿杰's `城东店` booking.
+- [ ] Use admin dashboard to deduct 阿杰's booking.
+- [ ] Verify duplicate deduction is rejected.
+- [ ] Verify 阿杰's `城东店` lesson balance decreases by 1.
+- [ ] Verify a notification job exists in the database for the reminder booking and includes the booking branch ID.
+- [ ] Log in again with `east-manager` and verify `城西店` bookings cannot be listed or deducted.

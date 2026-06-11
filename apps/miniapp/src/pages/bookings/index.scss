@@ -1,0 +1,22 @@
+.booking-card {
+  border-left: 8px solid #e73535;
+}
+
+.booking-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.ghost-action {
+  min-width: 180px;
+  min-height: 72px;
+  border: 1px solid #e73535;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #e73535;
+  font-size: 24px;
+  font-weight: 800;
+}
