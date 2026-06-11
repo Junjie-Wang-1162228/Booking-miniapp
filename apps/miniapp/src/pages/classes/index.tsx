@@ -7,9 +7,11 @@ import {
   getClasses,
   getMe,
   getStoredMember,
-  getStoredToken
+  getStoredToken,
+  setStoredBranchId
 } from '../../api';
-import { AuthUser, BoxingClass, MemberKey } from '../../types';
+import { resolveSelectedMemberBranch } from '../../branch-session';
+import { AuthUser, BoxingClass, MemberBranch, MemberKey } from '../../types';
 import { formatTime } from '../../utils';
 import './index.scss';
 
@@ -22,16 +24,24 @@ export default function ClassesPage() {
   const [member, setMember] = useState<MemberKey>(getStoredMember());
   const [token, setToken] = useState(getStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [branches, setBranches] = useState<MemberBranch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [classes, setClasses] = useState<BoxingClass[]>([]);
   const [reminder, setReminder] = useState(true);
   const [loading, setLoading] = useState(false);
+  const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
+  const selectedBalance = selectedBranch?.lessonBalance.remaining ?? user?.lessonBalance?.remaining ?? 0;
 
-  async function load(currentToken = token) {
+  async function load(currentToken = token, preferredBranchId?: string) {
     if (!currentToken) return;
     setLoading(true);
     try {
-      const [me, classList] = await Promise.all([getMe(currentToken), getClasses(currentToken)]);
+      const me = await getMe(currentToken);
+      const branchSession = resolveSelectedMemberBranch(me, preferredBranchId);
+      const classList = branchSession.selectedBranchId ? await getClasses(currentToken, branchSession.selectedBranchId) : [];
       setUser(me);
+      setBranches(branchSession.accessibleBranches);
+      setSelectedBranchId(branchSession.selectedBranchId);
       setClasses(classList);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
@@ -47,7 +57,10 @@ export default function ClassesPage() {
       setMember(nextMember);
       setToken(session.accessToken);
       setUser(session.user);
-      const classList = await getClasses(session.accessToken);
+      const branchSession = resolveSelectedMemberBranch(session.user);
+      const classList = branchSession.selectedBranchId ? await getClasses(session.accessToken, branchSession.selectedBranchId) : [];
+      setBranches(branchSession.accessibleBranches);
+      setSelectedBranchId(branchSession.selectedBranchId);
       setClasses(classList);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' });
@@ -56,13 +69,28 @@ export default function ClassesPage() {
     }
   }
 
-  async function bookClass(boxingClass: BoxingClass) {
-    if (!token || boxingClass.remainingSpots <= 0) return;
+  async function switchBranch(branchId: string) {
+    if (!token || branchId === selectedBranchId) return;
+    setStoredBranchId(branchId);
+    setSelectedBranchId(branchId);
     setLoading(true);
     try {
-      await createBooking(token, boxingClass.id, reminder ? 120 : undefined);
+      const classList = await getClasses(token, branchId);
+      setClasses(classList);
+    } catch (error) {
+      Taro.showToast({ title: error instanceof Error ? error.message : '切换门店失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function bookClass(boxingClass: BoxingClass) {
+    if (!token || !selectedBranchId || boxingClass.remainingSpots <= 0) return;
+    setLoading(true);
+    try {
+      await createBooking(token, boxingClass.id, selectedBranchId, reminder ? 120 : undefined);
       Taro.showToast({ title: '预约成功', icon: 'success' });
-      await load(token);
+      await load(token, selectedBranchId);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '预约失败', icon: 'none' });
     } finally {
@@ -86,7 +114,9 @@ export default function ClassesPage() {
         <Text className="eyebrow">BOXING CLUB</Text>
         <Text className="title">今天想打哪节课？</Text>
         <Text className="subtitle">
-          {user ? `${user.displayName} · 剩余 ${user.lessonBalance?.remaining ?? 0} 节课` : '选择会员后开始预约'}
+          {user
+            ? `${user.displayName} · ${selectedBranch?.name ?? '当前门店'} · 剩余 ${selectedBalance} 节课`
+            : '选择会员后开始预约'}
         </Text>
       </View>
 
@@ -102,6 +132,25 @@ export default function ClassesPage() {
           </Button>
         ))}
       </View>
+
+      {branches.length > 0 && (
+        <View className="branch-selector">
+          {branches.length > 1 ? (
+            branches.map((branch) => (
+              <Button
+                key={branch.id}
+                className={`branch-button ${selectedBranchId === branch.id ? 'active' : ''}`}
+                disabled={loading}
+                onClick={() => void switchBranch(branch.id)}
+              >
+                {branch.name}
+              </Button>
+            ))
+          ) : (
+            <Text className="branch-single">{branches[0].name}</Text>
+          )}
+        </View>
+      )}
 
       <View className="reminder-row">
         <View>

@@ -1,35 +1,59 @@
 import { Button, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { useState } from 'react';
-import { cancelBooking, devLogin, getMyBookings, getStoredMember, getStoredToken } from '../../api';
-import { Booking } from '../../types';
+import { cancelBooking, devLogin, getMe, getMyBookings, getStoredMember, getStoredToken, setStoredBranchId } from '../../api';
+import { resolveSelectedMemberBranch } from '../../branch-session';
+import { AuthUser, Booking, MemberBranch } from '../../types';
 import { formatTime } from '../../utils';
 import './index.scss';
 
 export default function BookingsPage() {
   const [token, setToken] = useState(getStoredToken());
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [branches, setBranches] = useState<MemberBranch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
+  const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
 
-  async function ensureToken() {
+  async function ensureSession() {
     const stored = getStoredToken();
     if (stored) {
       setToken(stored);
-      return stored;
+      return { token: stored, user: await getMe(stored) };
     }
     const session = await devLogin(getStoredMember());
     setToken(session.accessToken);
-    return session.accessToken;
+    return { token: session.accessToken, user: session.user };
   }
 
-  async function load() {
+  async function load(preferredBranchId?: string) {
     setLoading(true);
     try {
-      const currentToken = await ensureToken();
-      const data = await getMyBookings(currentToken);
+      const session = await ensureSession();
+      const branchSession = resolveSelectedMemberBranch(session.user, preferredBranchId);
+      const data = branchSession.selectedBranchId ? await getMyBookings(session.token, branchSession.selectedBranchId) : [];
+      setUser(session.user);
+      setBranches(branchSession.accessibleBranches);
+      setSelectedBranchId(branchSession.selectedBranchId);
       setBookings(data);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function switchBranch(branchId: string) {
+    if (!token || branchId === selectedBranchId) return;
+    setStoredBranchId(branchId);
+    setSelectedBranchId(branchId);
+    setLoading(true);
+    try {
+      const data = await getMyBookings(token, branchId);
+      setBookings(data);
+    } catch (error) {
+      Taro.showToast({ title: error instanceof Error ? error.message : '切换门店失败', icon: 'none' });
     } finally {
       setLoading(false);
     }
@@ -49,7 +73,7 @@ export default function BookingsPage() {
     try {
       await cancelBooking(token, item.id);
       Taro.showToast({ title: '已取消', icon: 'success' });
-      await load();
+      await load(selectedBranchId);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '取消失败', icon: 'none' });
     } finally {
@@ -66,8 +90,29 @@ export default function BookingsPage() {
       <View className="hero">
         <Text className="eyebrow">MY BOOKINGS</Text>
         <Text className="title">我的预约</Text>
-        <Text className="subtitle">只显示当前登录会员自己的预约记录</Text>
+        <Text className="subtitle">
+          {user ? `${user.displayName} · ${selectedBranch?.name ?? '当前门店'}` : '只显示当前登录会员自己的预约记录'}
+        </Text>
       </View>
+
+      {branches.length > 0 && (
+        <View className="branch-selector">
+          {branches.length > 1 ? (
+            branches.map((branch) => (
+              <Button
+                key={branch.id}
+                className={`branch-button ${selectedBranchId === branch.id ? 'active' : ''}`}
+                disabled={loading}
+                onClick={() => void switchBranch(branch.id)}
+              >
+                {branch.name}
+              </Button>
+            ))
+          ) : (
+            <Text className="branch-single">{branches[0].name}</Text>
+          )}
+        </View>
+      )}
 
       <Text className="section-title">预约记录</Text>
       {bookings.length === 0 ? (

@@ -118,3 +118,30 @@ text {
   color: #9a9a9a;
   text-align: center;
 }
+
+.branch-selector {
+  display: flex;
+  gap: 16px;
+  margin-top: 22px;
+  overflow-x: auto;
+}
+
+.branch-button,
+.branch-single {
+  min-width: 180px;
+  min-height: 72px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 72px;
+  text-align: center;
+}
+
+.branch-button.active {
+  border-color: #e73535;
+  background: #e73535;
+}

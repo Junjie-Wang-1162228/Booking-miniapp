@@ -9,6 +9,18 @@ export type AuthUser = {
   displayName: string;
   phone: string | null;
   lessonBalance: { remaining: number } | null;
+  accessibleBranches: MemberBranch[];
+  defaultBranchId: string | null;
+};
+
+export type MemberBranch = {
+  id: string;
+  gymId: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  isDefault: boolean;
+  lessonBalance: { remaining: number };
 };
 
 export type AuthResponse = {
@@ -18,8 +30,12 @@ export type AuthResponse = {
 
 export type BoxingClass = {
   id: string;
+  gymId: string;
+  branchId: string;
+  branchName: string | null;
   title: string;
   coach: string;
+  coachId: string | null;
   startsAt: string;
   durationMin: number;
   capacity: number;
@@ -31,6 +47,8 @@ export type BoxingClass = {
 
 export type Booking = {
   id: string;
+  gymId: string;
+  branchId: string;
   status: BookingStatus;
   attendanceStatus: AttendanceStatus;
   canceledAt: string | null;
@@ -40,6 +58,8 @@ export type Booking = {
     id: string;
     title: string;
     coach: string;
+    branchId: string;
+    coachId: string | null;
     startsAt: string;
     durationMin: number;
     status: ClassStatus;
@@ -49,6 +69,8 @@ export type Booking = {
 
 export type Deduction = {
   id: string;
+  gymId: string;
+  branchId: string;
   bookingId: string;
   amount: number;
   note: string | null;
@@ -57,6 +79,7 @@ export type Deduction = {
     id: string;
     title: string;
     coach: string;
+    branchId: string;
     startsAt: string;
   };
 };

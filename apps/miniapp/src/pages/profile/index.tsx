@@ -1,8 +1,9 @@
 import { Button, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { useState } from 'react';
-import { devLogin, getMe, getMyDeductions, getStoredMember, getStoredToken } from '../../api';
-import { AuthUser, Deduction, MemberKey } from '../../types';
+import { devLogin, getMe, getMyDeductions, getStoredMember, getStoredToken, setStoredBranchId } from '../../api';
+import { resolveSelectedMemberBranch } from '../../branch-session';
+import { AuthUser, Deduction, MemberBranch, MemberKey } from '../../types';
 import { formatTime } from '../../utils';
 import './index.scss';
 
@@ -15,15 +16,25 @@ export default function ProfilePage() {
   const [member, setMember] = useState<MemberKey>(getStoredMember());
   const [token, setToken] = useState(getStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [branches, setBranches] = useState<MemberBranch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [deductions, setDeductions] = useState<Deduction[]>([]);
   const [loading, setLoading] = useState(false);
+  const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
+  const selectedBalance = selectedBranch?.lessonBalance.remaining ?? user?.lessonBalance?.remaining ?? 0;
 
-  async function load(currentToken = token) {
+  async function load(currentToken = token, preferredBranchId?: string) {
     if (!currentToken) return;
     setLoading(true);
     try {
-      const [me, deductionList] = await Promise.all([getMe(currentToken), getMyDeductions(currentToken)]);
+      const me = await getMe(currentToken);
+      const branchSession = resolveSelectedMemberBranch(me, preferredBranchId);
+      const deductionList = branchSession.selectedBranchId
+        ? await getMyDeductions(currentToken, branchSession.selectedBranchId)
+        : [];
       setUser(me);
+      setBranches(branchSession.accessibleBranches);
+      setSelectedBranchId(branchSession.selectedBranchId);
       setDeductions(deductionList);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
@@ -39,10 +50,30 @@ export default function ProfilePage() {
       setMember(nextMember);
       setToken(session.accessToken);
       setUser(session.user);
-      const deductionList = await getMyDeductions(session.accessToken);
+      const branchSession = resolveSelectedMemberBranch(session.user);
+      const deductionList = branchSession.selectedBranchId
+        ? await getMyDeductions(session.accessToken, branchSession.selectedBranchId)
+        : [];
+      setBranches(branchSession.accessibleBranches);
+      setSelectedBranchId(branchSession.selectedBranchId);
       setDeductions(deductionList);
     } catch (error) {
       Taro.showToast({ title: error instanceof Error ? error.message : '切换失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function switchBranch(branchId: string) {
+    if (!token || branchId === selectedBranchId) return;
+    setStoredBranchId(branchId);
+    setSelectedBranchId(branchId);
+    setLoading(true);
+    try {
+      const deductionList = await getMyDeductions(token, branchId);
+      setDeductions(deductionList);
+    } catch (error) {
+      Taro.showToast({ title: error instanceof Error ? error.message : '切换门店失败', icon: 'none' });
     } finally {
       setLoading(false);
     }
@@ -63,7 +94,9 @@ export default function ProfilePage() {
       <View className="hero">
         <Text className="eyebrow">MEMBER</Text>
         <Text className="title">{user?.displayName || memberNames[member]}</Text>
-        <Text className="subtitle">剩余课时 {user?.lessonBalance?.remaining ?? 0} 节</Text>
+        <Text className="subtitle">
+          {selectedBranch?.name ?? '当前门店'} · 剩余课时 {selectedBalance} 节
+        </Text>
       </View>
 
       <View className="member-switch profile-switch">
@@ -78,6 +111,25 @@ export default function ProfilePage() {
           </Button>
         ))}
       </View>
+
+      {branches.length > 0 && (
+        <View className="branch-selector">
+          {branches.length > 1 ? (
+            branches.map((branch) => (
+              <Button
+                key={branch.id}
+                className={`branch-button ${selectedBranchId === branch.id ? 'active' : ''}`}
+                disabled={loading}
+                onClick={() => void switchBranch(branch.id)}
+              >
+                {branch.name}
+              </Button>
+            ))
+          ) : (
+            <Text className="branch-single">{branches[0].name}</Text>
+          )}
+        </View>
+      )}
 
       <View className="notice-card">
         <Text className="notice-title">MVP 体验账号</Text>
