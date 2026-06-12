@@ -53,6 +53,10 @@ export class BookingsService {
     await this.branchAccess.ensureMemberBranchAccess(userId, dto.branchId);
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM BoxingClass WHERE id = ${dto.classId} FOR UPDATE
+      `;
+
       const boxingClass = await tx.boxingClass.findUnique({
         where: { id: dto.classId },
         include: {

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtUser } from './auth.types';
+import { isWechatAutoProvisionEnabled } from './security-config';
 
 const developmentMemberPhones = {
   'member-a': '18800000001',
@@ -70,7 +71,7 @@ export class AuthService {
       return this.createSession(existingAccount.user);
     }
 
-    if (!this.isEnabled('WECHAT_AUTO_PROVISION_ENABLED', true)) {
+    if (!isWechatAutoProvisionEnabled(this.config)) {
       throw new ForbiddenException('Wechat account is not bound to a member');
     }
 

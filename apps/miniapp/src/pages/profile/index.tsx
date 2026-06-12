@@ -20,8 +20,11 @@ import './index.scss';
 
 const memberNames: Record<MemberKey, string> = {
   'member-a': '阿杰',
-  'member-b': '小林'
+  'member-b': '小林',
+  'member-c': '东店同学'
 };
+
+const developmentMembers: MemberKey[] = ['member-a', 'member-b', 'member-c'];
 
 export default function ProfilePage() {
   const [member, setMember] = useState<MemberKey>(getStoredMember());
@@ -129,7 +132,7 @@ export default function ProfilePage() {
 
       {devAuthMode && (
         <View className="member-switch profile-switch">
-          {(['member-a', 'member-b'] as MemberKey[]).map((key) => (
+          {developmentMembers.map((key) => (
             <Button
               key={key}
               className={`member-button ${member === key ? 'active' : ''}`}

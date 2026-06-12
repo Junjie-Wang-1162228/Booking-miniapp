@@ -1,4 +1,4 @@
-export type MemberKey = 'member-a' | 'member-b';
+export type MemberKey = 'member-a' | 'member-b' | 'member-c';
 export type BookingStatus = 'BOOKED' | 'CANCELED';
 export type AttendanceStatus = 'PENDING' | 'ATTENDED';
 export type ClassStatus = 'SCHEDULED' | 'CANCELED';

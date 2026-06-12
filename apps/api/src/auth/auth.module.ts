@@ -6,6 +6,7 @@ import { BranchesModule } from '../branches/branches.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { resolveJwtSecret } from './security-config';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') ?? 'dev-secret-change-before-production',
+        secret: resolveJwtSecret(config),
         signOptions: { expiresIn: '7d' }
       })
     }),

@@ -4,6 +4,11 @@ import { StaffRole, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import {
+  DEFAULT_DEV_JWT_SECRET,
+  isWechatAutoProvisionEnabled,
+  resolveJwtSecret
+} from '../src/auth/security-config';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Boxing booking API', () => {
@@ -343,6 +348,33 @@ describe('Boxing booking API', () => {
       .expect(200);
 
     expect(response.body.map((branch: { name: string }) => branch.name).sort()).toEqual(['城东店', '城西店']);
+  });
+
+  describe('security configuration', () => {
+    const config = (values: Record<string, string | undefined>) => ({
+      get: (key: string) => values[key]
+    });
+
+    it('allows the development JWT fallback outside production only', () => {
+      expect(resolveJwtSecret(config({ NODE_ENV: 'development' }))).toBe(DEFAULT_DEV_JWT_SECRET);
+      expect(() => resolveJwtSecret(config({ NODE_ENV: 'production' }))).toThrow(
+        'JWT_SECRET must be set to a non-default value in production'
+      );
+      expect(() =>
+        resolveJwtSecret({ get: (key: string) => (key === 'JWT_SECRET' ? DEFAULT_DEV_JWT_SECRET : 'production') })
+      ).toThrow('JWT_SECRET must be set to a non-default value in production');
+      expect(resolveJwtSecret(config({ NODE_ENV: 'production', JWT_SECRET: 'production-secret-123' }))).toBe(
+        'production-secret-123'
+      );
+    });
+
+    it('defaults WeChat auto-provisioning off in production', () => {
+      expect(isWechatAutoProvisionEnabled(config({ NODE_ENV: 'development' }))).toBe(true);
+      expect(isWechatAutoProvisionEnabled(config({ NODE_ENV: 'production' }))).toBe(false);
+      expect(isWechatAutoProvisionEnabled(config({ NODE_ENV: 'production', WECHAT_AUTO_PROVISION_ENABLED: 'true' }))).toBe(
+        true
+      );
+    });
   });
 
   describe('classes', () => {
@@ -695,6 +727,36 @@ describe('Boxing booking API', () => {
         .set('Authorization', `Bearer ${memberC}`)
         .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
         .expect(409);
+    });
+
+    it('prevents concurrent bookings from exceeding class capacity', async () => {
+      const boxingClass = await createClass(1);
+
+      const sessions = await Promise.all(
+        Array.from({ length: 8 }, (_, index) =>
+          request(app.getHttpServer())
+            .post('/auth/wechat-login')
+            .send({ code: `mock:capacity-race-${index}` })
+            .expect(201)
+        )
+      );
+
+      const responses = await Promise.all(
+        sessions.map((session) =>
+          request(app.getHttpServer())
+            .post('/bookings')
+            .set('Authorization', `Bearer ${session.body.accessToken}`)
+            .send({ classId: boxingClass.id, branchId: boxingClass.branchId })
+        )
+      );
+
+      expect(responses.filter((response) => response.status === 201)).toHaveLength(1);
+      expect(responses.filter((response) => response.status === 409)).toHaveLength(7);
+
+      const activeBookings = await prisma.booking.count({
+        where: { classId: boxingClass.id, status: 'BOOKED' }
+      });
+      expect(activeBookings).toBe(1);
     });
 
     it('lets a member cancel only their own booking before class start', async () => {
