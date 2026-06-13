@@ -86,6 +86,7 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa }) 
 
   if (!mysql.ok) notes.push('MySQL is not healthy. Run pnpm dev:db and wait for Docker health to become healthy.');
   if (mysql.warning) notes.push(mysql.warning);
+  if (mysql.remediation) notes.push(mysql.remediation);
   if (!api.ok) notes.push('API is not reachable. Run pnpm api:dev and check http://localhost:4000/health.');
   if (!admin.ok) notes.push('管理端未找到可用预览页。Run pnpm admin:dev and check ports 5173/5174.');
   if (!miniapp.ok) notes.push('小程序 dist 或 watch 未就绪。Run pnpm miniapp:dev, then open apps/miniapp/dist in WeChat DevTools.');
@@ -170,6 +171,9 @@ function checkMysql() {
     database && publishedContainer && mysql.name && publishedContainer.name !== mysql.name
       ? `DATABASE_URL ${database.host}:${database.port}/${database.database} is published by ${publishedContainer.name}, not compose mysql ${mysql.name}.`
       : undefined;
+  const remediation = warning
+    ? 'Run docker ps to confirm port ownership, then stop the conflicting container or update apps/api/.env DATABASE_URL to the intended MySQL.'
+    : undefined;
 
   return {
     ok: running && healthy,
@@ -180,7 +184,8 @@ function checkMysql() {
     status: mysql.status,
     database,
     publishedContainer,
-    warning
+    warning,
+    remediation
   };
 }
 

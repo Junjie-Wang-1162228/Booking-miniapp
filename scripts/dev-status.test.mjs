@@ -141,7 +141,9 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
         ports: '0.0.0.0:3307->3306/tcp'
       },
       warning:
-        'DATABASE_URL localhost:3307/boxing_booking is published by mvp-mysql-1, not compose mysql booking-miniapp-mysql-1.'
+        'DATABASE_URL localhost:3307/boxing_booking is published by mvp-mysql-1, not compose mysql booking-miniapp-mysql-1.',
+      remediation:
+        'Run docker ps to confirm port ownership, then stop the conflicting container or update apps/api/.env DATABASE_URL to the intended MySQL.'
     },
     api: {
       ok: true,
@@ -169,6 +171,7 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
 
   assert.equal(report.ok, true);
   assert.match(report.notes.join('\n'), /published by mvp-mysql-1/);
+  assert.match(report.notes.join('\n'), /stop the conflicting container or update apps\/api\/\.env DATABASE_URL/);
 });
 
 test('createDevStatusReport adds notes for degraded preview services', () => {
