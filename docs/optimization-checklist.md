@@ -110,6 +110,7 @@
 - [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
 - [x] 新增 `pnpm dev:status:strict` 严格本地环境门禁：普通状态查询继续用于预览可用性；严格模式会把数据库端口漂移和孤儿 Prisma query-engine 当作失败，适合截图验收或发布前使用。
 - [x] `pnpm dev:status` 输出 `progress` 汇总：展示本地预览完成度、视觉截图矩阵完成度和下一步动作；严格模式失败时优先提示 strict 门禁缺口，方便继续推进验收。
+- [x] `pnpm dev:status` 的视觉 QA 下一步补充 `missingScreenshots` 和截图保存路径，手工补图时无需再切到单独的 visual-qa 命令查目标文件。
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。
 - [x] 本地初始化迁移命令改为非交互式 `pnpm --filter @booking/api prisma:deploy`；`prisma:migrate` 保留给开发新 schema 变更时创建 migration，避免新库初始化时卡在交互式输入。
 - [x] 新增 `pnpm dev:preview:start/status/stop` 后台预览生命周期命令：缺失时补齐 API、管理端和小程序 watch，日志和 PID 写入 ignored 的 `.dev/preview`，减少依赖临时终端会话。

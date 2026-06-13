@@ -147,7 +147,24 @@ test('createDevStatusReport marks local preview ready when required services are
       next: {
         deviceName: 'iPhone SE',
         viewport: '375 x 667',
-        missingLabels: ['classes', 'bookings', 'profile']
+        missingLabels: ['classes', 'bookings', 'profile'],
+        missingScreenshots: [
+          {
+            label: 'classes',
+            pagePath: '/pages/classes/index',
+            outputPath: 'docs/manual-test-screenshots/iphone-se-classes.png'
+          },
+          {
+            label: 'bookings',
+            pagePath: '/pages/bookings/index',
+            outputPath: 'docs/manual-test-screenshots/iphone-se-bookings.png'
+          },
+          {
+            label: 'profile',
+            pagePath: '/pages/profile/index',
+            outputPath: 'docs/manual-test-screenshots/iphone-se-profile.png'
+          }
+        ]
       }
     }
   });
@@ -168,7 +185,16 @@ test('createDevStatusReport marks local preview ready when required services are
     total: 12,
     percent: 25
   });
+  assert.deepEqual(
+    report.visualQa.next.missingScreenshots.map((item) => item.outputPath),
+    [
+      'docs/manual-test-screenshots/iphone-se-classes.png',
+      'docs/manual-test-screenshots/iphone-se-bookings.png',
+      'docs/manual-test-screenshots/iphone-se-profile.png'
+    ]
+  );
   assert.match(report.progress.nextAction, /Capture iPhone SE screenshots for classes, bookings, profile/);
+  assert.match(report.progress.nextAction, /iphone-se-classes\.png/);
   assert.deepEqual(report.notes, []);
 });
 

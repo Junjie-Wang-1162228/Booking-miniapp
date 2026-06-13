@@ -39,6 +39,10 @@ test('README documents pnpm verify as the pre-push quality gate', () => {
   assert.match(readme, /不打开微信开发者工具/);
 });
 
+test('README documents dev status visual QA screenshot targets', () => {
+  assert.match(readme, /`pnpm dev:status`[^\n]*视觉截图矩阵完成度[^\n]*截图保存路径/);
+});
+
 test('GitHub Actions verify workflow runs the same safe project gate', () => {
   assert.equal(existsSync(verifyWorkflowPath), true);
   const workflow = readFileSync(verifyWorkflowPath, 'utf8');
