@@ -9,7 +9,14 @@ const FORBIDDEN_FILE_PATTERNS = [
 ];
 
 const ALLOWED_FILE_PATTERNS = [/(^|\/)\.env(\..*)?\.example$/];
-const REAL_WECHAT_APPID_PATTERN = /"appid"\s*:\s*"wx[a-f0-9]{12,}"/i;
+const GENERATED_CONTENT_FILE_PATTERNS = [/(^|\/)pnpm-lock\.yaml$/, /(^|\/)package-lock\.json$/, /(^|\/)yarn\.lock$/];
+const SCANNED_CONTENT_FILE_PATTERNS = [
+  /(^|\/)\.env(\..*)?\.example$/,
+  /(^|\/)\.gitignore$/,
+  /\.(css|html|js|jsx|json|md|mjs|prisma|scss|sql|svg|toml|ts|tsx|txt|yaml|yml)$/i
+];
+const REAL_WECHAT_APPID_PATTERN = /\bwx[0-9a-z]{16,}\b/i;
+const REAL_WECHAT_APPID_REASON = 'real WeChat AppID must stay in local private config';
 
 export function findForbiddenTrackedFiles(files) {
   return files.filter((file) => {
@@ -26,13 +33,25 @@ export function readTrackedFiles() {
   return output.split('\0').filter(Boolean);
 }
 
+export function shouldScanTrackedContent(path) {
+  if (GENERATED_CONTENT_FILE_PATTERNS.some((pattern) => pattern.test(path))) {
+    return false;
+  }
+
+  return SCANNED_CONTENT_FILE_PATTERNS.some((pattern) => pattern.test(path));
+}
+
 export function findForbiddenTrackedContent(entries) {
   return entries.flatMap(({ path, content }) => {
-    if (path === 'apps/miniapp/project.config.json' && REAL_WECHAT_APPID_PATTERN.test(content)) {
+    if (!shouldScanTrackedContent(path)) {
+      return [];
+    }
+
+    if (REAL_WECHAT_APPID_PATTERN.test(content)) {
       return [
         {
           path,
-          reason: 'real WeChat AppID must stay in local private config'
+          reason: REAL_WECHAT_APPID_REASON
         }
       ];
     }
@@ -46,7 +65,7 @@ function main() {
   const forbidden = findForbiddenTrackedFiles(trackedFiles);
   const forbiddenContent = findForbiddenTrackedContent(
     trackedFiles
-      .filter((file) => file === 'apps/miniapp/project.config.json')
+      .filter((file) => shouldScanTrackedContent(file))
       .map((file) => ({ path: file, content: readFileSync(file, 'utf8') }))
   );
 

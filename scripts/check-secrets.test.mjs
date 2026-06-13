@@ -54,3 +54,32 @@ test('allows placeholder WeChat appid in tracked miniapp project config', () => 
 
   assert.deepEqual(violations, []);
 });
+
+test('flags real WeChat appid in any tracked text file', () => {
+  const realLookingAppId = ['wx', 'abcdef1234567890'].join('');
+  const violations = findForbiddenTrackedContent([
+    {
+      path: 'README.md',
+      content: `Local AppID: ${realLookingAppId}`
+    }
+  ]);
+
+  assert.deepEqual(violations, [
+    {
+      path: 'README.md',
+      reason: 'real WeChat AppID must stay in local private config'
+    }
+  ]);
+});
+
+test('ignores generated lockfiles when scanning appid-shaped strings', () => {
+  const lockfileHashFragment = ['wx', 'abcdef1234567890'].join('');
+  const violations = findForbiddenTrackedContent([
+    {
+      path: 'pnpm-lock.yaml',
+      content: `integrity: sha512-${lockfileHashFragment}`
+    }
+  ]);
+
+  assert.deepEqual(violations, []);
+});
