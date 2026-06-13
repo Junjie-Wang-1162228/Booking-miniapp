@@ -565,6 +565,6 @@ export class MembersService {
   }
 
   private resolveWechatAppId(appId?: string) {
-    return appId?.trim() || this.config.get<string>('MINIAPP_APP_ID') || 'personal-mvp-appid';
+    return appId?.trim() || this.config.get<string>('MINIAPP_APP_ID') || 'touristappid';
   }
 }

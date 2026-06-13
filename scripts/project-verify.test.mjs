@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
@@ -9,6 +10,15 @@ const envExample = readFileSync('.env.example', 'utf8');
 const dockerCompose = readFileSync('docker-compose.yml', 'utf8');
 const manualChecklist = readFileSync('docs/manual-test-checklist.md', 'utf8');
 const verifyWorkflowPath = '.github/workflows/verify.yml';
+
+function gitGrep(pattern) {
+  try {
+    return execFileSync('git', ['grep', '-n', pattern, '--', ':!pnpm-lock.yaml'], { encoding: 'utf8' });
+  } catch (error) {
+    if (error.status === 1) return '';
+    throw error;
+  }
+}
 
 test('package exposes a single safe project verification command', () => {
   const verify = packageJson.scripts.verify;
@@ -55,6 +65,16 @@ test('local mysql host port can be overridden without editing tracked project fi
   assert.match(readme, /apps\/api\/\.env[\s\S]*DATABASE_URL[\s\S]*3308/);
   assert.match(manualChecklist, /BOOKING_MYSQL_HOST_PORT=3308/);
   assert.match(manualChecklist, /pnpm dev:status:strict/);
+});
+
+test('tracked miniapp appid values stay placeholder-only', () => {
+  const miniappProjectConfig = readFileSync('apps/miniapp/project.config.json', 'utf8');
+  const wechatCheckScript = readFileSync('apps/api/scripts/check-wechat-login.ts', 'utf8');
+
+  assert.match(envExample, /^MINIAPP_APP_ID="touristappid"$/m);
+  assert.match(miniappProjectConfig, /"appid":\s*"touristappid"/);
+  assert.match(wechatCheckScript, /touristappid/);
+  assert.equal(gitGrep(`personal-mvp-${'appid'}`), '');
 });
 
 test('local setup uses non-interactive prisma deployment for existing migrations', () => {

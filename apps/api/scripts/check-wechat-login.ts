@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 type EnvMap = Record<string, string | undefined>;
+const PLACEHOLDER_APP_IDS = new Set(['touristappid']);
 
 function parseEnvFile(path: string): EnvMap {
   if (!existsSync(path)) return {};
@@ -90,7 +91,7 @@ async function main() {
     failures.push('MINIAPP_APP_ID is required.');
   }
 
-  if (config.appId === 'personal-mvp-appid') {
+  if (PLACEHOLDER_APP_IDS.has(config.appId)) {
     failures.push('MINIAPP_APP_ID still uses the placeholder value.');
   }
 

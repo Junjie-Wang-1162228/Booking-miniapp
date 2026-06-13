@@ -131,16 +131,23 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
     { label: 'admin', ok: admin.ok },
     { label: 'miniapp', ok: miniapp.ok }
   ];
+  const appPreviewItems = [
+    { label: 'API', ok: api.ok },
+    { label: 'admin', ok: admin.ok },
+    { label: 'miniapp', ok: miniapp.ok }
+  ];
   const completedPreviewItems = previewItems.filter((item) => item.ok).length;
   const visualCompleted = visualQa.existingCount ?? 0;
   const visualTotal = visualQa.requiredCount ?? 0;
-  const missingPreviewLabels = previewItems.filter((item) => !item.ok).map((item) => item.label);
+  const missingAppPreviewLabels = appPreviewItems.filter((item) => !item.ok).map((item) => item.label);
 
   let nextAction = 'All local preview and visual QA checks are complete.';
   if (strictFailures.length > 0) {
     nextAction = `Resolve strict dev status failure: ${strictFailures.join(' ')}`;
-  } else if (missingPreviewLabels.length > 0) {
-    nextAction = `Restore local preview services: ${missingPreviewLabels.join(', ')}.`;
+  } else if (missingAppPreviewLabels.length > 0) {
+    nextAction = `Run pnpm dev:preview:start to restore local preview services: ${missingAppPreviewLabels.join(', ')}.`;
+  } else if (!mysql.ok) {
+    nextAction = 'Run pnpm dev:db to restore MySQL.';
   } else if (!visualQa.complete && visualQa.next) {
     nextAction = `Capture ${visualQa.next.deviceName} screenshots for ${visualQa.next.missingLabels.join(', ')}.`;
   }
@@ -168,13 +175,22 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
 export function createDevStatusReport({ strict = false, mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
   const notes = [];
   const strictFailures = [];
+  const degradedPreviewServices = [
+    { label: 'API', ok: api.ok },
+    { label: '管理端', ok: admin.ok },
+    { label: '小程序', ok: miniapp.ok }
+  ]
+    .filter((item) => !item.ok)
+    .map((item) => item.label);
 
   if (!mysql.ok) notes.push('MySQL is not healthy. Run pnpm dev:db and wait for Docker health to become healthy.');
   if (mysql.warning) notes.push(mysql.warning);
   if (mysql.remediation) notes.push(mysql.remediation);
-  if (!api.ok) notes.push('API is not reachable. Run pnpm api:dev and check http://localhost:4000/health.');
-  if (!admin.ok) notes.push('管理端未找到可用预览页。Run pnpm admin:dev and check ports 5173/5174.');
-  if (!miniapp.ok) notes.push('小程序 dist 或 watch 未就绪。Run pnpm miniapp:dev, then open apps/miniapp/dist in WeChat DevTools.');
+  if (degradedPreviewServices.length > 0) {
+    notes.push(
+      `${degradedPreviewServices.join('、')} preview is not ready. Run pnpm dev:preview:start, then pnpm dev:preview:status.`
+    );
+  }
   if (diagnostics.prismaEngines?.orphanCount > 0) {
     notes.push(
       `Found ${diagnostics.prismaEngines.orphanCount} orphaned Prisma query-engine process(es): PIDs ${diagnostics.prismaEngines.orphanPids.join(', ')}. These can make local API E2E flaky.`

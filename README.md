@@ -176,7 +176,7 @@ pnpm miniapp:dev:local
 - 禁止在已追踪文档、源码、配置、脚本和暂存区内容中提交真实 `wx...` AppID；`apps/miniapp/project.config.json` 使用 `touristappid` 占位。
 
 如果需要配置真实 AppID，请放在本地微信开发者工具私有配置或本地环境变量中。
-微信开发者工具生成的 `apps/miniapp/project.private.config.json` 和 `apps/miniapp/dist/**` 只保留在本地；仓库内 `apps/miniapp/project.config.json` 仅使用 `touristappid` 占位。
+微信开发者工具生成的 `apps/miniapp/project.private.config.json` 和 `apps/miniapp/dist/**` 只保留在本地；仓库内 `.env.example` 和 `apps/miniapp/project.config.json` 仅使用 `touristappid` 占位。
 
 ## 常用命令
 

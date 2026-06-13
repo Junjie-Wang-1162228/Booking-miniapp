@@ -356,6 +356,11 @@ test('createDevStatusReport adds notes for degraded preview services', () => {
   assert.match(report.notes.join('\n'), /API/);
   assert.match(report.notes.join('\n'), /管理端/);
   assert.match(report.notes.join('\n'), /小程序/);
+  assert.match(report.notes.join('\n'), /pnpm dev:preview:start/);
+  assert.match(report.progress.nextAction, /pnpm dev:preview:start/);
+  assert.doesNotMatch(report.notes.join('\n'), /Run pnpm api:dev/);
+  assert.doesNotMatch(report.notes.join('\n'), /Run pnpm admin:dev/);
+  assert.doesNotMatch(report.notes.join('\n'), /Run pnpm miniapp:dev/);
 });
 
 test('readOptions enables strict mode only when requested', () => {

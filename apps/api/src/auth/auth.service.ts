@@ -268,7 +268,7 @@ export class AuthService {
   }
 
   private getMiniappAppId() {
-    return this.config.get<string>('MINIAPP_APP_ID') || 'personal-mvp-appid';
+    return this.config.get<string>('MINIAPP_APP_ID') || 'touristappid';
   }
 
   private getAutoProvisionLessons() {
