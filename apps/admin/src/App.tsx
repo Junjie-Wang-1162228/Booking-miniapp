@@ -27,7 +27,7 @@ import {
   UserPlus,
   XCircle
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, useEffect, useMemo, useState } from 'react';
 import {
   adjustMemberLessons,
   bindMemberWechat,
@@ -92,6 +92,10 @@ type UpdateMemberFormValues = Omit<UpdateMemberInput, 'branchId'>;
 type LessonAdjustmentFormValues = {
   delta: number;
   reason: string;
+};
+
+type NumberInputWithUnitProps = ComponentProps<typeof InputNumber> & {
+  unit: string;
 };
 
 type ClassRosterGroup = {
@@ -249,6 +253,17 @@ function toIsoFromLocal(value: string) {
 
 function toLocalInputValue(value: string) {
   return dayjs(value).format('YYYY-MM-DDTHH:mm');
+}
+
+function NumberInputWithUnit({ unit, className, ...props }: NumberInputWithUnitProps) {
+  const inputClassName = ['number-input-with-unit__input', className].filter(Boolean).join(' ');
+
+  return (
+    <Space.Compact block>
+      <InputNumber {...props} className={inputClassName} />
+      <span className="number-input-with-unit__unit">{unit}</span>
+    </Space.Compact>
+  );
 }
 
 function escapeCsvCell(value: string | number | null | undefined) {
@@ -1447,6 +1462,7 @@ export default function App() {
     {
       key: 'members',
       label: '会员绑定',
+      forceRender: true,
       children: (
         <section className="class-grid">
           <div className="panel">
@@ -1495,7 +1511,7 @@ export default function App() {
                   label="初始课时"
                   rules={[{ type: 'number', min: 0, max: 999, message: '课时需在 0-999' }]}
                 >
-                  <InputNumber min={0} max={999} addonAfter="节" />
+                  <NumberInputWithUnit min={0} max={999} unit="节" />
                 </Form.Item>
               </div>
               <Form.Item
@@ -1541,6 +1557,7 @@ export default function App() {
     {
       key: 'coaches',
       label: '教练管理',
+      forceRender: true,
       children: (
         <section className="class-grid">
           <div className="panel">
@@ -1758,6 +1775,7 @@ export default function App() {
     {
       key: 'classes',
       label: '课程管理',
+      forceRender: true,
       children: (
         <section className="class-grid">
           <div className="panel">
@@ -1848,7 +1866,7 @@ export default function App() {
                     { type: 'number', min: 30, max: 240, message: '时长需在 30-240 分钟' }
                   ]}
                 >
-                  <InputNumber min={30} max={240} addonAfter="分钟" />
+                  <NumberInputWithUnit min={30} max={240} unit="分钟" />
                 </Form.Item>
                 <Form.Item
                   name="capacity"
@@ -1866,7 +1884,7 @@ export default function App() {
                     }
                   ]}
                 >
-                  <InputNumber min={1} max={100} addonAfter="人" />
+                  <NumberInputWithUnit min={1} max={100} unit="人" />
                 </Form.Item>
               </div>
               <Form.Item
@@ -2126,6 +2144,7 @@ export default function App() {
       </Modal>
       <Modal
         title="编辑教练资料"
+        forceRender
         open={Boolean(editingCoach)}
         okText="保存资料"
         cancelText="取消"
@@ -2179,6 +2198,7 @@ export default function App() {
       </Modal>
       <Modal
         title="编辑会员资料"
+        forceRender
         open={Boolean(editingMember)}
         okText="保存资料"
         cancelText="取消"
@@ -2221,6 +2241,7 @@ export default function App() {
       </Modal>
       <Modal
         title="调整课时"
+        forceRender
         open={Boolean(lessonAdjustingMember)}
         okText="确认调整"
         cancelText="取消"
@@ -2248,7 +2269,7 @@ export default function App() {
               }
             ]}
           >
-            <InputNumber min={-999} max={999} addonAfter="节" />
+            <NumberInputWithUnit min={-999} max={999} unit="节" />
           </Form.Item>
           <Form.Item
             name="reason"

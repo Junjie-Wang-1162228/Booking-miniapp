@@ -45,6 +45,7 @@
     "admin:notifications:test": "node --test scripts/admin-notifications.test.mjs",
     "admin:metrics:test": "node --test scripts/admin-metrics.test.mjs",
     "admin:network-errors:test": "node --test scripts/admin-network-errors.test.mjs",
+    "admin:form-warnings:test": "node --test scripts/admin-form-warnings.test.mjs",
     "notifications:booking-confirmation:test": "node --test scripts/booking-confirmation-notification.test.mjs",
     "ops:alerting:test": "node --test scripts/ops-alerting.test.mjs",
     "ops:readiness:test": "node --test scripts/ops-readiness.test.mjs",
