@@ -110,6 +110,52 @@ export function summarizePrismaEngineProcesses(output, projectRoot = PROJECT_ROO
   };
 }
 
+function percent(completed, total) {
+  if (total <= 0) return 100;
+  return Math.round((completed / total) * 100);
+}
+
+function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa }) {
+  const previewItems = [
+    { label: 'MySQL', ok: mysql.ok },
+    { label: 'API', ok: api.ok },
+    { label: 'admin', ok: admin.ok },
+    { label: 'miniapp', ok: miniapp.ok }
+  ];
+  const completedPreviewItems = previewItems.filter((item) => item.ok).length;
+  const visualCompleted = visualQa.existingCount ?? 0;
+  const visualTotal = visualQa.requiredCount ?? 0;
+  const missingPreviewLabels = previewItems.filter((item) => !item.ok).map((item) => item.label);
+
+  let nextAction = 'All local preview and visual QA checks are complete.';
+  if (strictFailures.length > 0) {
+    nextAction = `Resolve strict dev status failure: ${strictFailures.join(' ')}`;
+  } else if (missingPreviewLabels.length > 0) {
+    nextAction = `Restore local preview services: ${missingPreviewLabels.join(', ')}.`;
+  } else if (!visualQa.complete && visualQa.next) {
+    nextAction = `Capture ${visualQa.next.deviceName} screenshots for ${visualQa.next.missingLabels.join(', ')}.`;
+  }
+
+  return {
+    preview: {
+      completed: completedPreviewItems,
+      total: previewItems.length,
+      percent: percent(completedPreviewItems, previewItems.length)
+    },
+    visualQa: {
+      completed: visualCompleted,
+      total: visualTotal,
+      percent: percent(visualCompleted, visualTotal)
+    },
+    strict: {
+      enabled: strict,
+      passed: strictFailures.length === 0,
+      failures: strictFailures
+    },
+    nextAction
+  };
+}
+
 export function createDevStatusReport({ strict = false, mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
   const notes = [];
   const strictFailures = [];
@@ -140,10 +186,12 @@ export function createDevStatusReport({ strict = false, mysql, api, admin, minia
   }
 
   const previewOk = mysql.ok && api.ok && admin.ok && miniapp.ok;
+  const progress = createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa });
 
   return {
     mode: 'dev-status',
     ok: previewOk && strictFailures.length === 0,
+    progress,
     ...(strict
       ? {
           strict: {

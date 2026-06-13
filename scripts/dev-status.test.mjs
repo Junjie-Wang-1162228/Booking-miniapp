@@ -136,6 +136,17 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.equal(report.preview.admin.url, 'http://localhost:5174');
   assert.equal(report.preview.miniapp.openPath, 'apps/miniapp/dist');
   assert.equal(report.visualQa.next.deviceName, 'iPhone SE');
+  assert.deepEqual(report.progress.preview, {
+    completed: 4,
+    total: 4,
+    percent: 100
+  });
+  assert.deepEqual(report.progress.visualQa, {
+    completed: 3,
+    total: 12,
+    percent: 25
+  });
+  assert.match(report.progress.nextAction, /Capture iPhone SE screenshots for classes, bookings, profile/);
   assert.deepEqual(report.notes, []);
 });
 
@@ -241,6 +252,12 @@ test('createDevStatusReport fails strict mode when DATABASE_URL is served by ano
     passed: false,
     failures: ['DATABASE_URL is served by a non-compose MySQL container.']
   });
+  assert.deepEqual(report.progress.strict, {
+    enabled: true,
+    passed: false,
+    failures: ['DATABASE_URL is served by a non-compose MySQL container.']
+  });
+  assert.match(report.progress.nextAction, /Resolve strict dev status failure/);
   assert.match(report.notes.join('\n'), /Strict dev status failed/);
 });
 
