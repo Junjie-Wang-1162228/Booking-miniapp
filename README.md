@@ -171,6 +171,14 @@ pnpm miniapp:dev:local
 自动化检查：
 
 ```bash
+pnpm verify
+```
+
+`pnpm verify` 是提交或 push 前的统一质量门禁，会串行运行 lint、项目脚本测试、敏感信息/依赖安全检查和三端构建，不打开微信开发者工具，也不执行需要人工补图的视觉截图矩阵。
+
+单独运行各项检查：
+
+```bash
 pnpm lint
 pnpm --filter @booking/api test:e2e
 node --test scripts/*.test.mjs

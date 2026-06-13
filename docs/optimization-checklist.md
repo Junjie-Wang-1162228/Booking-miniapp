@@ -97,6 +97,7 @@
 - [x] 管理后台请求层增加 10 秒超时和弱网错误归一化，API 卡住或网络失败时显示中文可理解错误，而不是长期悬挂。
 - [x] 管理后台请求层识别 401 登录过期，自动清理本地 token/user/branch 缓存并回到登录页，避免坏 token 状态下反复报错。
 - [x] 管理后台启动时安全解析本地 user 缓存，缓存损坏时自动清理登录态和门店缓存，避免白屏。
+- [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 lint、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
 
 ## 下一步优化清单
 
@@ -107,6 +108,7 @@
 ## 当前验证命令
 
 - [x] `pnpm lint`
+- [x] `pnpm verify`
 - [x] `pnpm --filter @booking/api test:e2e`
 - [x] `pnpm --filter @booking/api build`
 - [x] `pnpm --filter @booking/admin build`

@@ -27,6 +27,7 @@ test('release checklist uses the project verification and production safety comm
   const source = read(releaseChecklistPath);
 
   for (const command of [
+    'pnpm verify',
     'pnpm lint',
     'pnpm --filter @booking/api test:e2e',
     'pnpm --filter @booking/api build',
@@ -67,4 +68,3 @@ test('commercial and optimization checklists link the release checklist evidence
   assert.match(optimizationSource, /docs\/release-checklist\.md/);
   assert.match(optimizationSource, /pnpm ops:release-checklist:test/);
 });
-
