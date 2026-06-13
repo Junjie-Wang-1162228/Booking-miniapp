@@ -70,6 +70,15 @@ export function parseDatabaseUrlForStatus(databaseUrl) {
   }
 }
 
+export function createDatabasePortDriftRemediation({ database, publishedContainer, composeServiceName } = {}) {
+  const currentPort = Number(database?.port || 3307);
+  const suggestedPort = currentPort === 3307 ? 3308 : currentPort + 1;
+  const currentOwner = publishedContainer?.name ? ` currently published by ${publishedContainer.name}` : '';
+  const composeName = composeServiceName ? ` for ${composeServiceName}` : '';
+
+  return `Port ${currentPort}${currentOwner} does not match the compose MySQL${composeName}. To keep unrelated containers running, set BOOKING_MYSQL_HOST_PORT=${suggestedPort}, recreate the mysql service, then update apps/api/.env DATABASE_URL and SHADOW_DATABASE_URL to localhost:${suggestedPort}. Re-run pnpm dev:status:strict after the port and env agree.`;
+}
+
 export function detectBookingAdminHtml(html) {
   return /<title>\s*拳馆约课后台\s*<\/title>/i.test(html);
 }
@@ -286,7 +295,7 @@ function checkMysql() {
       ? `DATABASE_URL ${database.host}:${database.port}/${database.database} is published by ${publishedContainer.name}, not compose mysql ${mysql.name}.`
       : undefined;
   const remediation = warning
-    ? 'Run docker ps to confirm port ownership, then stop the conflicting container or update apps/api/.env DATABASE_URL to the intended MySQL.'
+    ? createDatabasePortDriftRemediation({ database, publishedContainer, composeServiceName: mysql.name })
     : undefined;
 
   return {

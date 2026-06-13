@@ -4,6 +4,9 @@ import test from 'node:test';
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 const readme = readFileSync('README.md', 'utf8');
+const envExample = readFileSync('.env.example', 'utf8');
+const dockerCompose = readFileSync('docker-compose.yml', 'utf8');
+const manualChecklist = readFileSync('docs/manual-test-checklist.md', 'utf8');
 const verifyWorkflowPath = '.github/workflows/verify.yml';
 
 test('package exposes a single safe project verification command', () => {
@@ -42,4 +45,13 @@ test('GitHub Actions verify workflow runs the same safe project gate', () => {
   assert.match(workflow, /3307:3306/);
   assert.match(workflow, /MYSQL_ROOT_PASSWORD:\s*booking_root/);
   assert.doesNotMatch(workflow, /miniapp:visual-qa:capture|miniapp:visual-qa:check/);
+});
+
+test('local mysql host port can be overridden without editing tracked project files', () => {
+  assert.match(dockerCompose, /\$\{BOOKING_MYSQL_HOST_PORT:-3307\}:3306/);
+  assert.match(envExample, /^BOOKING_MYSQL_HOST_PORT="3307"$/m);
+  assert.match(readme, /BOOKING_MYSQL_HOST_PORT=3308/);
+  assert.match(readme, /apps\/api\/\.env[\s\S]*DATABASE_URL[\s\S]*3308/);
+  assert.match(manualChecklist, /BOOKING_MYSQL_HOST_PORT=3308/);
+  assert.match(manualChecklist, /pnpm dev:status:strict/);
 });

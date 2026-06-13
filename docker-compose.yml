@@ -7,7 +7,7 @@ services:
       MYSQL_USER: booking_user
       MYSQL_PASSWORD: booking_pass
     ports:
-      - "3307:3306"
+      - "${BOOKING_MYSQL_HOST_PORT:-3307}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro

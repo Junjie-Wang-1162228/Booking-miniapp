@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createDevStatusReport,
+  createDatabasePortDriftRemediation,
   detectBookingAdminHtml,
   parseDatabaseUrlForStatus,
   parseDockerComposeServices,
@@ -57,6 +58,27 @@ test('parseDockerPublishedContainers reads published docker port metadata', () =
       ports: '0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp'
     }
   ]);
+});
+
+test('createDatabasePortDriftRemediation guides to a non-destructive mysql host port override', () => {
+  const remediation = createDatabasePortDriftRemediation({
+    database: {
+      host: 'localhost',
+      port: 3307,
+      database: 'boxing_booking'
+    },
+    publishedContainer: {
+      name: 'mvp-mysql-1'
+    },
+    composeServiceName: 'booking-miniapp-mysql-1'
+  });
+
+  assert.match(remediation, /BOOKING_MYSQL_HOST_PORT=3308/);
+  assert.match(remediation, /apps\/api\/\.env/);
+  assert.match(remediation, /DATABASE_URL/);
+  assert.match(remediation, /SHADOW_DATABASE_URL/);
+  assert.match(remediation, /recreate/i);
+  assert.doesNotMatch(remediation, /stop the conflicting container/i);
 });
 
 test('detectBookingAdminHtml only accepts the booking admin page', () => {
@@ -151,6 +173,20 @@ test('createDevStatusReport marks local preview ready when required services are
 });
 
 test('createDevStatusReport warns when DATABASE_URL is served by another mysql container', () => {
+  const remediation = createDatabasePortDriftRemediation({
+    database: {
+      host: 'localhost',
+      port: 3307,
+      database: 'boxing_booking'
+    },
+    publishedContainer: {
+      id: '8d59993aeee3',
+      name: 'mvp-mysql-1',
+      ports: '0.0.0.0:3307->3306/tcp'
+    },
+    composeServiceName: 'booking-miniapp-mysql-1'
+  });
+
   const report = createDevStatusReport({
     mysql: {
       ok: true,
@@ -169,8 +205,7 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
       },
       warning:
         'DATABASE_URL localhost:3307/boxing_booking is published by mvp-mysql-1, not compose mysql booking-miniapp-mysql-1.',
-      remediation:
-        'Run docker ps to confirm port ownership, then stop the conflicting container or update apps/api/.env DATABASE_URL to the intended MySQL.'
+      remediation
     },
     api: {
       ok: true,
@@ -198,7 +233,9 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
 
   assert.equal(report.ok, true);
   assert.match(report.notes.join('\n'), /published by mvp-mysql-1/);
-  assert.match(report.notes.join('\n'), /stop the conflicting container or update apps\/api\/\.env DATABASE_URL/);
+  assert.match(report.notes.join('\n'), /BOOKING_MYSQL_HOST_PORT=3308/);
+  assert.match(report.notes.join('\n'), /apps\/api\/\.env DATABASE_URL and SHADOW_DATABASE_URL/);
+  assert.doesNotMatch(report.notes.join('\n'), /stop the conflicting container/i);
 });
 
 test('createDevStatusReport fails strict mode when DATABASE_URL is served by another mysql container', () => {

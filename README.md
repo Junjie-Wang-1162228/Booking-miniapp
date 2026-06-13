@@ -79,6 +79,14 @@ cp .env.example apps/api/.env
 pnpm dev:db
 ```
 
+如果 `localhost:3307` 已被其他本地项目占用，不要直接停掉不确定归属的容器。可以临时改用本项目独立端口：
+
+```bash
+BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db
+```
+
+然后把本地 `apps/api/.env` 里的 `DATABASE_URL` 和 `SHADOW_DATABASE_URL` 端口同步改成 `3308`，再运行 `pnpm dev:status:strict` 确认端口和 API 环境一致。长期使用 3308 时，可把 `BOOKING_MYSQL_HOST_PORT=3308` 放在仓库根目录本地 `.env` 或 shell 环境变量中；这些本地文件不要提交。
+
 4. 执行迁移和种子数据：
 
 ```bash
