@@ -115,9 +115,15 @@ button::after {
 
 .card-title {
   display: block;
+  overflow: hidden;
   font-size: 32px;
   font-weight: 800;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .meta {
@@ -135,6 +141,11 @@ button::after {
   gap: 16px;
 }
 
+.card-main {
+  min-width: 0;
+  flex: 1;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -145,6 +156,8 @@ button::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  min-width: 72px;
   min-height: 44px;
   padding: 0 18px;
   border-radius: 8px;
@@ -152,10 +165,16 @@ button::after {
   color: #ffffff;
   font-size: 22px;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pill.red {
   background: #e73535;
+}
+
+.pill.booked {
+  background: #167c4c;
 }
 
 .muted {
@@ -168,6 +187,154 @@ button::after {
   border-radius: 8px;
   color: #9a9a9a;
   text-align: center;
+}
+
+.page-state {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 14px;
+  padding: 52px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #181818;
+  text-align: center;
+}
+
+.page-state--error {
+  border-color: rgba(231, 53, 53, 0.45);
+}
+
+.page-state__mark {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  color: #e73535;
+}
+
+.page-state--empty .page-state__mark {
+  color: #9a9a9a;
+}
+
+.page-state__mark-line {
+  position: absolute;
+  left: 14px;
+  width: 20px;
+  height: 4px;
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.page-state__mark-line-a {
+  top: 17px;
+}
+
+.page-state__mark-line-b {
+  top: 28px;
+}
+
+.page-state__title,
+.page-state__description {
+  display: block;
+}
+
+.page-state__title {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.page-state__description {
+  max-width: 540px;
+  color: #a9a9a9;
+  font-size: 24px;
+  line-height: 1.55;
+}
+
+.page-state__action {
+  min-width: 196px;
+  min-height: 80px;
+  margin-top: 6px;
+  padding: 0 28px;
+  border-radius: 8px;
+  background: #e73535;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 80px;
+}
+
+.loading-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.loading-card-list__label {
+  display: block;
+  color: #bdbdbd;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.loading-card {
+  padding: 28px;
+  border-radius: 8px;
+  background: #f7f7f7;
+}
+
+.loading-card__line {
+  height: 24px;
+  border-radius: 8px;
+  background: #e8e8e8;
+}
+
+.loading-card__line-title {
+  width: 58%;
+  height: 34px;
+}
+
+.loading-card__line-meta {
+  width: 78%;
+  margin-top: 22px;
+}
+
+.loading-card__line-action {
+  width: 100%;
+  height: 78px;
+  margin-top: 28px;
+  background: #dedede;
+}
+
+.member-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.member-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 88px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.member-button.active {
+  background: #e73535;
 }
 
 .branch-selector {

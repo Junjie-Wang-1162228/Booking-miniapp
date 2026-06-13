@@ -11,6 +11,7 @@ export type BranchView = {
 };
 
 export type MemberBranchView = BranchView & {
+  memberNo: string | null;
   isDefault: boolean;
   lessonBalance: { remaining: number };
 };
@@ -22,4 +23,12 @@ export type AdminBranchView = BranchView & {
 export type AdminBranchScope = {
   isOwner: boolean;
   branchIds: string[];
+};
+
+export type AdminBranchRoleScope = AdminBranchScope & {
+  ownerBranchIds: string[];
+  managerBranchIds: string[];
+  coachBranchIds: string[];
+  managementBranchIds: string[];
+  coachOnlyBranchIds: string[];
 };

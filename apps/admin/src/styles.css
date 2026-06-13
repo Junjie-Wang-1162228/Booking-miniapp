@@ -122,6 +122,36 @@ textarea {
   width: min(100%, 18rem);
 }
 
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  max-width: 86rem;
+  margin: 0 auto 1rem;
+}
+
+.metric-card {
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.metric-card__label {
+  color: #777777;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.metric-card__value {
+  margin-top: 0.25rem;
+  color: #1f1f1f;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
 .panel {
   overflow-x: auto;
   padding: 1rem;
@@ -153,6 +183,17 @@ textarea {
   width: 9rem;
 }
 
+.log-message {
+  max-width: 22rem;
+  overflow-wrap: anywhere;
+}
+
+.danger-copy {
+  color: #b91d1d;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .native-input {
   min-height: 2rem;
   padding: 0.25rem 0.6875rem;
@@ -178,6 +219,118 @@ textarea {
   gap: 0.75rem;
 }
 
+.class-roster-section {
+  margin-bottom: 1rem;
+}
+
+.class-roster-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.class-roster-header .panel-title {
+  margin-bottom: 0.25rem;
+}
+
+.class-roster-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 0.75rem;
+}
+
+.class-roster-card {
+  min-width: 0;
+  padding: 0.875rem;
+  border: 1px solid #ededed;
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+
+.class-roster-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.class-roster-card__main,
+.class-roster-card__meta {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.class-roster-card__meta {
+  justify-items: end;
+}
+
+.class-roster-empty {
+  padding: 0.875rem;
+  border: 1px dashed #d9d9d9;
+  border-radius: 0.5rem;
+  color: #777777;
+}
+
+.roster-member-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.roster-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  overflow-wrap: anywhere;
+}
+
+.member-ledger-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.member-ledger-entry {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border: 1px solid #ededed;
+  border-radius: 0.5rem;
+  background: #fafafa;
+  overflow-wrap: anywhere;
+}
+
+.member-ledger-entry__main,
+.member-ledger-entry__meta {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.member-ledger-entry__meta {
+  color: #777777;
+  font-size: 0.8125rem;
+}
+
+.member-ledger-empty {
+  padding: 0.875rem;
+  border: 1px dashed #d9d9d9;
+  border-radius: 0.5rem;
+  color: #777777;
+}
+
 .ant-btn-primary {
   background: #d62424;
 }
@@ -201,6 +354,17 @@ textarea {
     flex-direction: column;
   }
 
+  .class-roster-header,
+  .class-roster-card__top,
+  .roster-member-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .class-roster-card__meta {
+    justify-items: start;
+  }
+
   .work-tabs {
     padding: 0.75rem;
   }
@@ -219,5 +383,23 @@ textarea {
   .status-select,
   .branch-select {
     width: 100%;
+  }
+
+  .toolbar .ant-btn,
+  .toolbar .ant-input-affix-wrapper,
+  .toolbar .ant-select-selector,
+  .toolbar .native-input,
+  .panel .ant-form .ant-btn,
+  .panel .ant-form .ant-input,
+  .panel .ant-form .ant-input-number,
+  .panel .ant-form .ant-select-selector {
+    min-height: 2.75rem;
+  }
+
+  .toolbar .ant-btn,
+  .toolbar .ant-select-selector,
+  .panel .ant-form .ant-btn,
+  .panel .ant-form .ant-select-selector {
+    align-items: center;
   }
 }

@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from '@prisma/client';
@@ -6,13 +12,14 @@ import bcrypt from 'bcryptjs';
 import { BranchAccessService } from '../branches/branch-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtUser } from './auth.types';
-import { isWechatAutoProvisionEnabled } from './security-config';
+import { isDefaultSeedAdminPassword, isWechatAutoProvisionEnabled } from './security-config';
 
 const developmentMemberPhones = {
   'member-a': '18800000001',
   'member-b': '18800000002',
   'member-c': '18800000003'
 } as const;
+const WECHAT_BINDING_TICKET_TTL_MINUTES = 30;
 
 type DevelopmentMember = keyof typeof developmentMemberPhones;
 type WechatSession = {
@@ -35,6 +42,10 @@ export class AuthService {
     });
 
     if (!user || user.role !== UserRole.ADMIN || !user.passwordHash) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    if (isDefaultSeedAdminPassword(this.config, password)) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
@@ -72,7 +83,16 @@ export class AuthService {
     }
 
     if (!isWechatAutoProvisionEnabled(this.config)) {
-      throw new ForbiddenException('Wechat account is not bound to a member');
+      const ticket = await this.createWechatBindingTicket(appId, session.openid, session.unionid);
+      throw new HttpException(
+        {
+          message: 'Wechat account is not bound to a member',
+          bindingRequired: true,
+          bindingCode: ticket.code,
+          bindingCodeExpiresAt: ticket.expiresAt.toISOString()
+        },
+        HttpStatus.FORBIDDEN
+      );
     }
 
     const user = await this.autoProvisionWechatMember(appId, session.openid, session.unionid);
@@ -187,6 +207,51 @@ export class AuthService {
 
       return user;
     });
+  }
+
+  private async createWechatBindingTicket(appId: string, openid: string, unionid?: string) {
+    const now = new Date();
+    const existing = await this.prisma.wechatBindingTicket.findUnique({
+      where: { appId_openid: { appId, openid } }
+    });
+
+    if (existing?.status === 'PENDING' && existing.expiresAt > now) {
+      return existing;
+    }
+
+    const expiresAt = new Date(now.getTime() + WECHAT_BINDING_TICKET_TTL_MINUTES * 60 * 1000);
+    const code = await this.generateWechatBindingCode(appId);
+
+    return this.prisma.wechatBindingTicket.upsert({
+      where: { appId_openid: { appId, openid } },
+      update: {
+        code,
+        unionid,
+        status: 'PENDING',
+        expiresAt,
+        boundUserId: null
+      },
+      create: {
+        appId,
+        openid,
+        unionid,
+        code,
+        expiresAt
+      }
+    });
+  }
+
+  private async generateWechatBindingCode(appId: string) {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const existing = await this.prisma.wechatBindingTicket.findUnique({
+        where: { appId_code: { appId, code } },
+        select: { id: true }
+      });
+      if (!existing) return code;
+    }
+
+    throw new BadRequestException('Unable to generate WeChat binding code');
   }
 
   private async resolveAutoProvisionBranch() {

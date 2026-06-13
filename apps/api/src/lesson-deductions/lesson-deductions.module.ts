@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { BranchesModule } from '../branches/branches.module';
 import {
   AdminBookingsController,
@@ -8,7 +9,7 @@ import {
 import { LessonDeductionsService } from './lesson-deductions.service';
 
 @Module({
-  imports: [BranchesModule],
+  imports: [BranchesModule, AuditLogsModule],
   controllers: [AdminBookingsController, DeductionsController, AdminDeductionsController],
   providers: [LessonDeductionsService],
   exports: [LessonDeductionsService]

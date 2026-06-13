@@ -1,0 +1,186 @@
+# 拳馆约课小程序优化目标与 Checklist
+
+## 当前目标
+
+把项目从 MVP 调整到更接近标准开发范式的内部试运营版本：后端和小程序能稳定本地预览，核心约课链路可测试，分店权限、预约容量、消课、提醒和配置安全都有自动化验证。
+
+## 本地预览状态
+
+- [x] MySQL 容器运行在 `localhost:3307`。
+- [x] API watch 运行中，服务地址 `http://localhost:4000`。
+- [x] 管理端 Vite 运行中，默认 `http://localhost:5173`，端口被占用时自动切到 `http://localhost:5174`。
+- [x] 小程序 Taro watch 运行中，`pnpm miniapp:dev` 默认使用真实微信登录模式，可用微信开发者工具打开 `apps/miniapp/dist`。
+- [x] 种子数据已恢复：`admin`、`east-manager`、阿杰、小林、东店同学。
+
+## 已完成优化
+
+- [x] 预约容量用数据库行锁保护，避免并发约课超出名额。
+- [x] 生产环境禁止继续使用默认 JWT secret。
+- [x] 生产环境默认关闭微信未知账号自动开卡。
+- [x] 多门店数据隔离覆盖课程、预约、消课、课时余额和提醒任务。
+- [x] 管理端预约筛选支持草稿查询、重置、刷新，状态文案改为中文。
+- [x] 管理端构建拆分 vendor chunk，去掉单包过大警告。
+- [x] 小程序开发会员切换抽成公共 session helper，减少页面重复逻辑。
+- [x] 小程序预约前接入 `requestSubscribeMessage`，用户拒绝订阅时仍能完成预约。
+- [x] 后端通知任务增加到期扫描、access_token 缓存、订阅消息发送、状态和日志落库。
+- [x] 订阅消息模板字段可通过环境变量配置，适配不同微信模板字段名。
+- [x] 到期提醒支持无模板 ID 跳过、无微信账号跳过、微信接口失败标记失败。
+- [x] 管理端增加通知任务列表、失败原因查看和手动重试。
+- [x] 小程序端增加空状态、加载骨架和网络错误重试，提升弱网体验。
+- [x] 管理端课程创建增加更严格的时间、容量、描述校验和表单错误提示。
+- [x] 增加 CI：lint、API E2E、admin build、miniapp build 自动执行。
+- [x] 管理端按本地营业日筛选预约，避免 UTC 日期错位。
+- [x] 新增 E2E 覆盖提醒发送、提醒跳过、本地营业日筛选和并发容量。
+- [x] 补管理操作审计日志：创建课程、取消课程、消课、重试通知。
+- [x] 会员绑定流程替代自动开卡：后台可创建会员档案并绑定微信 openid，生产默认拒绝未知微信账号。
+- [x] 未绑定微信登录会生成 6 位绑定码，后台可用绑定码把微信绑定到已有会员档案。
+- [x] 补充 `docs/login-member-binding.md`，明确微信 openid、会员档案、绑定码、内测自动开卡和上线默认流程。
+- [x] 本地小程序开发脚本默认启用真实微信 auth；假会员调试改用 `pnpm miniapp:dev:local`，避免重新编译后误切回 dev 登录。
+- [x] 微信开发者工具服务端口已开启，完成 iPhone 12/13 当前设备下课程、预约、账户三页真实截图。
+- [x] 后端实现开课前 2 小时取消截止规则，`canCancel` 与取消接口共用同一判断，并在取消后跳过待发送提醒任务。
+- [x] 后台取消课程时同步取消课程下有效预约，并跳过这些预约的待发送提醒任务。
+- [x] 后台支持按门店给会员增减/调整课时，事务更新余额并记录操作人、原因、变更前后数量和审计日志。
+- [x] 生产环境 API CORS 改为显式 `CORS_ORIGINS` 白名单；生产缺少配置时拒绝启动。
+- [x] API 增加基础内存限流，覆盖登录和会员约课创建接口，参数可通过环境变量配置。
+- [x] 生产环境禁止 seed 或登录继续使用默认管理员密码，覆盖 `admin` 和 `east-manager` 两个种子管理员账号。
+- [x] Demo seed 在 `NODE_ENV=production` 下直接拒绝运行，避免阿杰/小林/测试课程进入生产数据。
+- [x] 增加 secret 文件守卫：`.gitignore` 覆盖 `.env*`、证书和私钥，`pnpm security:check`/CI 会拒绝已追踪敏感文件路径。
+- [x] 生产环境错误响应增加敏感信息脱敏，避免数据库连接串、密钥名、堆栈和内部路径进入客户端响应，同时保留安全业务错误文案。
+- [x] 依赖安全检查接入 `pnpm security:check` 和 CI；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。
+- [x] 生产数据库配置增加启动 guard 和 `pnpm --filter @booking/api config:check`，拒绝本地/测试/shadow 数据库、root/admin/示例数据库账号和生产自动开户。
+- [x] 课程列表返回当前会员是否已预约，小程序把已预约课程显示为“已预约”并禁用按钮，名额文案改为“剩 X 位 / 共 Y 位”。
+- [x] 后台会员管理增加微信解绑/重绑流程，支持换微信或绑定错账号时纠正，并记录 `WECHAT_UNBIND` 审计日志。
+- [x] 后台会员管理支持编辑姓名、手机号和会员号，校验手机号唯一性，并记录 `MEMBER_UPDATE` 审计日志。
+- [x] API E2E 增加测试超时和环境变量恢复，避免某个微信/生产配置用例失败后污染后续测试。
+- [x] 增加数据库备份/恢复脚本：默认读取 `apps/api/.env` 的 `DATABASE_URL`，使用 TCP MySQL 客户端连接，dry-run 输出脱敏 `MYSQL_PWD`。
+- [x] 补充 `docs/production-data-runbook.md`，明确生产迁移、备份、恢复、定期备份策略和恢复演练步骤。
+- [x] 完成本地恢复演练：从当前 API 实际连接的 MySQL 导出 SQL，恢复到临时库 `boxing_booking_restore_drill`，抽查核心表后删除临时库。
+- [x] 复核并更新商用上线清单中 P0 后端业务规则证据：预约身份、门店权限、容量锁、取消规则、消课事务、重复消课、后台筛选和店长越权均已有服务端校验与 E2E 覆盖。
+- [x] 补充 `docs/data-retention-policy.md`，明确手机号、微信 openid、预约记录、课时记录、消课记录等数据用途、建议保留周期、删除/纠错流程和备份处理原则。
+- [x] 补齐关键后台操作审计：会员创建、微信绑定、课程编辑新增 `MEMBER_CREATE`、`WECHAT_BIND`、`CLASS_UPDATE` 日志，和已有会员更新、微信解绑、课程创建/取消、课时调整、消课、通知重试一起覆盖商用 P0 审计要求。
+- [x] 补充 `docs/production-db-accounts.md`，明确生产数据库 API 运行、迁移、备份、恢复账号的最小权限、SQL 模板和 `SHOW GRANTS` 验收步骤。
+- [x] 补充 `THIRD_PARTY_NOTICES.md`，记录主要直接依赖、版本、用途和许可证，并明确不使用未授权第三方照片、Logo、海报、二维码、门店图或教练图作为商用素材。
+- [x] 增加敏感日志守卫：`pnpm security:check` 会拒绝日志调用中直接输出 openid、手机号、JWT/token、AppSecret、密码等字段；通知失败日志落库前会脱敏第三方错误中的 openid、access_token、secret 和手机号。
+- [x] 小程序账户页增加“隐私政策”和“约课规则”入口，说明必要数据用途、不收集无关信息、取消截止、消课和课程取消处理。
+- [x] 小程序“约课规则”补充门店独立课时、暂不支持跨门店通用课包、爽约/截止后处理、后台手动消课和误扣课时调整口径。
+- [x] 小程序账户页增加“联系客服”入口，优先拨打当前门店电话，未配置电话时提示到店咨询或查看门店公告。
+- [x] 小程序“我的预约”取消确认弹窗补充取消规则，确认前展示开课前 2 小时截止、截止后处理方式和提醒停止说明。
+- [x] 小程序预约成功后显示确认弹窗，支持直接切到“我的预约”查看记录，或留在约课页继续浏览。
+- [x] 小程序底部 tab 文案调整为“约课 / 预约 / 账户”，避免“我的”和“账户”混淆。
+- [x] 小程序课程卡补充时长、门店和适合训练标签，核心信息可在卡片中直接扫读。
+- [x] 小程序课程列表按“今天 / 明天 / 本周 / 具体日期”分组展示，减少用户在长列表里找课的成本。
+- [x] 小程序课程列表增加“全部 + 日期”横向筛选，用户可快速只看某一天的可预约课程。
+- [x] 小程序新增课程详情页，展示训练内容、适合人群、装备要求、取消规则、门店地址、门店电话和教练信息，并支持详情页直接预约。
+- [x] 小程序课程详情页门店信息增加“复制地址”和“拨打电话”操作，方便用户跳转地图导航或联系门店。
+- [x] 小程序课程详情页增加教练资料卡，展示教练首字头像、教练名、训练风格简介和安全提醒。
+- [x] 用户端课程列表服务端只返回未来且未取消课程，小程序端增加可预约性防御过滤，避免已取消或已开课课程继续显示为可预约。
+- [x] 小程序统一加载、空状态和错误状态文案，加载骨架增加“加载中，请稍候”，错误状态提供重新加载动作。
+- [x] 小程序请求层增加 10 秒超时和网络错误归一化：`Taro.request` 统一设置 `REQUEST_TIMEOUT_MS`，`formatApiError` 会把 `timeout`、`request:fail`、网络失败转换为用户可理解的中文提示。
+- [x] 小程序约课、预约、账户和课程详情页支持原生下拉刷新，刷新结束后主动停止系统下拉状态。
+- [x] 小程序高风险按钮接入共享动作锁，预约、取消、门店/会员切换、详情跳转、规则弹窗和错误重试按钮防重复点击。
+- [x] 小程序账户页补齐会员资料摘要，展示手机号、会员编号、当前门店、剩余课时和最近消课记录；后端分店视图同步返回 `memberNo`。
+- [x] 小程序状态文案统一中文化，课程、预约和到课枚举通过 `status-labels` 映射，预约页不直接渲染英文枚举值。
+- [x] 后台预约消课页增加“今日课程”快捷筛选和按课程分组的预约名单卡，支持一键展开某节课全部预约会员，并可在名单内逐个消课；消课确认弹窗明确提示会扣减 1 节课时并要求核对会员和课程。
+- [x] 后台预约消课页支持导出当前筛选预约名单 CSV，包含课程、上课时间、门店、教练、会员、手机号、预约状态和到课状态。
+- [x] 后台会员列表支持查看单个会员课时流水，合并展示人工课时调整和到店消课记录，并按门店权限校验访问。
+- [x] 后台预约消课页支持手动取消会员预约，取消后释放名额、跳过待发送提醒、不扣减课时，并记录 `BOOKING_CANCEL` 审计日志。
+- [x] 补充 `docs/release-checklist.md`，明确发布前构建、配置检查、数据库备份、Prisma migration、部署顺序、烟测、回滚和发布后观察步骤，并用 `pnpm ops:release-checklist:test` 固定关键发布清单。
+- [x] 补充 `docs/staging-runbook.md`，明确 staging 与 production 的数据库、API 域名、管理后台域名、小程序体验版、secret 和告警路由必须隔离，并用 `pnpm ops:staging:test` 固定 staging No-Go 和验收入口。
+- [x] 后台取消课程确认框展示影响会员数；后端取消课程时生成 `CLASS_CANCELED` 课程取消通知任务，并在审计日志记录影响预约数和通知任务数。
+- [x] 后台通知任务区分课程改期通知；后端课程改期时生成 `CLASS_RESCHEDULED` 通知任务，并按原提前量移动待发送开课提醒。
+- [x] 后台新增教练管理闭环：`/admin/coaches` 支持创建、列表和启停教练档案；课程排课可选择教练档案并保存 `coachId`；教练后台账号只能查看自己负责的课程和预约，不能创建课程或消课。
+- [x] 后台新增每日运营指标：`/admin/metrics/daily` 按营业日和门店权限统计每日预约数、取消数、消课数和满员课程数；管理端工作台展示“今日预约 / 今日取消 / 今日消课 / 满员课程”指标卡。
+- [x] 预约成功后支持可配置订阅消息：小程序按 `TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID` 请求预约确认授权，后端按 `WECHAT_BOOKING_CREATED_TEMPLATE_ID` 创建 `BOOKING_CREATED` 通知任务，后台通知列表显示“预约确认”并可查看发送状态。
+- [x] API 接入配置化错误告警：`ALERT_WEBHOOK_URL` 开启后会对未处理 5xx 和微信通知发送失败发送脱敏 webhook，`ALERT_WEBHOOK_TOKEN` 可配置 bearer token。
+
+## 下一步优化清单
+
+- [ ] 在微信开发者工具做多设备视觉走查，补充真实截图到手测记录。
+  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；需要截图时显式执行 `pnpm miniapp:visual-qa:capture`。已新增 `pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
+  - 手测记录模板：`docs/miniapp-visual-qa.md`。
+
+## 当前验证命令
+
+- [x] `pnpm lint`
+- [x] `pnpm --filter @booking/api test:e2e`
+- [x] `pnpm --filter @booking/api build`
+- [x] `pnpm --filter @booking/admin build`
+- [x] `TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp`
+- [x] `TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp build:weapp`
+- [x] `pnpm miniapp:visual-qa:test`
+- [x] `pnpm miniapp:compliance:test`
+- [x] `pnpm miniapp:booking-rules:test`
+- [x] `pnpm miniapp:booking-success:test`
+- [x] `pnpm miniapp:tab-labels:test`
+- [x] `pnpm miniapp:class-card:test`
+- [x] `pnpm miniapp:class-date-groups:test`
+- [x] `pnpm miniapp:class-date-filter:test`
+- [x] `pnpm miniapp:class-detail:test`
+- [x] `pnpm miniapp:class-availability:test`
+- [x] `pnpm miniapp:page-states:test`
+- [x] `pnpm miniapp:pull-refresh:test`
+- [x] `pnpm miniapp:action-lock:test`
+- [x] `pnpm miniapp:network-errors:test`
+- [x] `pnpm miniapp:profile-summary:test`
+- [x] `pnpm miniapp:status-labels:test`
+- [x] `pnpm admin:class-roster:test`
+- [x] `pnpm admin:booking-export:test`
+- [x] `pnpm admin:booking-cancel:test`
+- [x] `pnpm admin:class-cancel:test`
+- [x] `pnpm admin:class-reschedule:test`
+- [x] `pnpm admin:coaches:test`
+- [x] `pnpm admin:member-ledger:test`
+- [x] `pnpm admin:notifications:test`
+- [x] `pnpm admin:metrics:test`
+- [x] `pnpm notifications:booking-confirmation:test`
+- [x] `pnpm ops:alerting:test`
+- [x] `pnpm ops:readiness:test`
+- [x] `pnpm ops:staging:test`
+- [x] `pnpm ops:release-checklist:test`
+- [x] `pnpm ops:third-party-notices:test`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "cancels an active booking from the admin roster"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "rejects member and cross-branch manager booking cancel attempts"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "cancels active bookings, skips pending reminders, and creates class cancellation notification jobs"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "creates class reschedule notification jobs and moves pending reminders"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets admins create, list, and disable coaches|enforces coach role view and operation boundaries"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets admins list notification jobs with latest logs scoped by branch|retries failed notification jobs immediately"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "returns daily operation metrics scoped by branch access"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "creates a configurable booking confirmation notification job"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "alerts unhandled server errors without leaking sensitive details"`
+- [x] `pnpm miniapp:visual-qa`：安全状态查询，不打开微信开发者工具。
+- [x] `pnpm miniapp:visual-qa:next`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand -t "rejects member cancellation inside the cutoff window|skips pending notification jobs when a member cancels before the cutoff"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand -t "cancels active bookings and skips pending reminders when an admin cancels a class"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand -t "lesson adjustments|adjust branch-scoped lesson balances"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand -t "requires explicit production CORS origins"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand -t "rate limits repeated login and booking requests"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "blocks default seeded admin passwords in production|rejects seeded default admin passwords at runtime in production"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "blocks demo seed data in production"`
+- [x] `NODE_ENV=production ADMIN_PASSWORD=production-admin-pass MANAGER_PASSWORD=production-manager-pass pnpm --filter @booking/api prisma:seed`：按设计失败，拒绝加载 demo seed 数据。
+- [x] `pnpm security:check`
+- [x] `pnpm security:check-logging:test`
+- [x] `pnpm security:check-logging`
+- [x] `pnpm audit --prod`：当前返回 `No known vulnerabilities found`。
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "redacts sensitive error details"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "redacts sensitive details from failed notification logs"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "rejects unsafe production database configuration"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "marks classes already booked by the current member"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "hides canceled and already started classes"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets admins unbind a mistaken WeChat openid"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "update member contact details|updating a member phone"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets admins create a member profile, bind a WeChat openid"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets admins bind a WeChat openid to an existing member profile"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "lets an admin edit and cancel a class"`
+- [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "returns the current member with lesson balance|returns the current member branch list"`
+- [x] `NODE_ENV=production JWT_SECRET=production-secret-123 CORS_ORIGINS=https://admin.example.com DATABASE_URL=mysql://booking_app:prod-pass@db.example.com:3306/boxing_booking_prod WECHAT_AUTO_PROVISION_ENABLED=false pnpm --filter @booking/api config:check`
+- [x] `pnpm db:maintenance:test`
+- [x] `pnpm db:backup -- --dry-run`
+- [x] `pnpm db:restore -- --dry-run --file db-backups/example.sql`
+- [x] `pnpm db:restore -- --file db-backups/example.sql`：按设计失败，缺少 `--confirm-local-restore` 时拒绝恢复。
+- [x] `pnpm db:backup -- --out /tmp/boxing-booking-restore-drill.sql`
+- [x] 本地恢复演练：创建 `boxing_booking_restore_drill`、恢复 `/tmp/boxing-booking-restore-drill.sql`、抽查 `User`/`BoxingClass`/`Booking`/`AuditLog`、删除临时库。
+- [x] `git diff --check`
+- [x] 数据保留与删除策略文档复核：`docs/data-retention-policy.md`
+- [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 已存在、9/12 缺失；多设备截图补齐后应通过。
+- [x] `pnpm --filter @booking/api prisma:seed`
+- [x] `curl -s http://localhost:4000/health`

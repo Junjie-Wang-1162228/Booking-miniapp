@@ -1,5 +1,5 @@
 export default defineAppConfig({
-  pages: ['pages/classes/index', 'pages/bookings/index', 'pages/profile/index'],
+  pages: ['pages/classes/index', 'pages/bookings/index', 'pages/profile/index', 'pages/class-detail/index'],
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#111111',
@@ -21,7 +21,7 @@ export default defineAppConfig({
       },
       {
         pagePath: 'pages/bookings/index',
-        text: '我的',
+        text: '预约',
         iconPath: 'assets/tabs/bookings.png',
         selectedIconPath: 'assets/tabs/bookings-active.png'
       },

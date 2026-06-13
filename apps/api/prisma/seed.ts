@@ -1,7 +1,13 @@
 import { PrismaClient, StaffRole, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import {
+  assertDemoSeedAllowed,
+  resolveAdminSeedPassword,
+  resolveManagerSeedPassword
+} from '../src/auth/security-config';
 
 const prisma = new PrismaClient();
+const envConfig = { get: (key: string) => process.env[key] };
 
 const addDays = (date: Date, days: number, hour: number, minute = 0) => {
   const next = new Date(date);
@@ -11,9 +17,11 @@ const addDays = (date: Date, days: number, hour: number, minute = 0) => {
 };
 
 async function resetBranchScopedData() {
+  await prisma.auditLog.deleteMany();
   await prisma.notificationLog.deleteMany();
   await prisma.notificationJob.deleteMany();
   await prisma.lessonDeduction.deleteMany();
+  await prisma.lessonBalanceAdjustment.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.boxingClass.deleteMany();
   await prisma.lessonBalance.deleteMany();
@@ -24,10 +32,15 @@ async function resetBranchScopedData() {
 }
 
 async function main() {
+  assertDemoSeedAllowed(envConfig);
+
+  const adminPassword = resolveAdminSeedPassword(envConfig);
+  const managerPassword = resolveManagerSeedPassword(envConfig);
+
   await resetBranchScopedData();
 
-  const adminPasswordHash = await bcrypt.hash('admin123456', 10);
-  const managerPasswordHash = await bcrypt.hash('manager123456', 10);
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+  const managerPasswordHash = await bcrypt.hash(managerPassword, 10);
 
   const gym = await prisma.gym.create({
     data: { name: '拳馆约课' }
@@ -87,12 +100,14 @@ async function main() {
     where: { username: 'coach-leo' },
     update: {
       displayName: 'Coach Leo',
+      nickname: 'Coach Leo',
       role: UserRole.USER,
       status: 'ACTIVE'
     },
     create: {
       username: 'coach-leo',
       displayName: 'Coach Leo',
+      nickname: 'Coach Leo',
       role: UserRole.USER
     }
   });

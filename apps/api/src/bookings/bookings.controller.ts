@@ -6,6 +6,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { JwtUser } from '../auth/auth.types';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto';
+import { RateLimited } from '../rate-limit/rate-limit.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('USER')
@@ -19,6 +20,7 @@ export class BookingsController {
   }
 
   @Post()
+  @RateLimited('booking')
   create(@CurrentUser() user: JwtUser, @Body() dto: CreateBookingDto) {
     return this.bookings.createBooking(user.sub, dto);
   }

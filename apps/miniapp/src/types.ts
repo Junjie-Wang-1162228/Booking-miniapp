@@ -19,6 +19,7 @@ export type MemberBranch = {
   name: string;
   address: string | null;
   phone: string | null;
+  memberNo: string | null;
   isDefault: boolean;
   lessonBalance: { remaining: number };
 };
@@ -41,6 +42,7 @@ export type BoxingClass = {
   capacity: number;
   remainingSpots: number;
   bookedCount: number;
+  isBookedByMe: boolean;
   status: ClassStatus;
   description: string;
 };

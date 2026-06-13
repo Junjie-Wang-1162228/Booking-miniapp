@@ -4,10 +4,11 @@
 - [ ] Run migrations and seed with `pnpm --filter @booking/api prisma:migrate && pnpm --filter @booking/api prisma:seed`.
 - [ ] Set `MINIAPP_APP_ID` in `apps/api/.env` to the current DevTools AppID.
 - [ ] Fill `MINIAPP_APP_SECRET` in `apps/api/.env` from the WeChat mini program management console.
-- [ ] Confirm `WECHAT_AUTO_PROVISION_ENABLED="true"` and `WECHAT_AUTO_PROVISION_LESSONS="10"` for internal testing.
+- [ ] Confirm production-like testing uses `WECHAT_AUTO_PROVISION_ENABLED="false"` so unknown WeChat accounts must be bound by admin.
 - [ ] Run `pnpm --filter @booking/api wechat:check` and confirm it passes.
 - [ ] Start API with `pnpm api:dev`.
 - [ ] Start admin with `pnpm admin:dev`.
+- [ ] Start mini program watch with `pnpm miniapp:dev` and confirm it is using real WeChat auth mode.
 - [ ] Log in admin at `http://localhost:5173` with `admin` / `admin123456`.
 - [ ] Confirm the admin dashboard branch selector can show `全部门店`, `城东店`, and `城西店`.
 - [ ] Create a future class in `城东店`.
@@ -16,13 +17,16 @@
 - [ ] Confirm the manager can only select `城东店`.
 - [ ] Open miniapp build in WeChat DevTools from `apps/miniapp`.
 - [ ] In WeChat DevTools, add at least two test WeChat accounts under the current AppID.
-- [ ] Use test WeChat account A to open the mini program and confirm it auto-creates a member named `微信测试会员-xxxxxx`.
-- [ ] Verify account A sees only its assigned branch and has the configured test lesson balance.
+- [ ] Use test WeChat account A to open the mini program and confirm it shows a 6 digit binding code instead of entering booking directly.
+- [ ] In admin, create or choose the matching member profile, then bind WeChat using the 6 digit binding code.
+- [ ] Reopen the mini program with account A and verify it sees only its assigned branch and configured lesson balance.
 - [ ] Book a `城东店` class with reminder enabled.
-- [ ] Use test WeChat account B to open the mini program and confirm it gets a different member and cannot see account A's booking.
+- [ ] Use test WeChat account B to open the mini program and confirm it receives a different binding code and cannot see account A's booking.
 - [ ] Use admin dashboard to find and deduct account A's booking.
 - [ ] Verify duplicate deduction is rejected.
 - [ ] Verify account A's lesson balance decreases by 1.
 - [ ] Verify a notification job exists in the database for the reminder booking and includes the booking branch ID.
 - [ ] Log in again with `east-manager` and verify `城西店` bookings cannot be listed or deducted.
-- [ ] For local fake-member debugging only, rebuild with `TARO_APP_AUTH_MODE=dev pnpm miniapp:dev` and verify the 阿杰/小林 switcher appears.
+- [ ] In WeChat DevTools or on a real phone, simulate offline or weak network and verify course, booking, profile, and class detail requests show user-readable timeout/network copy with a retry action.
+- [ ] Cancel a class from admin, then reopen the member mini program and verify the affected booking no longer looks bookable, the booking status is clear, and pending reminder tasks are skipped or replaced by cancellation notification tasks.
+- [ ] For local fake-member debugging only, rebuild with `pnpm miniapp:dev:local` and verify the 阿杰/小林 switcher appears.

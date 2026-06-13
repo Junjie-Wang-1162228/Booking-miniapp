@@ -59,22 +59,24 @@ model Gym {
 }
 
 model Branch {
-  id               String                  @id @default(cuid())
-  gymId            String
-  name             String
-  address          String?
-  phone            String?
-  status           UserStatus              @default(ACTIVE)
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  gym              Gym                     @relation(fields: [gymId], references: [id])
-  memberBranches   MemberBranch[]
-  staffAssignments StaffBranchAssignment[]
-  classes          BoxingClass[]
-  bookings         Booking[]
-  lessonBalances   LessonBalance[]
-  lessonDeductions LessonDeduction[]
-  notificationJobs NotificationJob[]
+  id                       String                    @id @default(cuid())
+  gymId                    String
+  name                     String
+  address                  String?
+  phone                    String?
+  status                   UserStatus                @default(ACTIVE)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  gym                      Gym                       @relation(fields: [gymId], references: [id])
+  memberBranches           MemberBranch[]
+  staffAssignments         StaffBranchAssignment[]
+  classes                  BoxingClass[]
+  bookings                 Booking[]
+  lessonBalances           LessonBalance[]
+  lessonBalanceAdjustments LessonBalanceAdjustment[]
+  lessonDeductions         LessonDeduction[]
+  notificationJobs         NotificationJob[]
+  auditLogs                AuditLog[]
 
   @@index([gymId])
   @@index([status])
@@ -121,23 +123,27 @@ model StaffBranchAssignment {
 }
 
 model User {
-  id                     String                  @id @default(cuid())
-  role                   UserRole
-  status                 UserStatus              @default(ACTIVE)
-  displayName            String
-  phone                  String?                 @unique
-  username               String?                 @unique
-  passwordHash           String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  wechatAccounts         WechatAccount[]
-  bookings               Booking[]
-  lessonBalances         LessonBalance[]
-  lessonDeductions       LessonDeduction[]       @relation("MemberDeductions")
-  adminDeductions        LessonDeduction[]       @relation("AdminDeductions")
-  memberBranches         MemberBranch[]
-  staffBranchAssignments StaffBranchAssignment[]
-  coachedClasses         BoxingClass[]           @relation("ClassCoach")
+  id                            String                    @id @default(cuid())
+  role                          UserRole
+  status                        UserStatus                @default(ACTIVE)
+  displayName                   String
+  nickname                      String?
+  phone                         String?                   @unique
+  username                      String?                   @unique
+  passwordHash                  String?
+  createdAt                     DateTime                  @default(now())
+  updatedAt                     DateTime                  @updatedAt
+  wechatAccounts                WechatAccount[]
+  bookings                      Booking[]
+  lessonBalances                LessonBalance[]
+  lessonBalanceAdjustments      LessonBalanceAdjustment[] @relation("MemberLessonBalanceAdjustments")
+  adminLessonBalanceAdjustments LessonBalanceAdjustment[] @relation("AdminLessonBalanceAdjustments")
+  lessonDeductions              LessonDeduction[]         @relation("MemberDeductions")
+  adminDeductions               LessonDeduction[]         @relation("AdminDeductions")
+  auditLogs                     AuditLog[]                @relation("AdminAuditLogs")
+  memberBranches                MemberBranch[]
+  staffBranchAssignments        StaffBranchAssignment[]
+  coachedClasses                BoxingClass[]             @relation("ClassCoach")
 }
 
 model WechatAccount {
@@ -151,6 +157,24 @@ model WechatAccount {
 
   @@unique([appId, openid])
   @@index([userId])
+}
+
+model WechatBindingTicket {
+  id          String   @id @default(cuid())
+  appId       String
+  openid      String
+  unionid     String?
+  code        String
+  status      String   @default("PENDING")
+  expiresAt   DateTime
+  boundUserId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([appId, openid])
+  @@unique([appId, code])
+  @@index([status, expiresAt])
+  @@index([boundUserId])
 }
 
 model BoxingClass {
@@ -217,6 +241,27 @@ model LessonBalance {
   @@index([branchId])
 }
 
+model LessonBalanceAdjustment {
+  id              String   @id @default(cuid())
+  gymId           String
+  branchId        String
+  userId          String
+  adminId         String
+  delta           Int
+  beforeRemaining Int
+  afterRemaining  Int
+  reason          String   @db.VarChar(300)
+  createdAt       DateTime @default(now())
+  branch          Branch   @relation(fields: [branchId], references: [id])
+  user            User     @relation("MemberLessonBalanceAdjustments", fields: [userId], references: [id])
+  admin           User     @relation("AdminLessonBalanceAdjustments", fields: [adminId], references: [id])
+
+  @@index([gymId])
+  @@index([branchId, createdAt])
+  @@index([userId, branchId, createdAt])
+  @@index([adminId])
+}
+
 model LessonDeduction {
   id        String   @id @default(cuid())
   gymId     String
@@ -269,4 +314,25 @@ model NotificationLog {
   job       NotificationJob    @relation(fields: [jobId], references: [id])
 
   @@index([jobId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  gymId      String
+  branchId   String
+  adminId    String
+  action     String
+  entityType String
+  entityId   String
+  message    String   @db.VarChar(500)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([gymId])
+  @@index([branchId, createdAt])
+  @@index([adminId])
+  @@index([action])
+  @@index([entityType, entityId])
 }

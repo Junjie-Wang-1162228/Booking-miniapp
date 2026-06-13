@@ -9,6 +9,7 @@ type BranchRecord = {
 };
 
 export function toMemberBranchView(input: {
+  memberNo: string | null;
   isDefault: boolean;
   branch: BranchRecord;
   lessonBalance: { remaining: number } | null;
@@ -19,6 +20,7 @@ export function toMemberBranchView(input: {
     name: input.branch.name,
     address: input.branch.address,
     phone: input.branch.phone,
+    memberNo: input.memberNo,
     isDefault: input.isDefault,
     lessonBalance: { remaining: input.lessonBalance?.remaining ?? 0 }
   };

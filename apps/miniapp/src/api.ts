@@ -3,9 +3,12 @@ import { AuthResponse, Booking, BoxingClass, Deduction, MemberBranch, MemberKey 
 
 const API_BASE = __API_BASE_URL__;
 const AUTH_MODE = __AUTH_MODE__;
+const WECHAT_SUBSCRIBE_TEMPLATE_ID = __WECHAT_SUBSCRIBE_TEMPLATE_ID__;
+const WECHAT_BOOKING_CREATED_TEMPLATE_ID = __WECHAT_BOOKING_CREATED_TEMPLATE_ID__;
 const TOKEN_KEY = 'member_token';
 const MEMBER_KEY = 'member_key';
 const BRANCH_KEY = 'selected_branch_id';
+const REQUEST_TIMEOUT_MS = 10000;
 
 type RequestOptions = {
   method?: 'GET' | 'POST';
@@ -13,11 +16,31 @@ type RequestOptions = {
   token?: string;
 };
 
+type ErrorResponse = {
+  message?: string | string[];
+  bindingRequired?: boolean;
+  bindingCode?: string;
+  bindingCodeExpiresAt?: string;
+};
+
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode: number,
+    readonly data: ErrorResponse
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+    Object.setPrototypeOf(this, ApiRequestError.prototype);
+  }
+}
+
 async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await Taro.request<T>({
     url: `${API_BASE}${path}`,
     method: options.method || 'GET',
     data: options.data,
+    timeout: REQUEST_TIMEOUT_MS,
     header: {
       'Content-Type': 'application/json',
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
@@ -25,12 +48,54 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
   });
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
-    const data = response.data as { message?: string | string[] };
+    const data = response.data as ErrorResponse;
     const message = Array.isArray(data?.message) ? data.message.join(' / ') : data?.message;
-    throw new Error(message || `请求失败：${response.statusCode}`);
+    throw new ApiRequestError(message || `请求失败：${response.statusCode}`, response.statusCode, data);
   }
 
   return response.data;
+}
+
+export function formatApiError(error: unknown, fallback: string) {
+  const data =
+    typeof error === 'object' && error && 'data' in error ? (error as { data?: ErrorResponse }).data : undefined;
+
+  if (data?.bindingRequired && data.bindingCode) {
+    return `微信未绑定会员。绑定码：${data.bindingCode}，请发给拳馆管理员完成绑定。`;
+  }
+
+  return normalizeRequestError(error, fallback);
+}
+
+export function normalizeRequestError(error: unknown, fallback: string) {
+  const message = requestErrorMessage(error);
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('timeout')) {
+    return '请求超时，请检查网络后重试';
+  }
+
+  if (normalized.includes('request:fail') || normalized.includes('network') || normalized.includes('fail')) {
+    return '网络连接不稳定，请稍后重试';
+  }
+
+  return message || fallback;
+}
+
+function requestErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (typeof error === 'object' && error && 'errMsg' in error) {
+    return String((error as { errMsg?: unknown }).errMsg || '');
+  }
+
+  return '';
 }
 
 export function getStoredToken() {
@@ -63,6 +128,61 @@ function storeSession(response: AuthResponse) {
 
 export function isDevAuthMode() {
   return AUTH_MODE === 'dev';
+}
+
+export type ReminderSubscriptionResult = 'accepted' | 'rejected' | 'unavailable';
+export type BookingSubscriptionResult = {
+  bookingConfirmationAccepted: boolean;
+  classReminderAccepted: boolean;
+};
+
+export async function requestClassReminderSubscription(): Promise<ReminderSubscriptionResult> {
+  if (isDevAuthMode()) {
+    return 'accepted';
+  }
+
+  if (!WECHAT_SUBSCRIBE_TEMPLATE_ID) {
+    return 'unavailable';
+  }
+
+  try {
+    const result = await Taro.requestSubscribeMessage({
+      tmplIds: [WECHAT_SUBSCRIBE_TEMPLATE_ID]
+    });
+    return result[WECHAT_SUBSCRIBE_TEMPLATE_ID] === 'accept' ? 'accepted' : 'rejected';
+  } catch {
+    return 'rejected';
+  }
+}
+
+export async function requestBookingSubscriptions(reminderEnabled: boolean): Promise<BookingSubscriptionResult> {
+  if (isDevAuthMode()) {
+    return {
+      bookingConfirmationAccepted: Boolean(WECHAT_BOOKING_CREATED_TEMPLATE_ID),
+      classReminderAccepted: reminderEnabled
+    };
+  }
+
+  const tmplIds = [
+    WECHAT_BOOKING_CREATED_TEMPLATE_ID,
+    ...(reminderEnabled ? [WECHAT_SUBSCRIBE_TEMPLATE_ID] : [])
+  ].filter((templateId, index, allTemplateIds) => templateId && allTemplateIds.indexOf(templateId) === index);
+
+  if (tmplIds.length === 0) {
+    return { bookingConfirmationAccepted: false, classReminderAccepted: false };
+  }
+
+  try {
+    const result = await Taro.requestSubscribeMessage({ tmplIds });
+    return {
+      bookingConfirmationAccepted:
+        Boolean(WECHAT_BOOKING_CREATED_TEMPLATE_ID) && result[WECHAT_BOOKING_CREATED_TEMPLATE_ID] === 'accept',
+      classReminderAccepted:
+        reminderEnabled && Boolean(WECHAT_SUBSCRIBE_TEMPLATE_ID) && result[WECHAT_SUBSCRIBE_TEMPLATE_ID] === 'accept'
+    };
+  } catch {
+    return { bookingConfirmationAccepted: false, classReminderAccepted: false };
+  }
 }
 
 export async function devLogin(member: MemberKey) {
@@ -107,11 +227,16 @@ export function getClasses(token: string, branchId: string) {
   return requestJson<BoxingClass[]>(`/classes?branchId=${encodeURIComponent(branchId)}`, { token });
 }
 
-export function createBooking(token: string, classId: string, branchId: string, remindBeforeMinutes?: number) {
+export function createBooking(
+  token: string,
+  classId: string,
+  branchId: string,
+  options: { remindBeforeMinutes?: number; bookingConfirmationSubscribed?: boolean } = {}
+) {
   return requestJson<Booking>('/bookings', {
     method: 'POST',
     token,
-    data: { classId, branchId, ...(remindBeforeMinutes ? { remindBeforeMinutes } : {}) }
+    data: { classId, branchId, ...options }
   });
 }
 

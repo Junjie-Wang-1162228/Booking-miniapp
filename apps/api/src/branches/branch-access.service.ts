@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { AdminBranchScope } from './branch-scope.types';
+import { AdminBranchRoleScope, AdminBranchScope } from './branch-scope.types';
 import { toAdminBranchView, toMemberBranchView } from './branch-view.mapper';
 
 @Injectable()
@@ -22,6 +22,7 @@ export class BranchAccessService {
         });
 
         return toMemberBranchView({
+          memberNo: memberBranch.memberNo,
           isDefault: memberBranch.isDefault,
           branch: memberBranch.branch,
           lessonBalance
@@ -70,6 +71,45 @@ export class BranchAccessService {
     }
 
     return { isOwner, branchIds: requestedBranchId ? [requestedBranchId] : branchIds };
+  }
+
+  async resolveAdminBranchRoleScope(userId: string, requestedBranchId?: string): Promise<AdminBranchRoleScope> {
+    const assignments = await this.prisma.staffBranchAssignment.findMany({
+      where: { userId, status: 'ACTIVE' }
+    });
+    const isOwner = assignments.some((assignment) => assignment.role === StaffRole.OWNER);
+    const assignedBranchIds = [...new Set(assignments.map((assignment) => assignment.branchId))];
+
+    if (assignedBranchIds.length === 0) {
+      throw new ForbiddenException('Admin has no branch access');
+    }
+
+    if (requestedBranchId && !isOwner && !assignedBranchIds.includes(requestedBranchId)) {
+      throw new ForbiddenException('Admin cannot access this branch');
+    }
+
+    const branchIds = requestedBranchId ? [requestedBranchId] : assignedBranchIds;
+    const hasRole = (branchId: string, role: StaffRole) =>
+      isOwner && role === StaffRole.OWNER
+        ? true
+        : assignments.some((assignment) => assignment.branchId === branchId && assignment.role === role);
+    const ownerBranchIds = branchIds.filter((branchId) => hasRole(branchId, StaffRole.OWNER));
+    const managerBranchIds = branchIds.filter((branchId) => hasRole(branchId, StaffRole.MANAGER));
+    const coachBranchIds = branchIds.filter((branchId) => hasRole(branchId, StaffRole.COACH));
+    const managementBranchIds = branchIds.filter(
+      (branchId) => isOwner || hasRole(branchId, StaffRole.OWNER) || hasRole(branchId, StaffRole.MANAGER)
+    );
+    const coachOnlyBranchIds = coachBranchIds.filter((branchId) => !managementBranchIds.includes(branchId));
+
+    return {
+      isOwner,
+      branchIds,
+      ownerBranchIds,
+      managerBranchIds,
+      coachBranchIds,
+      managementBranchIds,
+      coachOnlyBranchIds
+    };
   }
 
   async ensureAdminBranchRole(userId: string, branchId: string, allowedRoles: StaffRole[]) {

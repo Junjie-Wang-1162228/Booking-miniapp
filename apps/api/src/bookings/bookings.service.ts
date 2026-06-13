@@ -8,6 +8,10 @@ import {
 import { AttendanceStatus, Booking, BookingStatus, ClassStatus, Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { BranchAccessService } from '../branches/branch-access.service';
+import {
+  BOOKING_CREATED_NOTIFICATION_TYPE,
+  CLASS_REMINDER_NOTIFICATION_TYPE
+} from '../notifications/notification-types';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto';
 
@@ -24,6 +28,9 @@ type BookingWithClass = Booking & {
     description: string;
   };
 };
+
+const DEFAULT_CANCEL_CUTOFF_MINUTES = 120;
+const MINUTE_IN_MS = 60 * 1000;
 
 @Injectable()
 export class BookingsService {
@@ -122,6 +129,16 @@ export class BookingsService {
         );
       }
 
+      if (dto.bookingConfirmationSubscribed) {
+        await this.createBookingCreatedNotificationInTransaction(
+          tx,
+          booking.id,
+          userId,
+          boxingClass.gymId,
+          boxingClass.branchId
+        );
+      }
+
       return this.toBookingView(booking);
     });
   }
@@ -147,15 +164,22 @@ export class BookingsService {
         throw new BadRequestException('Booking is not active');
       }
 
-      if (booking.boxingClass.startsAt <= new Date()) {
+      const now = new Date();
+      if (booking.boxingClass.startsAt <= now) {
         throw new BadRequestException('Class has already started');
+      }
+
+      if (!this.canCancelBeforeCutoff(booking.boxingClass.startsAt, now)) {
+        throw new BadRequestException(
+          `Booking can only be canceled at least ${this.formatCancelCutoff()} before class starts`
+        );
       }
 
       const canceled = await tx.booking.update({
         where: { id: booking.id },
         data: {
           status: BookingStatus.CANCELED,
-          canceledAt: new Date(),
+          canceledAt: now,
           attendanceStatus: AttendanceStatus.PENDING
         },
         include: { boxingClass: true }
@@ -185,9 +209,29 @@ export class BookingsService {
         branchId,
         bookingId,
         userId,
-        type: 'CLASS_REMINDER',
+        type: CLASS_REMINDER_NOTIFICATION_TYPE,
         scheduledAt: new Date(classStartsAt.getTime() - remindBeforeMinutes * 60 * 1000),
         templateId: this.config.get<string>('WECHAT_SUBSCRIBE_TEMPLATE_ID') || null
+      }
+    });
+  }
+
+  private async createBookingCreatedNotificationInTransaction(
+    tx: Prisma.TransactionClient,
+    bookingId: string,
+    userId: string,
+    gymId: string,
+    branchId: string
+  ) {
+    await tx.notificationJob.create({
+      data: {
+        gymId,
+        branchId,
+        bookingId,
+        userId,
+        type: BOOKING_CREATED_NOTIFICATION_TYPE,
+        scheduledAt: new Date(),
+        templateId: this.config.get<string>('WECHAT_BOOKING_CREATED_TEMPLATE_ID') || null
       }
     });
   }
@@ -201,7 +245,7 @@ export class BookingsService {
       attendanceStatus: booking.attendanceStatus,
       canceledAt: booking.canceledAt,
       createdAt: booking.createdAt,
-      canCancel: booking.status === BookingStatus.BOOKED && booking.boxingClass.startsAt > new Date(),
+      canCancel: booking.status === BookingStatus.BOOKED && this.canCancelBeforeCutoff(booking.boxingClass.startsAt),
       boxingClass: {
         id: booking.boxingClass.id,
         title: booking.boxingClass.title,
@@ -214,5 +258,29 @@ export class BookingsService {
         description: booking.boxingClass.description
       }
     };
+  }
+
+  private canCancelBeforeCutoff(startsAt: Date, now = new Date()) {
+    return startsAt.getTime() - now.getTime() >= this.getCancelCutoffMinutes() * MINUTE_IN_MS;
+  }
+
+  private getCancelCutoffMinutes() {
+    const configured = this.config.get<string>('BOOKING_CANCEL_CUTOFF_MINUTES');
+    if (!configured) {
+      return DEFAULT_CANCEL_CUTOFF_MINUTES;
+    }
+
+    const minutes = Number(configured);
+    return Number.isFinite(minutes) && minutes >= 0 ? minutes : DEFAULT_CANCEL_CUTOFF_MINUTES;
+  }
+
+  private formatCancelCutoff() {
+    const minutes = this.getCancelCutoffMinutes();
+    if (minutes % 60 !== 0) {
+      return `${minutes} minutes`;
+    }
+
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
   }
 }

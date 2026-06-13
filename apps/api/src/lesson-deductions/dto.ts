@@ -7,6 +7,13 @@ export class DeductLessonDto {
   note?: string;
 }
 
+export class AdminCancelBookingDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  reason?: string;
+}
+
 export class AdminBookingQueryDto {
   @IsOptional()
   @IsString()

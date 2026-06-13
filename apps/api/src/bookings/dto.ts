@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateBookingDto {
   @IsString()
@@ -14,4 +14,8 @@ export class CreateBookingDto {
   @Type(() => Number)
   @IsIn([60, 120, 180, 1440])
   remindBeforeMinutes?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  bookingConfirmationSubscribed?: boolean;
 }

@@ -2,7 +2,7 @@
   "miniprogramRoot": "dist/",
   "projectname": "boxing-booking-miniapp",
   "description": "Boxing gym booking MVP",
-  "appid": "wxcb2a788d3230d901",
+  "appid": "touristappid",
   "setting": {
     "urlCheck": false,
     "es6": true,

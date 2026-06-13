@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import { AdminBookingQueryDto, DeductLessonDto } from './dto';
+import { AdminBookingQueryDto, AdminCancelBookingDto, DeductLessonDto } from './dto';
 import { LessonDeductionsService } from './lesson-deductions.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -21,6 +21,12 @@ export class AdminBookingsController {
   @Post(':id/deduct')
   deduct(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() dto: DeductLessonDto) {
     return this.lessonDeductions.deductLesson(user.sub, id, dto);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() dto: AdminCancelBookingDto) {
+    return this.lessonDeductions.cancelAdminBooking(user.sub, id, dto);
   }
 }
 
