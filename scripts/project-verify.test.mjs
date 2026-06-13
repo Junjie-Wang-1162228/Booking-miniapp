@@ -42,6 +42,7 @@ test('README documents pnpm verify as the pre-push quality gate', () => {
 test('README documents dev status visual QA screenshot targets', () => {
   assert.match(readme, /`pnpm dev:status`[^\n]*视觉截图矩阵完成度[^\n]*截图保存路径/);
   assert.match(readme, /`pnpm dev:status`[^\n]*MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/);
+  assert.match(readme, /visualQa\.captureCommand/);
 });
 
 test('GitHub Actions verify workflow runs the same safe project gate', () => {

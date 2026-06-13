@@ -175,6 +175,10 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.equal(report.preview.admin.url, 'http://localhost:5174');
   assert.equal(report.preview.miniapp.openPath, 'apps/miniapp/dist');
   assert.equal(report.visualQa.next.deviceName, 'iPhone SE');
+  assert.equal(
+    report.visualQa.captureCommand,
+    'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
+  );
   assert.deepEqual(report.progress.preview, {
     completed: 4,
     total: 4,

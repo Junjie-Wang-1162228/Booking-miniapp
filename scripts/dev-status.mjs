@@ -241,7 +241,10 @@ export function createDevStatusReport({ strict = false, mysql, api, admin, minia
         openPath: miniapp.distPath
       }
     },
-    visualQa,
+    visualQa: {
+      ...visualQa,
+      captureCommand: CONFIRMED_CAPTURE_COMMAND
+    },
     diagnostics,
     notes
   };
