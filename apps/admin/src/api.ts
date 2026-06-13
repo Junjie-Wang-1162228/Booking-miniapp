@@ -24,23 +24,61 @@ import {
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
+const REQUEST_TIMEOUT_MS = 10000;
 
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {})
-    }
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers ?? {})
+      }
+    });
+  } catch (error) {
+    throw new Error(normalizeAdminRequestError(error, '请求失败，请稍后重试'));
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string | string[] };
     const message = Array.isArray(body.message) ? body.message.join(' / ') : body.message;
-    throw new Error(message || `Request failed: ${response.status}`);
+    throw new Error(message || `请求失败：${response.status}`);
   }
 
   return response.json() as Promise<T>;
+}
+
+function normalizeAdminRequestError(error: unknown, fallback: string) {
+  const message = requestErrorMessage(error);
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('abort') || normalized.includes('timeout')) {
+    return '请求超时，请检查网络后重试';
+  }
+
+  if (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('fetch failed') ||
+    normalized.includes('network') ||
+    normalized.includes('err_network')
+  ) {
+    return '网络连接不稳定，请稍后重试';
+  }
+
+  return message || fallback;
+}
+
+function requestErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return '';
 }
 
 const authHeaders = (token: string) => ({

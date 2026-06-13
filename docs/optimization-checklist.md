@@ -94,6 +94,7 @@
 - [x] 预约成功后支持可配置订阅消息：小程序按 `TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID` 请求预约确认授权，后端按 `WECHAT_BOOKING_CREATED_TEMPLATE_ID` 创建 `BOOKING_CREATED` 通知任务，后台通知列表显示“预约确认”并可查看发送状态。
 - [x] API 接入配置化错误告警：`ALERT_WEBHOOK_URL` 开启后会对未处理 5xx 和微信通知发送失败发送脱敏 webhook，`ALERT_WEBHOOK_TOKEN` 可配置 bearer token。
 - [x] 新增 `pnpm dev:status` 本地预览健康检查：汇总 MySQL、API `/health`、管理端实际端口、小程序 dist/watch 和视觉 QA 下一步，不启动微信开发者工具。
+- [x] 管理后台请求层增加 10 秒超时和弱网错误归一化，API 卡住或网络失败时显示中文可理解错误，而不是长期悬挂。
 
 ## 下一步优化清单
 
@@ -134,6 +135,7 @@
 - [x] `pnpm admin:member-ledger:test`
 - [x] `pnpm admin:notifications:test`
 - [x] `pnpm admin:metrics:test`
+- [x] `pnpm admin:network-errors:test`
 - [x] `pnpm notifications:booking-confirmation:test`
 - [x] `pnpm ops:alerting:test`
 - [x] `pnpm ops:readiness:test`
