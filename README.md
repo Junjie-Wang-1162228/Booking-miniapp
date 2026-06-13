@@ -168,6 +168,8 @@ pnpm miniapp:dev
 pnpm miniapp:dev:local
 ```
 
+`pnpm dev:status` 会同时显示 `DATABASE_URL` 的非敏感连接目标和发布该本地端口的 Docker 容器；如果 compose MySQL 健康但 API 实际连接到另一个容器，它会在 `notes` 中提示，便于排查本地数据库漂移。
+
 自动化检查：
 
 ```bash

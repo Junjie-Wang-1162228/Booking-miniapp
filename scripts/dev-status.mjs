@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { findNextMissingDevice, verifyScreenshotMatrix } from './miniapp-visual-qa.mjs';
@@ -8,6 +8,8 @@ const DEFAULT_API_HEALTH_URL = 'http://localhost:4000/health';
 const DEFAULT_ADMIN_PORTS = [5173, 5174, 5175];
 const MINIAPP_DIST_PATH = 'apps/miniapp/dist';
 const MINIAPP_REQUIRED_DIST_FILES = ['app.js', 'app.json', 'pages/classes/index.js'];
+const API_ENV_PATH = 'apps/api/.env';
+const LOCAL_DATABASE_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 export function parseDockerComposeServices(output) {
   return output
@@ -31,6 +33,41 @@ export function parseDockerComposeServices(output) {
     });
 }
 
+export function parseDockerPublishedContainers(output) {
+  return output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        const parsed = JSON.parse(line);
+        return [
+          {
+            id: parsed.ID ?? parsed.Id ?? '',
+            name: parsed.Names ?? parsed.Name ?? '',
+            ports: parsed.Ports ?? ''
+          }
+        ];
+      } catch {
+        return [];
+      }
+    });
+}
+
+export function parseDatabaseUrlForStatus(databaseUrl) {
+  try {
+    const parsed = new URL(databaseUrl);
+    const defaultPort = parsed.protocol === 'mysql:' ? 3306 : null;
+    return {
+      host: parsed.hostname,
+      port: Number(parsed.port || defaultPort),
+      database: decodeURIComponent(parsed.pathname.replace(/^\//, ''))
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function detectBookingAdminHtml(html) {
   return /<title>\s*拳馆约课后台\s*<\/title>/i.test(html);
 }
@@ -48,6 +85,7 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa }) 
   const notes = [];
 
   if (!mysql.ok) notes.push('MySQL is not healthy. Run pnpm dev:db and wait for Docker health to become healthy.');
+  if (mysql.warning) notes.push(mysql.warning);
   if (!api.ok) notes.push('API is not reachable. Run pnpm api:dev and check http://localhost:4000/health.');
   if (!admin.ok) notes.push('管理端未找到可用预览页。Run pnpm admin:dev and check ports 5173/5174.');
   if (!miniapp.ok) notes.push('小程序 dist 或 watch 未就绪。Run pnpm miniapp:dev, then open apps/miniapp/dist in WeChat DevTools.');
@@ -83,6 +121,36 @@ function runCommand(command, args) {
   }
 }
 
+function readDatabaseTarget(envPath = API_ENV_PATH) {
+  if (!existsSync(envPath)) return null;
+
+  const envContent = readFileSync(envPath, 'utf8');
+  const line = envContent
+    .split('\n')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith('DATABASE_URL='));
+  if (!line) return null;
+
+  const rawValue = line.slice('DATABASE_URL='.length).trim();
+  const databaseUrl = rawValue.replace(/^['"]|['"]$/g, '');
+  return parseDatabaseUrlForStatus(databaseUrl);
+}
+
+function containerPublishesPort(container, port) {
+  return new RegExp(`(^|[\\s,])(?:0\\.0\\.0\\.0|127\\.0\\.0\\.1|\\[::\\]|\\*)?:${port}->`).test(container.ports);
+}
+
+function findPublishedContainerForDatabase(database) {
+  if (!database || !LOCAL_DATABASE_HOSTS.has(database.host) || !database.port) return null;
+
+  const result = runCommand('docker', ['ps', '--filter', `publish=${database.port}`, '--format', '{{json .}}']);
+  if (!result.ok) return null;
+
+  return parseDockerPublishedContainers(result.stdout).find((container) =>
+    containerPublishesPort(container, database.port)
+  );
+}
+
 function checkMysql() {
   const result = runCommand('docker', ['compose', 'ps', '--format', 'json']);
   if (!result.ok) {
@@ -96,13 +164,23 @@ function checkMysql() {
 
   const running = mysql.state === 'running';
   const healthy = mysql.health === 'healthy' || (mysql.health === '' && /\bhealthy\b/i.test(mysql.status));
+  const database = readDatabaseTarget();
+  const publishedContainer = findPublishedContainerForDatabase(database);
+  const warning =
+    database && publishedContainer && mysql.name && publishedContainer.name !== mysql.name
+      ? `DATABASE_URL ${database.host}:${database.port}/${database.database} is published by ${publishedContainer.name}, not compose mysql ${mysql.name}.`
+      : undefined;
+
   return {
     ok: running && healthy,
     service: mysql.service,
     name: mysql.name,
     state: mysql.state,
     health: mysql.health,
-    status: mysql.status
+    status: mysql.status,
+    database,
+    publishedContainer,
+    warning
   };
 }
 

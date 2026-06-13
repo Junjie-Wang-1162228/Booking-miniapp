@@ -3,7 +3,9 @@ import test from 'node:test';
 import {
   createDevStatusReport,
   detectBookingAdminHtml,
+  parseDatabaseUrlForStatus,
   parseDockerComposeServices,
+  parseDockerPublishedContainers,
   summarizePreviewProcesses
 } from './dev-status.mjs';
 
@@ -25,6 +27,32 @@ test('parseDockerComposeServices reads a healthy mysql service from docker compo
       state: 'running',
       health: 'healthy',
       status: 'Up 5 hours (healthy)'
+    }
+  ]);
+});
+
+test('parseDatabaseUrlForStatus returns only non-secret connection metadata', () => {
+  assert.deepEqual(parseDatabaseUrlForStatus('mysql://booking_user:secret-pass@localhost:3307/boxing_booking'), {
+    host: 'localhost',
+    port: 3307,
+    database: 'boxing_booking'
+  });
+});
+
+test('parseDockerPublishedContainers reads published docker port metadata', () => {
+  const output = [
+    JSON.stringify({
+      ID: '8d59993aeee3',
+      Names: 'mvp-mysql-1',
+      Ports: '0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp'
+    })
+  ].join('\n');
+
+  assert.deepEqual(parseDockerPublishedContainers(output), [
+    {
+      id: '8d59993aeee3',
+      name: 'mvp-mysql-1',
+      ports: '0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp'
     }
   ]);
 });
@@ -93,6 +121,54 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.equal(report.preview.miniapp.openPath, 'apps/miniapp/dist');
   assert.equal(report.visualQa.next.deviceName, 'iPhone SE');
   assert.deepEqual(report.notes, []);
+});
+
+test('createDevStatusReport warns when DATABASE_URL is served by another mysql container', () => {
+  const report = createDevStatusReport({
+    mysql: {
+      ok: true,
+      service: 'mysql',
+      name: 'booking-miniapp-mysql-1',
+      status: 'Up 5 hours (healthy)',
+      database: {
+        host: 'localhost',
+        port: 3307,
+        database: 'boxing_booking'
+      },
+      publishedContainer: {
+        id: '8d59993aeee3',
+        name: 'mvp-mysql-1',
+        ports: '0.0.0.0:3307->3306/tcp'
+      },
+      warning:
+        'DATABASE_URL localhost:3307/boxing_booking is published by mvp-mysql-1, not compose mysql booking-miniapp-mysql-1.'
+    },
+    api: {
+      ok: true,
+      url: 'http://localhost:4000/health',
+      body: { ok: true }
+    },
+    admin: {
+      ok: true,
+      url: 'http://localhost:5174',
+      checkedPorts: [5173, 5174]
+    },
+    miniapp: {
+      ok: true,
+      distPath: 'apps/miniapp/dist',
+      watchRunning: true,
+      latestBuildAt: '2026-06-13T08:56:47.000Z'
+    },
+    visualQa: {
+      complete: false,
+      existingCount: 3,
+      requiredCount: 12,
+      next: null
+    }
+  });
+
+  assert.equal(report.ok, true);
+  assert.match(report.notes.join('\n'), /published by mvp-mysql-1/);
 });
 
 test('createDevStatusReport adds notes for degraded preview services', () => {
