@@ -11,6 +11,9 @@ const DEFAULT_CLI_PATH = '/Applications/wechatwebdevtools.app/Contents/MacOS/cli
 const DEFAULT_PROJECT_PATH = path.resolve('apps/miniapp/dist');
 const DEFAULT_OUTPUT_DIR = path.resolve('docs/manual-test-screenshots');
 const DEFAULT_AUTO_PORT = 19000;
+const DEVTOOLS_CONFIRM_ENV = 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS';
+const DEVTOOLS_CONFIRM_FLAG = '--allow-devtools';
+const CONFIRMED_CAPTURE_COMMAND = `${DEVTOOLS_CONFIRM_ENV}=1 pnpm miniapp:visual-qa:capture`;
 
 const pages = [
   { label: 'classes', pagePath: '/pages/classes/index' },
@@ -209,14 +212,19 @@ export async function resolveAutomatorPort(startPort = DEFAULT_AUTO_PORT) {
   throw new Error(`No available automator port found from ${startPort} to ${startPort + 49}`);
 }
 
-export function readOptions(argv) {
+function isTruthy(value) {
+  return value === '1' || value?.toLowerCase() === 'true';
+}
+
+export function readOptions(argv, env = process.env) {
   const options = {
-    cliPath: process.env.WECHAT_DEVTOOLS_CLI || DEFAULT_CLI_PATH,
-    projectPath: process.env.MINIAPP_DIST || DEFAULT_PROJECT_PATH,
-    outputDir: process.env.MINIAPP_VISUAL_QA_OUTPUT || DEFAULT_OUTPUT_DIR,
-    port: Number(process.env.MINIAPP_AUTOMATOR_PORT || DEFAULT_AUTO_PORT),
+    cliPath: env.WECHAT_DEVTOOLS_CLI || DEFAULT_CLI_PATH,
+    projectPath: env.MINIAPP_DIST || DEFAULT_PROJECT_PATH,
+    outputDir: env.MINIAPP_VISUAL_QA_OUTPUT || DEFAULT_OUTPUT_DIR,
+    port: Number(env.MINIAPP_AUTOMATOR_PORT || DEFAULT_AUTO_PORT),
     mode: 'status',
     opensDevTools: false,
+    allowDevToolsLaunch: isTruthy(env[DEVTOOLS_CONFIRM_ENV]),
     checkMatrix: false,
     nextMissing: false,
     manualPlan: false
@@ -229,9 +237,9 @@ export function readOptions(argv) {
     if (arg === '--project' && next) options.projectPath = next;
     if (arg === '--out' && next) options.outputDir = next;
     if (arg === '--port' && next) options.port = Number(next);
+    if (arg === DEVTOOLS_CONFIRM_FLAG) options.allowDevToolsLaunch = true;
     if (arg === '--capture') {
       options.mode = 'capture';
-      options.opensDevTools = true;
     }
     if (arg === '--check-matrix') {
       options.mode = 'check';
@@ -249,6 +257,7 @@ export function readOptions(argv) {
 
   options.projectPath = path.resolve(options.projectPath);
   options.outputDir = path.resolve(options.outputDir);
+  options.opensDevTools = options.mode === 'capture' && options.allowDevToolsLaunch;
   return options;
 }
 
@@ -261,7 +270,7 @@ function createStatusReport(outputDir) {
     existingCount: report.existingCount,
     requiredCount: report.requiredCount,
     next: findNextMissingDevice(report),
-    captureCommand: 'pnpm miniapp:visual-qa:capture'
+    captureCommand: CONFIRMED_CAPTURE_COMMAND
   };
 }
 
@@ -286,14 +295,22 @@ export function createManualCapturePlan(report) {
     steps: [
       `Switch the WeChat DevTools simulator to ${nextDevice.deviceName} (${nextDevice.viewport}).`,
       `Capture the missing pages for this device: ${nextDevice.missingLabels.join(', ')}.`,
-      'Run pnpm miniapp:visual-qa:capture only after the simulator is on the target device.',
+      `Run ${CONFIRMED_CAPTURE_COMMAND} only after the simulator is on the target device.`,
       'Then run pnpm miniapp:visual-qa:next to continue, and pnpm miniapp:visual-qa:check when all screenshots are present.'
     ],
-    commands: ['pnpm miniapp:visual-qa:capture', 'pnpm miniapp:visual-qa:next', 'pnpm miniapp:visual-qa:check']
+    commands: [CONFIRMED_CAPTURE_COMMAND, 'pnpm miniapp:visual-qa:next', 'pnpm miniapp:visual-qa:check']
   };
 }
 
 export async function captureVisualQaScreenshots(options) {
+  if (!options.allowDevToolsLaunch) {
+    throw new Error(
+      `Refusing to open WeChat DevTools without explicit confirmation. ` +
+        `Set ${DEVTOOLS_CONFIRM_ENV}=1 before running pnpm miniapp:visual-qa:capture, ` +
+        `or pass ${DEVTOOLS_CONFIRM_FLAG} after manually selecting the target simulator device.`
+    );
+  }
+
   mkdirSync(options.outputDir, { recursive: true });
   const port = await resolveAutomatorPort(options.port);
 

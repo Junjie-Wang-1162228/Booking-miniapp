@@ -238,10 +238,10 @@ pnpm miniapp:visual-qa:next
 pnpm miniapp:visual-qa:check
 ```
 
-`pnpm miniapp:visual-qa` 只输出状态，不打开微信开发者工具。需要截图时才手动运行：
+`pnpm miniapp:visual-qa` 只输出状态，不打开微信开发者工具。普通 `pnpm miniapp:visual-qa:capture` 会先拒绝执行，避免误打开微信开发者工具。需要截图时，先在微信开发者工具里手动切到目标模拟器设备，再显式确认运行：
 
 ```bash
-pnpm miniapp:visual-qa:capture
+MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture
 ```
 
 `pnpm miniapp:visual-qa:check` 会检查截图矩阵、PNG 有效性和基础尺寸匹配。截图属于本地手工验收产物，不提交 GitHub。

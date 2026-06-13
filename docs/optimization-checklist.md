@@ -108,7 +108,7 @@
 ## 下一步优化清单
 
 - [ ] 在微信开发者工具做多设备视觉走查，补充真实截图到手测记录。
-  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；需要截图时显式执行 `pnpm miniapp:visual-qa:capture`。已新增 `pnpm miniapp:visual-qa:plan` 人工补图步骤、`pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查。矩阵检查现在会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
+  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；普通 `pnpm miniapp:visual-qa:capture` 也会先拒绝执行，只有显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 或传入 `--allow-devtools` 后才会连接微信开发者工具截图。已新增 `pnpm miniapp:visual-qa:plan` 人工补图步骤、`pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查。矩阵检查现在会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
   - 手测记录模板：`docs/miniapp-visual-qa.md`。
 
 ## 当前验证命令
@@ -196,6 +196,7 @@
 - [x] `git diff --check`
 - [x] 数据保留与删除策略文档复核：`docs/data-retention-policy.md`
 - [x] `pnpm miniapp:visual-qa:plan`：安全人工补图计划，不打开微信开发者工具。
+- [x] `pnpm miniapp:visual-qa:capture` 未显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时按设计失败，不打开微信开发者工具。
 - [x] `pnpm dev:status:test`
 - [x] `pnpm dev:status`
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 有效截图、9/12 缺失；多设备 PNG 截图补齐且尺寸检查通过后应通过。

@@ -8,6 +8,7 @@ import {
   createManualCapturePlan,
   createScreenshotMatrix,
   createScreenshotPlan,
+  captureVisualQaScreenshots,
   findNextMissingDevice,
   readOptions,
   resolveAutomatorPort,
@@ -172,12 +173,14 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
       missingLabels: ['classes', 'bookings', 'profile']
     });
     assert.deepEqual(plan.commands, [
-      'pnpm miniapp:visual-qa:capture',
+      'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture',
       'pnpm miniapp:visual-qa:next',
       'pnpm miniapp:visual-qa:check'
     ]);
     assert.match(plan.steps[0], /iPhone SE/);
     assert.match(plan.steps[1], /classes, bookings, profile/);
+    assert.match(plan.steps[2], /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/);
+    assert.match(plan.commands[0], /^MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 /);
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
   }
@@ -219,8 +222,30 @@ test('readOptions supports a manual plan mode that does not open DevTools', () =
   assert.equal(options.manualPlan, true);
 });
 
-test('readOptions requires explicit capture mode before opening DevTools', () => {
+test('readOptions requires capture confirmation before opening DevTools', () => {
   const options = readOptions(['--capture']);
   assert.equal(options.mode, 'capture');
-  assert.equal(options.opensDevTools, true);
+  assert.equal(options.opensDevTools, false);
+  assert.equal(options.allowDevToolsLaunch, false);
+});
+
+test('readOptions allows capture only with explicit env or flag confirmation', () => {
+  const envOptions = readOptions(['--capture'], { MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS: '1' });
+  assert.equal(envOptions.opensDevTools, true);
+  assert.equal(envOptions.allowDevToolsLaunch, true);
+
+  const flagOptions = readOptions(['--capture', '--allow-devtools']);
+  assert.equal(flagOptions.opensDevTools, true);
+  assert.equal(flagOptions.allowDevToolsLaunch, true);
+});
+
+test('captureVisualQaScreenshots refuses to launch DevTools without confirmation', async () => {
+  await assert.rejects(
+    captureVisualQaScreenshots({
+      outputDir: tmpdir(),
+      port: 19000,
+      allowDevToolsLaunch: false
+    }),
+    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/
+  );
 });
