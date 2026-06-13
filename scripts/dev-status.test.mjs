@@ -6,6 +6,7 @@ import {
   parseDatabaseUrlForStatus,
   parseDockerComposeServices,
   parseDockerPublishedContainers,
+  summarizePrismaEngineProcesses,
   summarizePreviewProcesses
 } from './dev-status.mjs';
 
@@ -76,6 +77,20 @@ test('summarizePreviewProcesses identifies project watch processes', () => {
     apiWatch: true,
     adminVite: true,
     miniappWatch: true
+  });
+});
+
+test('summarizePrismaEngineProcesses reports only orphaned project Prisma engines', () => {
+  const output = `
+   3005     1 /Users/Agent-space/Desktop/Booking-miniapp/node_modules/.pnpm/@prisma+client/node_modules/.prisma/client/query-engine-darwin-arm64 --engine-protocol json
+  30492 30491 /Users/Agent-space/Desktop/Booking-miniapp/node_modules/.pnpm/@prisma+client/node_modules/.prisma/client/query-engine-darwin-arm64 --engine-protocol json
+  73478 73473 /Users/Agent-space/Desktop/OtherApp/node_modules/.pnpm/@prisma+client/node_modules/.prisma/client/query-engine-darwin-arm64 --engine-protocol json
+  `;
+
+  assert.deepEqual(summarizePrismaEngineProcesses(output, '/Users/Agent-space/Desktop/Booking-miniapp'), {
+    totalCount: 2,
+    orphanCount: 1,
+    orphanPids: [3005]
   });
 });
 
@@ -172,6 +187,50 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
   assert.equal(report.ok, true);
   assert.match(report.notes.join('\n'), /published by mvp-mysql-1/);
   assert.match(report.notes.join('\n'), /stop the conflicting container or update apps\/api\/\.env DATABASE_URL/);
+});
+
+test('createDevStatusReport warns about orphaned Prisma engines without failing preview readiness', () => {
+  const report = createDevStatusReport({
+    mysql: {
+      ok: true,
+      service: 'mysql',
+      status: 'Up 5 hours (healthy)'
+    },
+    api: {
+      ok: true,
+      url: 'http://localhost:4000/health',
+      body: { ok: true }
+    },
+    admin: {
+      ok: true,
+      url: 'http://localhost:5174',
+      checkedPorts: [5173, 5174]
+    },
+    miniapp: {
+      ok: true,
+      distPath: 'apps/miniapp/dist',
+      watchRunning: true,
+      latestBuildAt: '2026-06-13T08:56:47.000Z'
+    },
+    visualQa: {
+      complete: false,
+      existingCount: 3,
+      requiredCount: 12,
+      next: null
+    },
+    diagnostics: {
+      prismaEngines: {
+        totalCount: 3,
+        orphanCount: 2,
+        orphanPids: [3005, 7294]
+      }
+    }
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.diagnostics.prismaEngines.orphanCount, 2);
+  assert.match(report.notes.join('\n'), /orphaned Prisma query-engine/);
+  assert.match(report.notes.join('\n'), /3005, 7294/);
 });
 
 test('createDevStatusReport adds notes for degraded preview services', () => {

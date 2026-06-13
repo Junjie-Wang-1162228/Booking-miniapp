@@ -102,6 +102,7 @@
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
 - [x] `pnpm dev:status` 增加数据库连接目标核对：只输出 host/port/database，不泄露账号密码；当 `DATABASE_URL` 的本地端口由非当前 compose MySQL 容器发布时给出 warning，避免误判本地数据库环境。
+- [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
 
 ## 下一步优化清单
 

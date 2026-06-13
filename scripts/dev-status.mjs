@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findNextMissingDevice, verifyScreenshotMatrix } from './miniapp-visual-qa.mjs';
 
 const DEFAULT_API_HEALTH_URL = 'http://localhost:4000/health';
@@ -10,6 +10,8 @@ const MINIAPP_DIST_PATH = 'apps/miniapp/dist';
 const MINIAPP_REQUIRED_DIST_FILES = ['app.js', 'app.json', 'pages/classes/index.js'];
 const API_ENV_PATH = 'apps/api/.env';
 const LOCAL_DATABASE_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const EMPTY_PRISMA_ENGINE_SUMMARY = { totalCount: 0, orphanCount: 0, orphanPids: [] };
 
 export function parseDockerComposeServices(output) {
   return output
@@ -81,7 +83,34 @@ export function summarizePreviewProcesses(output) {
   };
 }
 
-export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa }) {
+export function summarizePrismaEngineProcesses(output, projectRoot = PROJECT_ROOT) {
+  const root = path.resolve(projectRoot);
+  const processes = output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      const match = line.match(/^(\d+)\s+(\d+)\s+(.+)$/);
+      if (!match) return [];
+
+      const pid = Number(match[1]);
+      const ppid = Number(match[2]);
+      const command = match[3];
+      const projectEngine = command.includes(`${root}/`) && /\/\.prisma\/client\/query-engine/.test(command);
+      if (!Number.isInteger(pid) || !Number.isInteger(ppid) || !projectEngine) return [];
+
+      return [{ pid, ppid }];
+    });
+  const orphanPids = processes.filter((process) => process.ppid === 1).map((process) => process.pid);
+
+  return {
+    totalCount: processes.length,
+    orphanCount: orphanPids.length,
+    orphanPids
+  };
+}
+
+export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
   const notes = [];
 
   if (!mysql.ok) notes.push('MySQL is not healthy. Run pnpm dev:db and wait for Docker health to become healthy.');
@@ -90,6 +119,12 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa }) 
   if (!api.ok) notes.push('API is not reachable. Run pnpm api:dev and check http://localhost:4000/health.');
   if (!admin.ok) notes.push('管理端未找到可用预览页。Run pnpm admin:dev and check ports 5173/5174.');
   if (!miniapp.ok) notes.push('小程序 dist 或 watch 未就绪。Run pnpm miniapp:dev, then open apps/miniapp/dist in WeChat DevTools.');
+  if (diagnostics.prismaEngines?.orphanCount > 0) {
+    notes.push(
+      `Found ${diagnostics.prismaEngines.orphanCount} orphaned Prisma query-engine process(es): PIDs ${diagnostics.prismaEngines.orphanPids.join(', ')}. These can make local API E2E flaky.`
+    );
+    notes.push('Confirm no test is running, then stop stale orphan PIDs manually with kill <pid>.');
+  }
 
   return {
     mode: 'dev-status',
@@ -106,6 +141,7 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa }) 
       }
     },
     visualQa,
+    diagnostics,
     notes
   };
 }
@@ -233,8 +269,15 @@ async function checkAdmin(ports = DEFAULT_ADMIN_PORTS) {
 }
 
 function readProcessSummary() {
-  const result = runCommand('ps', ['-axo', 'pid,command']);
-  return result.ok ? summarizePreviewProcesses(result.stdout) : { apiWatch: false, adminVite: false, miniappWatch: false };
+  const result = runCommand('ps', ['-axo', 'pid,ppid,command']);
+  if (!result.ok) {
+    return { apiWatch: false, adminVite: false, miniappWatch: false, prismaEngines: EMPTY_PRISMA_ENGINE_SUMMARY };
+  }
+
+  return {
+    ...summarizePreviewProcesses(result.stdout),
+    prismaEngines: summarizePrismaEngineProcesses(result.stdout)
+  };
 }
 
 function checkMiniappDist(processes, distPath = MINIAPP_DIST_PATH) {
@@ -278,6 +321,9 @@ async function main() {
       existingCount: visualReport.existingCount,
       requiredCount: visualReport.requiredCount,
       next: findNextMissingDevice(visualReport)
+    },
+    diagnostics: {
+      prismaEngines: processes.prismaEngines
     }
   });
 
