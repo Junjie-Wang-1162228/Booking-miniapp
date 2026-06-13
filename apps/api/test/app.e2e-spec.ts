@@ -18,6 +18,7 @@ import {
 } from '../src/auth/security-config';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { assertE2eDatabaseIsSafeToReset } from './e2e-database-safety';
 
 @Controller('test-errors')
 class TestErrorsController {
@@ -103,6 +104,8 @@ describe('Boxing booking API', () => {
   });
 
   async function resetTestData() {
+    assertE2eDatabaseIsSafeToReset();
+
     const passwordHash = await bcrypt.hash('admin123456', 10);
     const managerPasswordHash = await bcrypt.hash('manager123456', 10);
     await prisma.wechatBindingTicket.deleteMany();

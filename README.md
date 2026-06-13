@@ -186,6 +186,8 @@ pnpm security:check
 pnpm build
 ```
 
+`pnpm --filter @booking/api test:e2e` 会重置本地 E2E 数据；测试启动时会拒绝非本地白名单数据库，避免误清远程或生产库。受控 CI 如需使用独立临时库，可显式设置 `E2E_ALLOW_DATABASE_RESET=true`。
+
 当前仓库已提供本地自动化验证命令，后续如需接入 GitHub Actions，可复用以上命令；workflow 文件应由具备 GitHub `workflow` 权限的 token 单独提交。
 
 单项检查：
