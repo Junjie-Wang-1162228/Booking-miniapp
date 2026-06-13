@@ -161,6 +161,7 @@ pnpm miniapp:dev:local
 
 ```bash
 pnpm dev:db
+pnpm dev:status
 pnpm api:dev
 pnpm admin:dev
 pnpm miniapp:dev
@@ -182,6 +183,7 @@ pnpm build
 单项检查：
 
 ```bash
+pnpm dev:status:test
 pnpm miniapp:network-errors:test
 pnpm ops:alerting:test
 pnpm ops:staging:test

@@ -93,6 +93,7 @@
 - [x] 后台新增每日运营指标：`/admin/metrics/daily` 按营业日和门店权限统计每日预约数、取消数、消课数和满员课程数；管理端工作台展示“今日预约 / 今日取消 / 今日消课 / 满员课程”指标卡。
 - [x] 预约成功后支持可配置订阅消息：小程序按 `TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID` 请求预约确认授权，后端按 `WECHAT_BOOKING_CREATED_TEMPLATE_ID` 创建 `BOOKING_CREATED` 通知任务，后台通知列表显示“预约确认”并可查看发送状态。
 - [x] API 接入配置化错误告警：`ALERT_WEBHOOK_URL` 开启后会对未处理 5xx 和微信通知发送失败发送脱敏 webhook，`ALERT_WEBHOOK_TOKEN` 可配置 bearer token。
+- [x] 新增 `pnpm dev:status` 本地预览健康检查：汇总 MySQL、API `/health`、管理端实际端口、小程序 dist/watch 和视觉 QA 下一步，不启动微信开发者工具。
 
 ## 下一步优化清单
 
@@ -183,6 +184,8 @@
 - [x] `git diff --check`
 - [x] 数据保留与删除策略文档复核：`docs/data-retention-policy.md`
 - [x] `pnpm miniapp:visual-qa:plan`：安全人工补图计划，不打开微信开发者工具。
+- [x] `pnpm dev:status:test`
+- [x] `pnpm dev:status`
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 已存在、9/12 缺失；多设备截图补齐后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`

@@ -4,6 +4,8 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev:db": "docker compose up -d mysql",
+    "dev:status": "node scripts/dev-status.mjs",
+    "dev:status:test": "node --test scripts/dev-status.test.mjs",
     "stop:db": "docker compose down",
     "db:logs": "docker compose logs -f mysql",
     "api:dev": "pnpm --filter @booking/api start:dev",
