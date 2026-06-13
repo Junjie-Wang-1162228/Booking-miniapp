@@ -6,6 +6,7 @@ import {
   parseDatabaseUrlForStatus,
   parseDockerComposeServices,
   parseDockerPublishedContainers,
+  readOptions,
   summarizePrismaEngineProcesses,
   summarizePreviewProcesses
 } from './dev-status.mjs';
@@ -189,6 +190,60 @@ test('createDevStatusReport warns when DATABASE_URL is served by another mysql c
   assert.match(report.notes.join('\n'), /stop the conflicting container or update apps\/api\/\.env DATABASE_URL/);
 });
 
+test('createDevStatusReport fails strict mode when DATABASE_URL is served by another mysql container', () => {
+  const report = createDevStatusReport({
+    strict: true,
+    mysql: {
+      ok: true,
+      service: 'mysql',
+      name: 'booking-miniapp-mysql-1',
+      status: 'Up 5 hours (healthy)',
+      database: {
+        host: 'localhost',
+        port: 3307,
+        database: 'boxing_booking'
+      },
+      publishedContainer: {
+        id: '8d59993aeee3',
+        name: 'mvp-mysql-1',
+        ports: '0.0.0.0:3307->3306/tcp'
+      },
+      warning:
+        'DATABASE_URL localhost:3307/boxing_booking is published by mvp-mysql-1, not compose mysql booking-miniapp-mysql-1.'
+    },
+    api: {
+      ok: true,
+      url: 'http://localhost:4000/health',
+      body: { ok: true }
+    },
+    admin: {
+      ok: true,
+      url: 'http://localhost:5174',
+      checkedPorts: [5173, 5174]
+    },
+    miniapp: {
+      ok: true,
+      distPath: 'apps/miniapp/dist',
+      watchRunning: true,
+      latestBuildAt: '2026-06-13T08:56:47.000Z'
+    },
+    visualQa: {
+      complete: false,
+      existingCount: 3,
+      requiredCount: 12,
+      next: null
+    }
+  });
+
+  assert.equal(report.ok, false);
+  assert.deepEqual(report.strict, {
+    enabled: true,
+    passed: false,
+    failures: ['DATABASE_URL is served by a non-compose MySQL container.']
+  });
+  assert.match(report.notes.join('\n'), /Strict dev status failed/);
+});
+
 test('createDevStatusReport warns about orphaned Prisma engines without failing preview readiness', () => {
   const report = createDevStatusReport({
     mysql: {
@@ -247,4 +302,9 @@ test('createDevStatusReport adds notes for degraded preview services', () => {
   assert.match(report.notes.join('\n'), /API/);
   assert.match(report.notes.join('\n'), /管理端/);
   assert.match(report.notes.join('\n'), /小程序/);
+});
+
+test('readOptions enables strict mode only when requested', () => {
+  assert.deepEqual(readOptions([]), { strict: false });
+  assert.deepEqual(readOptions(['--strict']), { strict: true });
 });

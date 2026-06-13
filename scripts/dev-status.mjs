@@ -110,8 +110,9 @@ export function summarizePrismaEngineProcesses(output, projectRoot = PROJECT_ROO
   };
 }
 
-export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
+export function createDevStatusReport({ strict = false, mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
   const notes = [];
+  const strictFailures = [];
 
   if (!mysql.ok) notes.push('MySQL is not healthy. Run pnpm dev:db and wait for Docker health to become healthy.');
   if (mysql.warning) notes.push(mysql.warning);
@@ -126,9 +127,32 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa, di
     notes.push('Confirm no test is running, then stop stale orphan PIDs manually with kill <pid>.');
   }
 
+  if (strict && mysql.warning) {
+    strictFailures.push('DATABASE_URL is served by a non-compose MySQL container.');
+  }
+
+  if (strict && diagnostics.prismaEngines?.orphanCount > 0) {
+    strictFailures.push('Orphaned Prisma query-engine processes are present.');
+  }
+
+  if (strictFailures.length > 0) {
+    notes.push(`Strict dev status failed: ${strictFailures.join(' ')}`);
+  }
+
+  const previewOk = mysql.ok && api.ok && admin.ok && miniapp.ok;
+
   return {
     mode: 'dev-status',
-    ok: mysql.ok && api.ok && admin.ok && miniapp.ok,
+    ok: previewOk && strictFailures.length === 0,
+    ...(strict
+      ? {
+          strict: {
+            enabled: true,
+            passed: strictFailures.length === 0,
+            failures: strictFailures
+          }
+        }
+      : {}),
     services: {
       mysql
     },
@@ -143,6 +167,12 @@ export function createDevStatusReport({ mysql, api, admin, miniapp, visualQa, di
     visualQa,
     diagnostics,
     notes
+  };
+}
+
+export function readOptions(argv) {
+  return {
+    strict: argv.includes('--strict')
   };
 }
 
@@ -308,10 +338,12 @@ function readAdminPorts() {
 }
 
 async function main() {
+  const options = readOptions(process.argv.slice(2));
   const processes = readProcessSummary();
   const [api, admin] = await Promise.all([checkApi(), checkAdmin(readAdminPorts())]);
   const visualReport = verifyScreenshotMatrix();
   const report = createDevStatusReport({
+    strict: options.strict,
     mysql: checkMysql(),
     api,
     admin,

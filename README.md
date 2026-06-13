@@ -163,6 +163,7 @@ pnpm miniapp:dev:local
 ```bash
 pnpm dev:db
 pnpm dev:status
+pnpm dev:status:strict
 pnpm api:dev
 pnpm admin:dev
 pnpm miniapp:dev
@@ -170,6 +171,8 @@ pnpm miniapp:dev:local
 ```
 
 `pnpm dev:status` 会同时显示 `DATABASE_URL` 的非敏感连接目标和发布该本地端口的 Docker 容器；如果 compose MySQL 健康但 API 实际连接到另一个容器，它会在 `notes` 中提示并给出处理建议，便于排查本地数据库漂移。它也会检测本项目残留的孤儿 Prisma query-engine 进程，只提示 PID 和人工处理建议，不会自动结束进程。
+
+`pnpm dev:status:strict` 使用同一套检查，但会把数据库端口漂移和孤儿 Prisma query-engine 视为失败。适合在继续手工验收、截图补齐或发布前确认本地环境是否足够标准；普通 `pnpm dev:status` 仍用于快速确认预览服务是否能打开。
 
 自动化检查：
 
@@ -197,6 +200,7 @@ pnpm build
 
 ```bash
 pnpm dev:status:test
+pnpm dev:status:strict
 pnpm miniapp:network-errors:test
 pnpm ops:alerting:test
 pnpm ops:staging:test

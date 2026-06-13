@@ -104,6 +104,7 @@
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
 - [x] `pnpm dev:status` 增加数据库连接目标核对：只输出 host/port/database，不泄露账号密码；当 `DATABASE_URL` 的本地端口由非当前 compose MySQL 容器发布时给出 warning，避免误判本地数据库环境。
 - [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
+- [x] 新增 `pnpm dev:status:strict` 严格本地环境门禁：普通状态查询继续用于预览可用性；严格模式会把数据库端口漂移和孤儿 Prisma query-engine 当作失败，适合截图验收或发布前使用。
 
 ## 下一步优化清单
 
@@ -199,6 +200,7 @@
 - [x] `pnpm miniapp:visual-qa:capture` 未显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时按设计失败，不打开微信开发者工具。
 - [x] `pnpm dev:status:test`
 - [x] `pnpm dev:status`
+- [x] `pnpm dev:status:strict`：当前按设计失败，暴露 `localhost:3307` 由 `mvp-mysql-1` 而不是本项目 compose MySQL 发布。
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 有效截图、9/12 缺失；多设备 PNG 截图补齐且尺寸检查通过后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`
