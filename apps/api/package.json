@@ -8,6 +8,7 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "test:e2e": "tsx scripts/prepare-e2e-database.ts && DATABASE_URL=${E2E_DATABASE_URL:-mysql://booking_user:booking_pass@localhost:3307/boxing_booking_e2e} jest --config ./test/jest-e2e.json --runInBand",
     "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "config:check": "tsx scripts/check-production-config.ts",

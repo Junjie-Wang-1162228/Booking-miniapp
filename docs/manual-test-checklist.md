@@ -4,7 +4,7 @@
 
 - [ ] 启动 MySQL：`pnpm dev:db`。
 - [ ] 如果 `3307` 被其他本地容器占用，使用 `BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db` 重建本项目 MySQL，并把 `apps/api/.env` 的 `DATABASE_URL` / `SHADOW_DATABASE_URL` 端口同步改成 `3308`。
-- [ ] 执行迁移和种子数据：`pnpm --filter @booking/api prisma:migrate && pnpm --filter @booking/api prisma:seed`。
+- [ ] 执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。
 - [ ] 启动 API：`pnpm api:dev`。
 - [ ] 启动管理后台：`pnpm admin:dev`。
 - [ ] 启动小程序 watch：`pnpm miniapp:dev`，确认它使用真实微信登录模式。

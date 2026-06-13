@@ -90,9 +90,11 @@ BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db
 4. 执行迁移和种子数据：
 
 ```bash
-pnpm --filter @booking/api prisma:migrate
+pnpm --filter @booking/api prisma:deploy
 pnpm --filter @booking/api prisma:seed
 ```
+
+`prisma:deploy` 只应用仓库中已经存在的 migration，适合本地初始化、换端口后重建数据库和 CI/部署环境。需要开发新的数据库结构变更时，再使用交互式的 `pnpm --filter @booking/api prisma:migrate` 创建新 migration。
 
 5. 启动后端：
 

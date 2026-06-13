@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+const apiPackageJson = JSON.parse(readFileSync('apps/api/package.json', 'utf8'));
 const readme = readFileSync('README.md', 'utf8');
 const envExample = readFileSync('.env.example', 'utf8');
 const dockerCompose = readFileSync('docker-compose.yml', 'utf8');
@@ -54,4 +55,13 @@ test('local mysql host port can be overridden without editing tracked project fi
   assert.match(readme, /apps\/api\/\.env[\s\S]*DATABASE_URL[\s\S]*3308/);
   assert.match(manualChecklist, /BOOKING_MYSQL_HOST_PORT=3308/);
   assert.match(manualChecklist, /pnpm dev:status:strict/);
+});
+
+test('local setup uses non-interactive prisma deployment for existing migrations', () => {
+  assert.equal(apiPackageJson.scripts['prisma:deploy'], 'prisma migrate deploy');
+  assert.match(readme, /pnpm --filter @booking\/api prisma:deploy/);
+  assert.match(manualChecklist, /pnpm --filter @booking\/api prisma:deploy/);
+  assert.match(readme, /交互式的 `pnpm --filter @booking\/api prisma:migrate` 创建新 migration/);
+  assert.doesNotMatch(readme, /pnpm --filter @booking\/api prisma:migrate\s*\n\s*pnpm --filter @booking\/api prisma:seed/);
+  assert.doesNotMatch(manualChecklist, /pnpm --filter @booking\/api prisma:migrate/);
 });

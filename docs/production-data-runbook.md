@@ -26,7 +26,7 @@ NODE_ENV=production pnpm --filter @booking/api config:check
 
 1. 确认代码已通过本地验证；如已配置 CI，再确认 CI 同步通过：`pnpm lint`、`pnpm --filter @booking/api test:e2e`、`pnpm build`、`pnpm security:check`。
 2. 备份当前生产库，并记录备份文件路径、时间、Git commit、执行人。
-3. 使用迁移专用账号在 staging 或生产同结构临时库上执行 `pnpm --filter @booking/api prisma:migrate` 或部署环境中的 `prisma migrate deploy`。
+3. 使用迁移专用账号在 staging 或生产同结构临时库上执行 `pnpm --filter @booking/api prisma:deploy` 或部署环境中的 `prisma migrate deploy`。`prisma:migrate` 只用于开发新 migration，不用于正式或演练环境套用既有迁移。
 4. 检查 API 启动、`/health`、管理员登录、课程列表、预约列表和会员详情。
 5. 生产发布窗口内执行迁移，完成后立即做烟测。
 6. 若迁移后核心链路失败，停止写入流量，按“恢复步骤”回滚数据库到发版前备份。
