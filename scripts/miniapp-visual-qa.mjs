@@ -13,7 +13,8 @@ const DEFAULT_OUTPUT_DIR = path.resolve('docs/manual-test-screenshots');
 const DEFAULT_AUTO_PORT = 19000;
 const DEVTOOLS_CONFIRM_ENV = 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS';
 const DEVTOOLS_CONFIRM_FLAG = '--allow-devtools';
-const CONFIRMED_CAPTURE_COMMAND = `${DEVTOOLS_CONFIRM_ENV}=1 pnpm miniapp:visual-qa:capture`;
+const TARGET_NEXT_FLAG = '--target-next';
+const CONFIRMED_CAPTURE_COMMAND = `${DEVTOOLS_CONFIRM_ENV}=1 pnpm miniapp:visual-qa:capture-next`;
 
 const pages = [
   { label: 'classes', pagePath: '/pages/classes/index' },
@@ -214,6 +215,19 @@ export function createNextMissingDeviceReport(report) {
   };
 }
 
+export function assertCaptureDeviceMatchesTarget(deviceName, targetDevice) {
+  if (!targetDevice) {
+    throw new Error('No missing visual QA device remains. Run pnpm miniapp:visual-qa:check before capturing more screenshots.');
+  }
+
+  if (deviceName !== targetDevice.deviceName) {
+    throw new Error(
+      `Current WeChat DevTools simulator is ${deviceName}. ` +
+        `Switch the WeChat DevTools simulator to ${targetDevice.deviceName} (${targetDevice.viewport}) before capturing.`
+    );
+  }
+}
+
 function canListenOnAddress(port, host) {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -262,7 +276,8 @@ export function readOptions(argv, env = process.env) {
     allowDevToolsLaunch: isTruthy(env[DEVTOOLS_CONFIRM_ENV]),
     checkMatrix: false,
     nextMissing: false,
-    manualPlan: false
+    manualPlan: false,
+    targetNext: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -273,6 +288,7 @@ export function readOptions(argv, env = process.env) {
     if (arg === '--out' && next) options.outputDir = next;
     if (arg === '--port' && next) options.port = Number(next);
     if (arg === DEVTOOLS_CONFIRM_FLAG) options.allowDevToolsLaunch = true;
+    if (arg === TARGET_NEXT_FLAG) options.targetNext = true;
     if (arg === '--capture') {
       options.mode = 'capture';
     }
@@ -348,12 +364,15 @@ export async function captureVisualQaScreenshots(options) {
   if (!options.allowDevToolsLaunch) {
     throw new Error(
       `Refusing to open WeChat DevTools without explicit confirmation. ` +
-        `Set ${DEVTOOLS_CONFIRM_ENV}=1 before running pnpm miniapp:visual-qa:capture, ` +
+        `Run ${CONFIRMED_CAPTURE_COMMAND}, ` +
         `or pass ${DEVTOOLS_CONFIRM_FLAG} after manually selecting the target simulator device.`
     );
   }
 
   mkdirSync(options.outputDir, { recursive: true });
+  const targetDevice = options.targetNext
+    ? createNextMissingDeviceReport(verifyScreenshotMatrix(options.outputDir))
+    : null;
   const port = await resolveAutomatorPort(options.port);
 
   const miniProgram = await automator.launch({
@@ -367,7 +386,8 @@ export async function captureVisualQaScreenshots(options) {
   try {
     const systemInfo = await miniProgram.systemInfo();
     const deviceName = systemInfo.model || 'unknown-device';
-    const plan = createScreenshotPlan(deviceName, options.outputDir);
+    if (options.targetNext) assertCaptureDeviceMatchesTarget(deviceName, targetDevice);
+    const plan = targetDevice?.missingScreenshots ?? createScreenshotPlan(deviceName, options.outputDir);
 
     for (const item of plan) {
       await miniProgram.switchTab(item.pagePath);

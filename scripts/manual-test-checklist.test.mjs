@@ -23,7 +23,7 @@ test('manual test checklist opens the built miniapp dist and guards visual captu
   assert.doesNotMatch(source, /Open miniapp build in WeChat DevTools from `apps\/miniapp`/);
   assert.match(source, /完成度/);
   assert.match(source, /截图保存路径/);
-  assert.match(source, /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture/);
+  assert.match(source, /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/);
   assert.match(source, /pnpm miniapp:visual-qa:check/);
 });
 

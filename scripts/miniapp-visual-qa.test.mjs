@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  assertCaptureDeviceMatchesTarget,
   createManualCapturePlan,
   createNextMissingDeviceReport,
   createScreenshotMatrix,
@@ -217,7 +218,7 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
       ]
     );
     assert.deepEqual(plan.commands, [
-      'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture',
+      'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next',
       'pnpm miniapp:visual-qa:next',
       'pnpm miniapp:visual-qa:check'
     ]);
@@ -229,6 +230,15 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
   }
+});
+
+test('package exposes a next-device guarded visual capture script', () => {
+  const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+
+  assert.equal(
+    packageJson.scripts['miniapp:visual-qa:capture-next'],
+    'node scripts/miniapp-visual-qa.mjs --capture --target-next'
+  );
 });
 
 test('createManualCapturePlan reports completion when the screenshot matrix is complete', () => {
@@ -274,6 +284,7 @@ test('readOptions requires capture confirmation before opening DevTools', () => 
   assert.equal(options.mode, 'capture');
   assert.equal(options.opensDevTools, false);
   assert.equal(options.allowDevToolsLaunch, false);
+  assert.equal(options.targetNext, false);
 });
 
 test('readOptions allows capture only with explicit env or flag confirmation', () => {
@@ -286,6 +297,32 @@ test('readOptions allows capture only with explicit env or flag confirmation', (
   assert.equal(flagOptions.allowDevToolsLaunch, true);
 });
 
+test('readOptions supports target-next capture mode', () => {
+  const options = readOptions(['--capture', '--target-next'], { MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS: '1' });
+
+  assert.equal(options.mode, 'capture');
+  assert.equal(options.targetNext, true);
+  assert.equal(options.opensDevTools, true);
+});
+
+test('assertCaptureDeviceMatchesTarget rejects screenshots from the wrong simulator device', () => {
+  assert.doesNotThrow(() =>
+    assertCaptureDeviceMatchesTarget('iPhone SE', {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667'
+    })
+  );
+
+  assert.throws(
+    () =>
+      assertCaptureDeviceMatchesTarget('iPhone 12/13 (Pro)', {
+        deviceName: 'iPhone SE',
+        viewport: '375 x 667'
+      }),
+    /Switch the WeChat DevTools simulator to iPhone SE/
+  );
+});
+
 test('captureVisualQaScreenshots refuses to launch DevTools without confirmation', async () => {
   await assert.rejects(
     captureVisualQaScreenshots({
@@ -293,6 +330,6 @@ test('captureVisualQaScreenshots refuses to launch DevTools without confirmation
       port: 19000,
       allowDevToolsLaunch: false
     }),
-    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/
+    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
   );
 });

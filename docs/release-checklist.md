@@ -52,7 +52,7 @@ pnpm miniapp:visual-qa
 说明：
 
 - `pnpm miniapp:visual-qa` 只输出截图矩阵状态，不打开 WeChat DevTools。
-- 不要在自动发布流水线里使用 `pnpm miniapp:visual-qa:capture`，它会通过 `miniprogram-automator` 打开 WeChat DevTools。
+- 不要在自动发布流水线里使用 `pnpm miniapp:visual-qa:capture` 或 `pnpm miniapp:visual-qa:capture-next`，它们会通过 `miniprogram-automator` 打开 WeChat DevTools。
 - 多设备截图矩阵仍以 `docs/miniapp-visual-qa.md` 和 `pnpm miniapp:visual-qa:check` 为准；截图未补齐时不影响代码构建，但应在外部试运营前完成。
 
 ## 2. 生产配置检查

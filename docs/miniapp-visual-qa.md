@@ -11,7 +11,7 @@
 - 开发登录模式：`TARO_APP_AUTH_MODE=dev`
 - 种子会员：阿杰、东店同学、小林
 - 当前工具状态：`/Applications/wechatwebdevtools.app` 已安装，服务端口已开启，当前端口为 `13667`。CLI 可打开 `apps/miniapp/dist`。
-- 当前自动化状态：已接入安全默认的 `pnpm miniapp:visual-qa`。默认命令只输出矩阵状态，不打开微信开发者工具。普通 `pnpm miniapp:visual-qa:capture` 会先拒绝执行，避免误打开微信开发者工具；需要截图时必须显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 或传入 `--allow-devtools`。确认后该命令通过 `miniprogram-automator` 连接微信开发者工具，自动进入课程、预约、我的三页并保存当前模拟器截图，自动化端口从 `19000` 开始探测，遇到占用会递增避让。
+- 当前自动化状态：已接入安全默认的 `pnpm miniapp:visual-qa`。默认命令只输出矩阵状态，不打开微信开发者工具。普通 `pnpm miniapp:visual-qa:capture` 和 `pnpm miniapp:visual-qa:capture-next` 都会先拒绝执行，避免误打开微信开发者工具；需要截图时必须显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 或传入 `--allow-devtools`。推荐使用 `capture-next`，它会校验当前模拟器设备必须等于下一台缺失设备。确认后该命令通过 `miniprogram-automator` 连接微信开发者工具，自动进入课程、预约、我的三页并保存当前模拟器截图，自动化端口从 `19000` 开始探测，遇到占用会递增避让。
 
 ## 设备矩阵
 
@@ -66,6 +66,7 @@
 | 2026-06-13 | 调整 `pnpm miniapp:visual-qa` 默认行为 | 成功：默认只输出矩阵状态并标记 `opensDevTools: false`；截图动作改为显式 `pnpm miniapp:visual-qa:capture` |
 | 2026-06-13 | 增强 `pnpm miniapp:visual-qa:check` | 成功：矩阵检查不只看文件名，还会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图 |
 | 2026-06-13 | 给 `pnpm miniapp:visual-qa:capture` 增加确认门槛 | 成功：未设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时会在打开微信开发者工具前直接拒绝 |
+| 2026-06-13 | 新增 `pnpm miniapp:visual-qa:capture-next` | 成功：截图前会校验当前模拟器设备和下一台缺失设备一致，避免手动设备未切换时误采 |
 
 ## 自动化命令
 
@@ -73,13 +74,14 @@
 pnpm miniapp:visual-qa:test
 pnpm miniapp:visual-qa
 MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture
+MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next
 pnpm miniapp:visual-qa:next
 pnpm miniapp:visual-qa:check
 ```
 
 默认 `pnpm miniapp:visual-qa` 只报告状态，不打开微信开发者工具。
 
-普通 `pnpm miniapp:visual-qa:capture` 不会打开/连接微信开发者工具，会提示需要显式确认。补齐多设备矩阵时，先在 DevTools 切换模拟器设备，再执行 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture`。
+普通 `pnpm miniapp:visual-qa:capture` 和 `pnpm miniapp:visual-qa:capture-next` 不会打开/连接微信开发者工具，会提示需要显式确认。补齐多设备矩阵时，先在 DevTools 切换模拟器设备，再执行 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`。如果当前模拟器设备不是下一台缺失设备，`capture-next` 会拒绝保存截图。
 
 `pnpm miniapp:visual-qa` 会输出 `progress` 完成度和下一台缺失设备；`next.missingScreenshots` 会列出缺失页面、页面路径和目标截图文件。
 

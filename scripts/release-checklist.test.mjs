@@ -49,7 +49,7 @@ test('release checklist explicitly avoids the DevTools-opening visual capture co
   const source = read(releaseChecklistPath);
 
   assert.match(source, /pnpm miniapp:visual-qa` 只输出截图矩阵状态，不打开 WeChat DevTools/);
-  assert.match(source, /不要在自动发布流水线里使用 `pnpm miniapp:visual-qa:capture`/);
+  assert.match(source, /不要在自动发布流水线里使用 `pnpm miniapp:visual-qa:capture` 或 `pnpm miniapp:visual-qa:capture-next`/);
 });
 
 test('package script exposes the release checklist guard', () => {
