@@ -55,7 +55,6 @@ apps/admin     管理后台
 apps/miniapp   微信小程序源码
 docs           商用清单、发布清单、运维手册、数据策略
 scripts        项目级静态检查和运维测试脚本
-.github        CI 工作流
 ```
 
 `apps/miniapp/dist`、`apps/admin/dist`、`.env`、截图、日志、数据库备份等都是本地产物，不提交到 GitHub。
@@ -177,6 +176,8 @@ node --test scripts/*.test.mjs
 pnpm security:check
 pnpm build
 ```
+
+当前仓库已提供本地自动化验证命令，后续如需接入 GitHub Actions，可复用以上命令；workflow 文件应由具备 GitHub `workflow` 权限的 token 单独提交。
 
 单项检查：
 

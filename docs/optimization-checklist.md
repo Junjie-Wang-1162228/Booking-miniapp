@@ -28,7 +28,7 @@
 - [x] 管理端增加通知任务列表、失败原因查看和手动重试。
 - [x] 小程序端增加空状态、加载骨架和网络错误重试，提升弱网体验。
 - [x] 管理端课程创建增加更严格的时间、容量、描述校验和表单错误提示。
-- [x] 增加 CI：lint、API E2E、admin build、miniapp build 自动执行。
+- [x] 补齐本地自动化验证命令：lint、API E2E、admin build、miniapp build 可一键执行；后续 CI 可复用这些命令，workflow 需用具备 GitHub `workflow` 权限的 token 单独提交。
 - [x] 管理端按本地营业日筛选预约，避免 UTC 日期错位。
 - [x] 新增 E2E 覆盖提醒发送、提醒跳过、本地营业日筛选和并发容量。
 - [x] 补管理操作审计日志：创建课程、取消课程、消课、重试通知。
@@ -44,9 +44,9 @@
 - [x] API 增加基础内存限流，覆盖登录和会员约课创建接口，参数可通过环境变量配置。
 - [x] 生产环境禁止 seed 或登录继续使用默认管理员密码，覆盖 `admin` 和 `east-manager` 两个种子管理员账号。
 - [x] Demo seed 在 `NODE_ENV=production` 下直接拒绝运行，避免阿杰/小林/测试课程进入生产数据。
-- [x] 增加 secret 文件守卫：`.gitignore` 覆盖 `.env*`、证书和私钥，`pnpm security:check`/CI 会拒绝已追踪敏感文件路径。
+- [x] 增加 secret 文件守卫：`.gitignore` 覆盖 `.env*`、证书和私钥，`pnpm security:check` 会拒绝已追踪敏感文件路径；接入 CI 后也应复用该命令。
 - [x] 生产环境错误响应增加敏感信息脱敏，避免数据库连接串、密钥名、堆栈和内部路径进入客户端响应，同时保留安全业务错误文案。
-- [x] 依赖安全检查接入 `pnpm security:check` 和 CI；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。
+- [x] 依赖安全检查接入 `pnpm security:check`；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。CI 接入需补 workflow 权限后提交。
 - [x] 生产数据库配置增加启动 guard 和 `pnpm --filter @booking/api config:check`，拒绝本地/测试/shadow 数据库、root/admin/示例数据库账号和生产自动开户。
 - [x] 课程列表返回当前会员是否已预约，小程序把已预约课程显示为“已预约”并禁用按钮，名额文案改为“剩 X 位 / 共 Y 位”。
 - [x] 后台会员管理增加微信解绑/重绑流程，支持换微信或绑定错账号时纠正，并记录 `WECHAT_UNBIND` 审计日志。
