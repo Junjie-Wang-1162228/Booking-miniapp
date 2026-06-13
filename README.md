@@ -177,7 +177,7 @@ pnpm miniapp:dev:local
 pnpm verify
 ```
 
-`pnpm verify` 是提交或 push 前的统一质量门禁，会串行运行 lint、API E2E、项目脚本测试、敏感信息/依赖安全检查和三端构建，不打开微信开发者工具，也不执行需要人工补图的视觉截图矩阵。
+`pnpm verify` 是提交或 push 前的统一质量门禁，会串行运行 Prisma Client 生成、lint、API E2E、项目脚本测试、敏感信息/依赖安全检查和三端构建，不打开微信开发者工具，也不执行需要人工补图的视觉截图矩阵。
 
 单独运行各项检查：
 

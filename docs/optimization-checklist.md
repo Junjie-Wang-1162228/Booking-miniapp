@@ -97,7 +97,7 @@
 - [x] 管理后台请求层增加 10 秒超时和弱网错误归一化，API 卡住或网络失败时显示中文可理解错误，而不是长期悬挂。
 - [x] 管理后台请求层识别 401 登录过期，自动清理本地 token/user/branch 缓存并回到登录页，避免坏 token 状态下反复报错。
 - [x] 管理后台启动时安全解析本地 user 缓存，缓存损坏时自动清理登录态和门店缓存，避免白屏。
-- [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 lint、API E2E、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
+- [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 Prisma Client 生成、lint、API E2E、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
 - [x] 新增 GitHub Actions `Verify` workflow：push 到 `main`、PR 和手动触发时启动 MySQL 8.4 service，安装 pnpm 依赖并运行 `pnpm verify`。
 - [x] API E2E 清库前增加数据库安全守卫：默认只允许本地白名单数据库，避免误连远程或生产库时执行 `deleteMany`。
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
