@@ -87,6 +87,7 @@
 - [x] 后台预约消课页支持手动取消会员预约，取消后释放名额、跳过待发送提醒、不扣减课时，并记录 `BOOKING_CANCEL` 审计日志。
 - [x] 补充 `docs/release-checklist.md`，明确发布前构建、配置检查、数据库备份、Prisma migration、部署顺序、烟测、回滚和发布后观察步骤，并用 `pnpm ops:release-checklist:test` 固定关键发布清单。
 - [x] 补充 `docs/staging-runbook.md`，明确 staging 与 production 的数据库、API 域名、管理后台域名、小程序体验版、secret 和告警路由必须隔离，并用 `pnpm ops:staging:test` 固定 staging No-Go 和验收入口。
+- [x] 更新 `docs/manual-test-checklist.md`：纳入 `pnpm dev:status:strict`、真实微信登录准备、正确的 `apps/miniapp/dist` 打开路径、多设备视觉截图确认命令，并用 `pnpm ops:manual-test-checklist:test` 固定清单关键入口。
 - [x] 后台取消课程确认框展示影响会员数；后端取消课程时生成 `CLASS_CANCELED` 课程取消通知任务，并在审计日志记录影响预约数和通知任务数。
 - [x] 后台通知任务区分课程改期通知；后端课程改期时生成 `CLASS_RESCHEDULED` 通知任务，并按原提前量移动待发送开课提醒。
 - [x] 后台新增教练管理闭环：`/admin/coaches` 支持创建、列表和启停教练档案；课程排课可选择教练档案并保存 `coachId`；教练后台账号只能查看自己负责的课程和预约，不能创建课程或消课。
@@ -153,6 +154,7 @@
 - [x] `pnpm ops:readiness:test`
 - [x] `pnpm ops:staging:test`
 - [x] `pnpm ops:release-checklist:test`
+- [x] `pnpm ops:manual-test-checklist:test`
 - [x] `pnpm ops:third-party-notices:test`
 - [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "cancels an active booking from the admin roster"`
 - [x] `pnpm --filter @booking/api exec jest --config ./test/jest-e2e.json --runInBand --runTestsByPath test/app.e2e-spec.ts -t "rejects member and cross-branch manager booking cancel attempts"`
