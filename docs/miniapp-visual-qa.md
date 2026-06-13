@@ -63,6 +63,7 @@
 | 2026-06-13 | 测试 `project.config.json` 的 `simulatorType` 字段 | 未生效：写入 `iPhone 15 Pro Max` 后 automator 仍返回当前 `iPhone 12/13 (Pro)`；已恢复原配置 |
 | 2026-06-13 | 新增并运行 `pnpm miniapp:visual-qa:next` | 成功：当前提示下一台需切换到 `iPhone SE`，缺少课程、预约、我的三页截图 |
 | 2026-06-13 | 调整 `pnpm miniapp:visual-qa` 默认行为 | 成功：默认只输出矩阵状态并标记 `opensDevTools: false`；截图动作改为显式 `pnpm miniapp:visual-qa:capture` |
+| 2026-06-13 | 增强 `pnpm miniapp:visual-qa:check` | 成功：矩阵检查不只看文件名，还会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图 |
 
 ## 自动化命令
 
@@ -82,12 +83,12 @@ pnpm miniapp:visual-qa:check
 
 `pnpm miniapp:visual-qa:plan` 会输出下一台设备、缺失页面和手动执行步骤，不打开或连接微信开发者工具。适合补截图前先确认当前矩阵状态。
 
-`pnpm miniapp:visual-qa:check` 只检查文件矩阵，不启动 DevTools；当 12 张截图未全部存在时会返回非零退出码，并输出缺失设备和页面。
+`pnpm miniapp:visual-qa:check` 只检查文件矩阵，不启动 DevTools；当 12 张截图未全部存在、截图不是 PNG、或截图尺寸明显不匹配目标设备时会返回非零退出码，并输出缺失或无效的设备和页面。
 
 ## 完成标准
 
-- `docs/manual-test-screenshots/` 下至少包含 4 个设备 x 3 个页面的真实微信开发者工具截图。
-- 每张截图能看到模拟器页面主体，不是桌面、空白窗口或构建产物文件。
+- `docs/manual-test-screenshots/` 下至少包含 4 个设备 x 3 个页面的真实微信开发者工具 PNG 截图。
+- 每张截图能看到模拟器页面主体，不是桌面、空白窗口、构建产物文件或尺寸明显不匹配目标设备的图片。
 - 本文设备矩阵对应的截图文件名已填写。
 - `pnpm miniapp:visual-qa:check` 返回退出码 0。
 - `docs/optimization-checklist.md` 中“微信开发者工具多设备视觉走查”可改为完成。

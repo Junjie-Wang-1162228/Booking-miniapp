@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -24,6 +24,7 @@ const deviceMatrix = [
   { deviceName: 'iPhone 15 Pro Max', viewport: '430 x 932' },
   { deviceName: 'Nexus 6', viewport: '412 x 732' }
 ];
+const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 
 export function slugDeviceName(deviceName) {
   return deviceName
@@ -47,17 +48,78 @@ export function createScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR) {
   }));
 }
 
+function parseViewport(viewport) {
+  const match = viewport.match(/^(\d+)\s*x\s*(\d+)$/i);
+  if (!match) return null;
+
+  return {
+    width: Number(match[1]),
+    height: Number(match[2])
+  };
+}
+
+function readPngDimensions(outputPath) {
+  const buffer = readFileSync(outputPath);
+  if (buffer.length < 24 || !buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+    return { valid: false, reason: 'not a PNG screenshot' };
+  }
+
+  if (buffer.toString('ascii', 12, 16) !== 'IHDR') {
+    return { valid: false, reason: 'not a PNG screenshot' };
+  }
+
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  if (width <= 0 || height <= 0) return { valid: false, reason: 'not a PNG screenshot' };
+
+  return { valid: true, width, height };
+}
+
+function validateScreenshotFile(outputPath, viewport) {
+  if (!existsSync(outputPath)) return { exists: false, valid: false };
+
+  const dimensions = readPngDimensions(outputPath);
+  if (!dimensions.valid) {
+    return { exists: true, valid: false, reason: dimensions.reason };
+  }
+
+  const viewportSize = parseViewport(viewport);
+  if (!viewportSize) return { exists: true, valid: true, width: dimensions.width, height: dimensions.height };
+
+  const minWidth = viewportSize.width * 0.8;
+  const minHeight = viewportSize.height * 0.7;
+  const maxWidth = viewportSize.width * 4;
+  const maxHeight = viewportSize.height * 4;
+  const dimensionsMatchViewport =
+    dimensions.width >= minWidth &&
+    dimensions.height >= minHeight &&
+    dimensions.width <= maxWidth &&
+    dimensions.height <= maxHeight;
+
+  if (!dimensionsMatchViewport) {
+    return {
+      exists: true,
+      valid: false,
+      width: dimensions.width,
+      height: dimensions.height,
+      reason: 'screenshot dimensions do not match viewport'
+    };
+  }
+
+  return { exists: true, valid: true, width: dimensions.width, height: dimensions.height };
+}
+
 export function verifyScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR) {
   const devices = createScreenshotMatrix(outputDir).map((device) => {
     const screenshots = device.screenshots.map((screenshot) => ({
       ...screenshot,
-      exists: existsSync(screenshot.outputPath)
+      ...validateScreenshotFile(screenshot.outputPath, device.viewport)
     }));
 
     return {
       ...device,
       screenshots,
-      complete: screenshots.every((screenshot) => screenshot.exists)
+      complete: screenshots.every((screenshot) => screenshot.exists && screenshot.valid)
     };
   });
   const missing = devices.flatMap((device) =>
@@ -70,16 +132,34 @@ export function verifyScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR) {
         outputPath: screenshot.outputPath
       }))
   );
+  const invalid = devices.flatMap((device) =>
+    device.screenshots
+      .filter((screenshot) => screenshot.exists && !screenshot.valid)
+      .map((screenshot) => ({
+        deviceName: device.deviceName,
+        viewport: device.viewport,
+        label: screenshot.label,
+        outputPath: screenshot.outputPath,
+        width: screenshot.width,
+        height: screenshot.height,
+        reason: screenshot.reason
+      }))
+  );
 
   return {
-    complete: missing.length === 0,
+    complete: missing.length === 0 && invalid.length === 0,
     requiredCount: devices.length * pages.length,
     existingCount: devices.reduce(
+      (count, device) => count + device.screenshots.filter((screenshot) => screenshot.exists && screenshot.valid).length,
+      0
+    ),
+    presentCount: devices.reduce(
       (count, device) => count + device.screenshots.filter((screenshot) => screenshot.exists).length,
       0
     ),
     devices,
-    missing
+    missing,
+    invalid
   };
 }
 
@@ -90,7 +170,9 @@ export function findNextMissingDevice(report) {
   return {
     deviceName: device.deviceName,
     viewport: device.viewport,
-    missingLabels: device.screenshots.filter((screenshot) => !screenshot.exists).map((screenshot) => screenshot.label)
+    missingLabels: device.screenshots
+      .filter((screenshot) => !screenshot.exists || !screenshot.valid)
+      .map((screenshot) => screenshot.label)
   };
 }
 

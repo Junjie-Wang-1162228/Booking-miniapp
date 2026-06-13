@@ -231,7 +231,7 @@ pnpm miniapp:visual-qa:check
 pnpm miniapp:visual-qa:capture
 ```
 
-截图属于本地手工验收产物，不提交 GitHub。
+`pnpm miniapp:visual-qa:check` 会检查截图矩阵、PNG 有效性和基础尺寸匹配。截图属于本地手工验收产物，不提交 GitHub。
 
 ## 发布和商用状态
 

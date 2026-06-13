@@ -15,6 +15,22 @@ import {
   verifyScreenshotMatrix
 } from './miniapp-visual-qa.mjs';
 
+function createPngHeader(width, height) {
+  const buffer = Buffer.alloc(33);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(buffer, 0);
+  buffer.writeUInt32BE(13, 8);
+  buffer.write('IHDR', 12, 'ascii');
+  buffer.writeUInt32BE(width, 16);
+  buffer.writeUInt32BE(height, 20);
+  buffer[24] = 8;
+  buffer[25] = 2;
+  return buffer;
+}
+
+function writeValidScreenshot(outputPath, width = 780, height = 1342) {
+  writeFileSync(outputPath, createPngHeader(width, height));
+}
+
 test('slugDeviceName creates stable lowercase device slugs', () => {
   assert.equal(slugDeviceName('iPhone 12/13 (Pro)'), 'iphone-12-13-pro');
   assert.equal(slugDeviceName('Nexus 6'), 'nexus-6');
@@ -75,7 +91,7 @@ test('verifyScreenshotMatrix reports missing files until the whole matrix exists
 
     for (const device of createScreenshotMatrix(outputDir)) {
       for (const screenshot of device.screenshots) {
-        writeFileSync(screenshot.outputPath, 'fake screenshot');
+        writeValidScreenshot(screenshot.outputPath);
       }
     }
 
@@ -87,11 +103,45 @@ test('verifyScreenshotMatrix reports missing files until the whole matrix exists
   }
 });
 
+test('verifyScreenshotMatrix rejects fake or wrong-size screenshot files', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-invalid-'));
+  try {
+    for (const device of createScreenshotMatrix(outputDir)) {
+      for (const screenshot of device.screenshots) {
+        writeValidScreenshot(screenshot.outputPath);
+      }
+    }
+
+    const [firstScreenshot] = createScreenshotPlan('iPhone SE', outputDir);
+    writeFileSync(firstScreenshot.outputPath, 'fake screenshot');
+    const tinyScreenshot = createScreenshotPlan('iPhone 15 Pro Max', outputDir)[1];
+    writeValidScreenshot(tinyScreenshot.outputPath, 1, 1);
+
+    const report = verifyScreenshotMatrix(outputDir);
+    assert.equal(report.complete, false);
+    assert.equal(report.invalid.length, 2);
+    assert.deepEqual(
+      report.invalid.map((item) => ({ deviceName: item.deviceName, label: item.label, reason: item.reason })),
+      [
+        { deviceName: 'iPhone SE', label: 'classes', reason: 'not a PNG screenshot' },
+        { deviceName: 'iPhone 15 Pro Max', label: 'bookings', reason: 'screenshot dimensions do not match viewport' }
+      ]
+    );
+    assert.deepEqual(findNextMissingDevice(report), {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667',
+      missingLabels: ['classes']
+    });
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
 test('findNextMissingDevice returns the first incomplete device with missing pages', () => {
   const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-next-'));
   try {
     for (const screenshot of createScreenshotPlan('iPhone 12/13 (Pro)', outputDir)) {
-      writeFileSync(screenshot.outputPath, 'fake screenshot');
+      writeValidScreenshot(screenshot.outputPath);
     }
 
     const report = verifyScreenshotMatrix(outputDir);
@@ -110,7 +160,7 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
   const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-plan-'));
   try {
     for (const screenshot of createScreenshotPlan('iPhone 12/13 (Pro)', outputDir)) {
-      writeFileSync(screenshot.outputPath, 'fake screenshot');
+      writeValidScreenshot(screenshot.outputPath);
     }
 
     const plan = createManualCapturePlan(verifyScreenshotMatrix(outputDir));
@@ -138,7 +188,7 @@ test('createManualCapturePlan reports completion when the screenshot matrix is c
   try {
     for (const device of createScreenshotMatrix(outputDir)) {
       for (const screenshot of device.screenshots) {
-        writeFileSync(screenshot.outputPath, 'fake screenshot');
+        writeValidScreenshot(screenshot.outputPath);
       }
     }
 
