@@ -56,6 +56,7 @@
     "ops:staging:test": "node --test scripts/staging-readiness.test.mjs",
     "ops:release-checklist:test": "node --test scripts/release-checklist.test.mjs",
     "ops:manual-test-checklist:test": "node --test scripts/manual-test-checklist.test.mjs",
+    "ops:manual-test:status": "node scripts/manual-test-status.mjs",
     "ops:third-party-notices:test": "node --test scripts/third-party-notices.test.mjs",
     "db:backup": "node scripts/db-backup.mjs",
     "db:restore": "node scripts/db-restore.mjs",

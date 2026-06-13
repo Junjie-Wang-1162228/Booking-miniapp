@@ -228,8 +228,11 @@ pnpm miniapp:network-errors:test
 pnpm ops:alerting:test
 pnpm ops:staging:test
 pnpm ops:release-checklist:test
+pnpm ops:manual-test:status
 pnpm ops:third-party-notices:test
 ```
+
+`pnpm ops:manual-test:status` 会读取 `docs/manual-test-checklist.md` 的勾选状态，输出 `manual-test-status` JSON，包括总项数、完成数、分组进度和下一条未完成项；它不打开微信开发者工具，也不会因为清单未完成而返回失败。
 
 微信登录配置检查：
 
