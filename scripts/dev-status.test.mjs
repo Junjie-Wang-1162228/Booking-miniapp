@@ -195,6 +195,10 @@ test('createDevStatusReport marks local preview ready when required services are
   );
   assert.match(report.progress.nextAction, /Capture iPhone SE screenshots for classes, bookings, profile/);
   assert.match(report.progress.nextAction, /iphone-se-classes\.png/);
+  assert.match(
+    report.progress.nextAction,
+    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
+  );
   assert.deepEqual(report.notes, []);
 });
 

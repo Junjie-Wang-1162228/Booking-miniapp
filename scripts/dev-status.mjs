@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createNextMissingDeviceReport, verifyScreenshotMatrix } from './miniapp-visual-qa.mjs';
+import { CONFIRMED_CAPTURE_COMMAND, createNextMissingDeviceReport, verifyScreenshotMatrix } from './miniapp-visual-qa.mjs';
 
 const DEFAULT_API_HEALTH_URL = 'http://localhost:4000/health';
 const DEFAULT_ADMIN_PORTS = [5173, 5174, 5175];
@@ -151,7 +151,9 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
   } else if (!visualQa.complete && visualQa.next) {
     const targetPaths = visualQa.next.missingScreenshots?.map((item) => item.outputPath) ?? [];
     const targetSuffix = targetPaths.length > 0 ? ` Save to: ${targetPaths.join(', ')}.` : '';
-    nextAction = `Capture ${visualQa.next.deviceName} screenshots for ${visualQa.next.missingLabels.join(', ')}.${targetSuffix}`;
+    nextAction =
+      `Capture ${visualQa.next.deviceName} screenshots for ${visualQa.next.missingLabels.join(', ')}. ` +
+      `After selecting that simulator in WeChat DevTools, run ${CONFIRMED_CAPTURE_COMMAND}.${targetSuffix}`;
   }
 
   return {
