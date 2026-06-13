@@ -35,3 +35,12 @@ test('admin app clears local login state when the auth-expired event fires', () 
   assert.match(appSource, /window\.removeEventListener\(ADMIN_AUTH_EXPIRED_EVENT/);
   assert.match(appSource, /handleLogout\(\)/);
 });
+
+test('admin app safely handles corrupted persisted user JSON on startup', () => {
+  assert.match(appSource, /function readStoredAdminUser/);
+  assert.match(appSource, /JSON\.parse\(value\) as AuthUser/);
+  assert.match(appSource, /catch/);
+  assert.match(appSource, /localStorage\.removeItem\('admin_user'\)/);
+  assert.match(appSource, /localStorage\.removeItem\('admin_token'\)/);
+  assert.doesNotMatch(appSource, /useState<AuthUser \| null>\(storedUser \? \(JSON\.parse\(storedUser\) as AuthUser\) : null\)/);
+});

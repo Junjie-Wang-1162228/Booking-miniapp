@@ -139,9 +139,23 @@ const CLASS_TITLE_MAX_LENGTH = 60;
 const CLASS_COACH_MAX_LENGTH = 40;
 const CLASS_DESCRIPTION_MAX_LENGTH = 500;
 
-const storedToken = localStorage.getItem('admin_token');
-const storedUser = localStorage.getItem('admin_user');
-const storedBranchId = localStorage.getItem('admin_branch_id') ?? '';
+function readStoredAdminUser() {
+  const value = localStorage.getItem('admin_user');
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as AuthUser;
+  } catch {
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_branch_id');
+    return null;
+  }
+}
+
+const storedUser = readStoredAdminUser();
+const storedToken = storedUser ? localStorage.getItem('admin_token') : null;
+const storedBranchId = storedUser ? localStorage.getItem('admin_branch_id') ?? '' : '';
 
 const statusLabels: Record<string, string> = {
   BOOKED: '已预约',
@@ -320,7 +334,7 @@ function downloadBookingRosterCsv(bookings: AdminBooking[], branchNameById: Read
 export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [token, setToken] = useState<string | null>(storedToken);
-  const [user, setUser] = useState<AuthUser | null>(storedUser ? (JSON.parse(storedUser) as AuthUser) : null);
+  const [user, setUser] = useState<AuthUser | null>(storedUser);
   const [branches, setBranches] = useState<AdminBranch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState(storedBranchId);
   const [members, setMembers] = useState<AdminMember[]>([]);
