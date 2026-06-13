@@ -62,6 +62,7 @@
 | 2026-06-13 | 新增并运行 `pnpm miniapp:visual-qa:check` | 成功识别矩阵状态：当前 12 张必需截图中已存在 3 张，缺少 iPhone SE、iPhone 15 Pro Max、Nexus 6 的三页截图 |
 | 2026-06-13 | 测试 `project.config.json` 的 `simulatorType` 字段 | 未生效：写入 `iPhone 15 Pro Max` 后 automator 仍返回当前 `iPhone 12/13 (Pro)`；已恢复原配置 |
 | 2026-06-13 | 新增并运行 `pnpm miniapp:visual-qa:next` | 成功：当前提示下一台需切换到 `iPhone SE`，缺少课程、预约、我的三页截图 |
+| 2026-06-13 | 增强 `pnpm miniapp:visual-qa`、`pnpm miniapp:visual-qa:next` 和 `pnpm miniapp:visual-qa:plan` 输出 | 成功：状态输出包含 `progress` 完成度，下一设备输出包含 `missingScreenshots`，能直接看到每个缺失页面对应的截图保存路径 |
 | 2026-06-13 | 调整 `pnpm miniapp:visual-qa` 默认行为 | 成功：默认只输出矩阵状态并标记 `opensDevTools: false`；截图动作改为显式 `pnpm miniapp:visual-qa:capture` |
 | 2026-06-13 | 增强 `pnpm miniapp:visual-qa:check` | 成功：矩阵检查不只看文件名，还会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图 |
 | 2026-06-13 | 给 `pnpm miniapp:visual-qa:capture` 增加确认门槛 | 成功：未设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时会在打开微信开发者工具前直接拒绝 |
@@ -80,9 +81,11 @@ pnpm miniapp:visual-qa:check
 
 普通 `pnpm miniapp:visual-qa:capture` 不会打开/连接微信开发者工具，会提示需要显式确认。补齐多设备矩阵时，先在 DevTools 切换模拟器设备，再执行 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture`。
 
-`pnpm miniapp:visual-qa:next` 会输出下一台缺失设备，便于逐台补齐截图。
+`pnpm miniapp:visual-qa` 会输出 `progress` 完成度和下一台缺失设备；`next.missingScreenshots` 会列出缺失页面、页面路径和目标截图文件。
 
-`pnpm miniapp:visual-qa:plan` 会输出下一台设备、缺失页面和手动执行步骤，不打开或连接微信开发者工具。适合补截图前先确认当前矩阵状态。
+`pnpm miniapp:visual-qa:next` 会输出下一台缺失设备、缺失页面和截图保存路径，便于逐台补齐截图。
+
+`pnpm miniapp:visual-qa:plan` 会输出下一台设备、缺失页面、目标截图文件和手动执行步骤，不打开或连接微信开发者工具。适合补截图前先确认当前矩阵状态。
 
 `pnpm miniapp:visual-qa:check` 只检查文件矩阵，不启动 DevTools；当 12 张截图未全部存在、截图不是 PNG、或截图尺寸明显不匹配目标设备时会返回非零退出码，并输出缺失或无效的设备和页面。
 

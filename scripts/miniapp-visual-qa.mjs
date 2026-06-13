@@ -112,6 +112,21 @@ function validateScreenshotFile(outputPath, viewport) {
   return { exists: true, valid: true, width: dimensions.width, height: dimensions.height };
 }
 
+function percent(completed, total) {
+  if (total <= 0) return 100;
+  return Math.round((completed / total) * 100);
+}
+
+function createProgress(report) {
+  return {
+    completed: report.existingCount,
+    total: report.requiredCount,
+    percent: percent(report.existingCount, report.requiredCount),
+    missing: report.missing.length,
+    invalid: report.invalid.length
+  };
+}
+
 export function verifyScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR) {
   const devices = createScreenshotMatrix(outputDir).map((device) => {
     const screenshots = device.screenshots.map((screenshot) => ({
@@ -176,6 +191,26 @@ export function findNextMissingDevice(report) {
     missingLabels: device.screenshots
       .filter((screenshot) => !screenshot.exists || !screenshot.valid)
       .map((screenshot) => screenshot.label)
+  };
+}
+
+export function createNextMissingDeviceReport(report) {
+  const nextDevice = findNextMissingDevice(report);
+  if (!nextDevice) return null;
+
+  const device = report.devices.find((item) => item.deviceName === nextDevice.deviceName);
+  const missingScreenshots = device.screenshots
+    .filter((screenshot) => !screenshot.exists || !screenshot.valid)
+    .map((screenshot) => ({
+      label: screenshot.label,
+      pagePath: screenshot.pagePath,
+      outputPath: screenshot.outputPath,
+      ...(screenshot.reason ? { reason: screenshot.reason } : {})
+    }));
+
+  return {
+    ...nextDevice,
+    missingScreenshots
   };
 }
 
@@ -269,19 +304,23 @@ function createStatusReport(outputDir) {
     complete: report.complete,
     existingCount: report.existingCount,
     requiredCount: report.requiredCount,
-    next: findNextMissingDevice(report),
+    progress: createProgress(report),
+    next: createNextMissingDeviceReport(report),
     captureCommand: CONFIRMED_CAPTURE_COMMAND
   };
 }
 
 export function createManualCapturePlan(report) {
-  const nextDevice = findNextMissingDevice(report);
+  const progress = createProgress(report);
+  const nextDevice = createNextMissingDeviceReport(report);
   if (!nextDevice) {
     return {
       mode: 'manual-plan',
       opensDevTools: false,
       complete: true,
+      progress,
       nextDevice: null,
+      targetScreenshots: [],
       steps: ['All required screenshots exist. Run pnpm miniapp:visual-qa:check before marking visual QA complete.'],
       commands: ['pnpm miniapp:visual-qa:check']
     };
@@ -291,10 +330,13 @@ export function createManualCapturePlan(report) {
     mode: 'manual-plan',
     opensDevTools: false,
     complete: false,
+    progress,
     nextDevice,
+    targetScreenshots: nextDevice.missingScreenshots,
     steps: [
       `Switch the WeChat DevTools simulator to ${nextDevice.deviceName} (${nextDevice.viewport}).`,
       `Capture the missing pages for this device: ${nextDevice.missingLabels.join(', ')}.`,
+      `Expected screenshot files: ${nextDevice.missingScreenshots.map((item) => item.outputPath).join(', ')}.`,
       `Run ${CONFIRMED_CAPTURE_COMMAND} only after the simulator is on the target device.`,
       'Then run pnpm miniapp:visual-qa:next to continue, and pnpm miniapp:visual-qa:check when all screenshots are present.'
     ],
@@ -352,7 +394,17 @@ async function main() {
   const options = readOptions(process.argv.slice(2));
   if (options.nextMissing) {
     const report = verifyScreenshotMatrix(options.outputDir);
-    console.log(JSON.stringify({ complete: report.complete, next: findNextMissingDevice(report) }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          complete: report.complete,
+          progress: createProgress(report),
+          next: createNextMissingDeviceReport(report)
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   createManualCapturePlan,
+  createNextMissingDeviceReport,
   createScreenshotMatrix,
   createScreenshotPlan,
   captureVisualQaScreenshots,
@@ -157,6 +158,42 @@ test('findNextMissingDevice returns the first incomplete device with missing pag
   }
 });
 
+test('createNextMissingDeviceReport includes target file paths for manual capture', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-next-report-'));
+  try {
+    for (const screenshot of createScreenshotPlan('iPhone 12/13 (Pro)', outputDir)) {
+      writeValidScreenshot(screenshot.outputPath);
+    }
+
+    const next = createNextMissingDeviceReport(verifyScreenshotMatrix(outputDir));
+    assert.equal(next.deviceName, 'iPhone SE');
+    assert.equal(next.viewport, '375 x 667');
+    assert.deepEqual(next.missingLabels, ['classes', 'bookings', 'profile']);
+    assert.deepEqual(
+      next.missingScreenshots.map((item) => ({ label: item.label, pagePath: item.pagePath, outputPath: item.outputPath })),
+      [
+        {
+          label: 'classes',
+          pagePath: '/pages/classes/index',
+          outputPath: path.join(outputDir, 'iphone-se-classes.png')
+        },
+        {
+          label: 'bookings',
+          pagePath: '/pages/bookings/index',
+          outputPath: path.join(outputDir, 'iphone-se-bookings.png')
+        },
+        {
+          label: 'profile',
+          pagePath: '/pages/profile/index',
+          outputPath: path.join(outputDir, 'iphone-se-profile.png')
+        }
+      ]
+    );
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
 test('createManualCapturePlan gives safe next-step instructions without opening DevTools', () => {
   const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-plan-'));
   try {
@@ -167,11 +204,18 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
     const plan = createManualCapturePlan(verifyScreenshotMatrix(outputDir));
     assert.equal(plan.opensDevTools, false);
     assert.equal(plan.complete, false);
-    assert.deepEqual(plan.nextDevice, {
-      deviceName: 'iPhone SE',
-      viewport: '375 x 667',
-      missingLabels: ['classes', 'bookings', 'profile']
-    });
+    assert.deepEqual(plan.progress, { completed: 3, total: 12, percent: 25, missing: 9, invalid: 0 });
+    assert.equal(plan.nextDevice.deviceName, 'iPhone SE');
+    assert.deepEqual(plan.nextDevice.missingLabels, ['classes', 'bookings', 'profile']);
+    assert.equal(plan.targetScreenshots.length, 3);
+    assert.deepEqual(
+      plan.targetScreenshots.map((item) => item.outputPath),
+      [
+        path.join(outputDir, 'iphone-se-classes.png'),
+        path.join(outputDir, 'iphone-se-bookings.png'),
+        path.join(outputDir, 'iphone-se-profile.png')
+      ]
+    );
     assert.deepEqual(plan.commands, [
       'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture',
       'pnpm miniapp:visual-qa:next',
@@ -179,7 +223,8 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
     ]);
     assert.match(plan.steps[0], /iPhone SE/);
     assert.match(plan.steps[1], /classes, bookings, profile/);
-    assert.match(plan.steps[2], /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/);
+    assert.match(plan.steps[2], /iphone-se-classes\.png/);
+    assert.match(plan.steps[3], /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/);
     assert.match(plan.commands[0], /^MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 /);
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
@@ -200,7 +245,9 @@ test('createManualCapturePlan reports completion when the screenshot matrix is c
       mode: 'manual-plan',
       opensDevTools: false,
       complete: true,
+      progress: { completed: 12, total: 12, percent: 100, missing: 0, invalid: 0 },
       nextDevice: null,
+      targetScreenshots: [],
       steps: ['All required screenshots exist. Run pnpm miniapp:visual-qa:check before marking visual QA complete.'],
       commands: ['pnpm miniapp:visual-qa:check']
     });
