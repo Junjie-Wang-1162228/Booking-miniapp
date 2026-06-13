@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 const e2eSpec = readFileSync('apps/api/test/app.e2e-spec.ts', 'utf8');
 const apiPackage = JSON.parse(readFileSync('apps/api/package.json', 'utf8'));
 const dockerMysqlInit = readFileSync('docker/mysql/init/01-shadow-database.sql', 'utf8');
 const prepareE2eDatabaseScript = readFileSync('apps/api/scripts/prepare-e2e-database.ts', 'utf8');
+const readme = readFileSync('README.md', 'utf8');
+const optimizationChecklist = readFileSync('docs/optimization-checklist.md', 'utf8');
 
 function runSafetyHelper(databaseUrl, allowReset = '') {
   return execFileSync(
@@ -26,6 +30,13 @@ function runSafetyHelper(databaseUrl, allowReset = '') {
     ],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
   );
+}
+
+function runApiTsx(source) {
+  return execFileSync('pnpm', ['--filter', '@booking/api', 'exec', 'tsx', '-e', source], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
 }
 
 test('api e2e database safety rejects the local development database by default', () => {
@@ -63,9 +74,30 @@ test('api e2e reset calls the database safety guard before deleting data', () =>
 });
 
 test('api e2e package script prepares and uses an isolated database', () => {
-  assert.match(apiPackage.scripts['test:e2e'], /prepare-e2e-database/);
-  assert.match(apiPackage.scripts['test:e2e'], /boxing_booking_e2e/);
-  assert.doesNotMatch(apiPackage.scripts['test:e2e'], /DATABASE_URL=.*boxing_booking\s/);
+  assert.equal(apiPackage.scripts['test:e2e'], 'tsx scripts/run-e2e.ts');
+});
+
+test('api e2e default database url follows the local development database port', () => {
+  const tempDir = mkdtempSync(path.join(tmpdir(), 'booking-e2e-env-'));
+  const envPath = path.join(tempDir, '.env');
+  writeFileSync(envPath, 'DATABASE_URL="mysql://booking_user:booking_pass@localhost:3308/boxing_booking"\n');
+
+  try {
+    const output = runApiTsx(`
+      import { resolveE2eDatabaseUrl } from './scripts/prepare-e2e-database';
+      console.log(resolveE2eDatabaseUrl({ env: {}, envPath: ${JSON.stringify(envPath)} }));
+    `);
+
+    assert.equal(output.trim(), 'mysql://booking_user:booking_pass@localhost:3308/boxing_booking_e2e');
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('docs explain that local api e2e follows the configured development mysql port', () => {
+  assert.match(readme, /默认会读取 `apps\/api\/\.env` 的 `DATABASE_URL`/);
+  assert.match(readme, /本地开发库是 `localhost:3308\/boxing_booking` 时，E2E 库会自动变成 `localhost:3308\/boxing_booking_e2e`/);
+  assert.match(optimizationChecklist, /E2E 默认从 `apps\/api\/\.env` 的 `DATABASE_URL` 推导/);
 });
 
 test('local mysql init grants the isolated e2e database to the app user', () => {

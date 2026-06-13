@@ -6,7 +6,7 @@
 
 ## 本地预览状态
 
-- [x] MySQL 容器运行在 `localhost:3307`。
+- [x] MySQL 容器运行中；默认端口为 `localhost:3307`，当前本地为避让其他项目容器已通过 `BOOKING_MYSQL_HOST_PORT=3308` 切到 `localhost:3308`。
 - [x] API watch 运行中，服务地址 `http://localhost:4000`。
 - [x] 管理端 Vite 运行中，默认 `http://localhost:5173`，端口被占用时自动切到 `http://localhost:5174`。
 - [x] 小程序 Taro watch 运行中，`pnpm miniapp:dev` 默认使用真实微信登录模式，可用微信开发者工具打开 `apps/miniapp/dist`。
@@ -105,6 +105,7 @@
 - [x] API E2E 清库前增加数据库安全守卫：默认只允许本地白名单数据库，避免误连远程或生产库时执行 `deleteMany`。
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
+- [x] API E2E 默认从 `apps/api/.env` 的 `DATABASE_URL` 推导测试库端口：本地开发库切到 `3308` 时，`test:e2e` 会自动使用 `localhost:3308/boxing_booking_e2e`，避免误跑到其他项目占用的 `3307` MySQL。
 - [x] `pnpm dev:status` 增加数据库连接目标核对：只输出 host/port/database，不泄露账号密码；当 `DATABASE_URL` 的本地端口由非当前 compose MySQL 容器发布时给出 warning，避免误判本地数据库环境。
 - [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
 - [x] 新增 `pnpm dev:status:strict` 严格本地环境门禁：普通状态查询继续用于预览可用性；严格模式会把数据库端口漂移和孤儿 Prisma query-engine 当作失败，适合截图验收或发布前使用。
@@ -208,7 +209,7 @@
 - [x] `pnpm miniapp:visual-qa:capture` 未显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时按设计失败，不打开微信开发者工具。
 - [x] `pnpm dev:status:test`
 - [x] `pnpm dev:status`
-- [x] `pnpm dev:status:strict`：当前按设计失败，暴露 `localhost:3307` 由 `mvp-mysql-1` 而不是本项目 compose MySQL 发布。
+- [x] `pnpm dev:status:strict`：当前通过，API、管理端、小程序 dist/watch、MySQL 端口归属和 Prisma 进程检查均无失败。
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 有效截图、9/12 缺失；多设备 PNG 截图补齐且尺寸检查通过后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`

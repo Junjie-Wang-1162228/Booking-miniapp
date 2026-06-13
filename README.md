@@ -202,7 +202,7 @@ pnpm security:check
 pnpm build
 ```
 
-`pnpm --filter @booking/api test:e2e` 会自动准备并迁移本地独立测试库 `boxing_booking_e2e`，然后只重置该 E2E 库的数据，不清空本地预览库 `boxing_booking`。测试启动时会拒绝非白名单测试库，避免误清远程、生产或本地开发数据。受控 CI 如已自行创建临时库，可设置 `E2E_DATABASE_URL` 指向该库，并在需要时设置 `E2E_SKIP_DATABASE_CREATE=true`；只有确认目标是隔离临时库时才使用 `E2E_ALLOW_DATABASE_RESET=true`。
+`pnpm --filter @booking/api test:e2e` 会自动准备并迁移本地独立测试库 `boxing_booking_e2e`，然后只重置该 E2E 库的数据，不清空本地预览库 `boxing_booking`。未显式设置 `E2E_DATABASE_URL` 时，默认会读取 `apps/api/.env` 的 `DATABASE_URL` 并只把库名替换为 `boxing_booking_e2e`；例如本地开发库是 `localhost:3308/boxing_booking` 时，E2E 库会自动变成 `localhost:3308/boxing_booking_e2e`。测试启动时会拒绝非白名单测试库，避免误清远程、生产或本地开发数据。受控 CI 如已自行创建临时库，可设置 `E2E_DATABASE_URL` 指向该库，并在需要时设置 `E2E_SKIP_DATABASE_CREATE=true`；只有确认目标是隔离临时库时才使用 `E2E_ALLOW_DATABASE_RESET=true`。
 
 当前仓库已接入 GitHub Actions：`.github/workflows/verify.yml` 会在 push 到 `main`、PR 和手动触发时启动 MySQL 8.4 service，并运行同一条 `pnpm verify` 门禁。
 
