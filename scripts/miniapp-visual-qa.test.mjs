@@ -5,6 +5,7 @@ import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  createManualCapturePlan,
   createScreenshotMatrix,
   createScreenshotPlan,
   findNextMissingDevice,
@@ -105,10 +106,67 @@ test('findNextMissingDevice returns the first incomplete device with missing pag
   }
 });
 
+test('createManualCapturePlan gives safe next-step instructions without opening DevTools', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-plan-'));
+  try {
+    for (const screenshot of createScreenshotPlan('iPhone 12/13 (Pro)', outputDir)) {
+      writeFileSync(screenshot.outputPath, 'fake screenshot');
+    }
+
+    const plan = createManualCapturePlan(verifyScreenshotMatrix(outputDir));
+    assert.equal(plan.opensDevTools, false);
+    assert.equal(plan.complete, false);
+    assert.deepEqual(plan.nextDevice, {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667',
+      missingLabels: ['classes', 'bookings', 'profile']
+    });
+    assert.deepEqual(plan.commands, [
+      'pnpm miniapp:visual-qa:capture',
+      'pnpm miniapp:visual-qa:next',
+      'pnpm miniapp:visual-qa:check'
+    ]);
+    assert.match(plan.steps[0], /iPhone SE/);
+    assert.match(plan.steps[1], /classes, bookings, profile/);
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('createManualCapturePlan reports completion when the screenshot matrix is complete', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-plan-complete-'));
+  try {
+    for (const device of createScreenshotMatrix(outputDir)) {
+      for (const screenshot of device.screenshots) {
+        writeFileSync(screenshot.outputPath, 'fake screenshot');
+      }
+    }
+
+    const plan = createManualCapturePlan(verifyScreenshotMatrix(outputDir));
+    assert.deepEqual(plan, {
+      mode: 'manual-plan',
+      opensDevTools: false,
+      complete: true,
+      nextDevice: null,
+      steps: ['All required screenshots exist. Run pnpm miniapp:visual-qa:check before marking visual QA complete.'],
+      commands: ['pnpm miniapp:visual-qa:check']
+    });
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
 test('readOptions defaults to a status mode that does not open DevTools', () => {
   const options = readOptions([]);
   assert.equal(options.mode, 'status');
   assert.equal(options.opensDevTools, false);
+});
+
+test('readOptions supports a manual plan mode that does not open DevTools', () => {
+  const options = readOptions(['--manual-plan']);
+  assert.equal(options.mode, 'manual-plan');
+  assert.equal(options.opensDevTools, false);
+  assert.equal(options.manualPlan, true);
 });
 
 test('readOptions requires explicit capture mode before opening DevTools', () => {

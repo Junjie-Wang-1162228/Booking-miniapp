@@ -80,6 +80,8 @@ pnpm miniapp:visual-qa:check
 
 `pnpm miniapp:visual-qa:next` 会输出下一台缺失设备，便于逐台补齐截图。
 
+`pnpm miniapp:visual-qa:plan` 会输出下一台设备、缺失页面和手动执行步骤，不打开或连接微信开发者工具。适合补截图前先确认当前矩阵状态。
+
 `pnpm miniapp:visual-qa:check` 只检查文件矩阵，不启动 DevTools；当 12 张截图未全部存在时会返回非零退出码，并输出缺失设备和页面。
 
 ## 完成标准

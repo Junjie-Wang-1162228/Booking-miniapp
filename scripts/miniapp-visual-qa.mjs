@@ -136,7 +136,8 @@ export function readOptions(argv) {
     mode: 'status',
     opensDevTools: false,
     checkMatrix: false,
-    nextMissing: false
+    nextMissing: false,
+    manualPlan: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -158,6 +159,10 @@ export function readOptions(argv) {
       options.mode = 'next';
       options.nextMissing = true;
     }
+    if (arg === '--manual-plan') {
+      options.mode = 'manual-plan';
+      options.manualPlan = true;
+    }
   }
 
   options.projectPath = path.resolve(options.projectPath);
@@ -175,6 +180,34 @@ function createStatusReport(outputDir) {
     requiredCount: report.requiredCount,
     next: findNextMissingDevice(report),
     captureCommand: 'pnpm miniapp:visual-qa:capture'
+  };
+}
+
+export function createManualCapturePlan(report) {
+  const nextDevice = findNextMissingDevice(report);
+  if (!nextDevice) {
+    return {
+      mode: 'manual-plan',
+      opensDevTools: false,
+      complete: true,
+      nextDevice: null,
+      steps: ['All required screenshots exist. Run pnpm miniapp:visual-qa:check before marking visual QA complete.'],
+      commands: ['pnpm miniapp:visual-qa:check']
+    };
+  }
+
+  return {
+    mode: 'manual-plan',
+    opensDevTools: false,
+    complete: false,
+    nextDevice,
+    steps: [
+      `Switch the WeChat DevTools simulator to ${nextDevice.deviceName} (${nextDevice.viewport}).`,
+      `Capture the missing pages for this device: ${nextDevice.missingLabels.join(', ')}.`,
+      'Run pnpm miniapp:visual-qa:capture only after the simulator is on the target device.',
+      'Then run pnpm miniapp:visual-qa:next to continue, and pnpm miniapp:visual-qa:check when all screenshots are present.'
+    ],
+    commands: ['pnpm miniapp:visual-qa:capture', 'pnpm miniapp:visual-qa:next', 'pnpm miniapp:visual-qa:check']
   };
 }
 
@@ -221,6 +254,12 @@ async function main() {
   if (options.nextMissing) {
     const report = verifyScreenshotMatrix(options.outputDir);
     console.log(JSON.stringify({ complete: report.complete, next: findNextMissingDevice(report) }, null, 2));
+    return;
+  }
+
+  if (options.manualPlan) {
+    const report = verifyScreenshotMatrix(options.outputDir);
+    console.log(JSON.stringify(createManualCapturePlan(report), null, 2));
     return;
   }
 

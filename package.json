@@ -13,6 +13,7 @@
     "miniapp:visual-qa": "node scripts/miniapp-visual-qa.mjs",
     "miniapp:visual-qa:capture": "node scripts/miniapp-visual-qa.mjs --capture",
     "miniapp:visual-qa:check": "node scripts/miniapp-visual-qa.mjs --check-matrix",
+    "miniapp:visual-qa:plan": "node scripts/miniapp-visual-qa.mjs --manual-plan",
     "miniapp:visual-qa:next": "node scripts/miniapp-visual-qa.mjs --next-missing",
     "miniapp:visual-qa:test": "node --test scripts/miniapp-visual-qa.test.mjs",
     "miniapp:compliance:test": "node --test scripts/miniapp-compliance-entry.test.mjs",

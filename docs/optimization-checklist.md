@@ -97,7 +97,7 @@
 ## 下一步优化清单
 
 - [ ] 在微信开发者工具做多设备视觉走查，补充真实截图到手测记录。
-  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；需要截图时显式执行 `pnpm miniapp:visual-qa:capture`。已新增 `pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
+  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；需要截图时显式执行 `pnpm miniapp:visual-qa:capture`。已新增 `pnpm miniapp:visual-qa:plan` 人工补图步骤、`pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
   - 手测记录模板：`docs/miniapp-visual-qa.md`。
 
 ## 当前验证命令
@@ -182,6 +182,7 @@
 - [x] 本地恢复演练：创建 `boxing_booking_restore_drill`、恢复 `/tmp/boxing-booking-restore-drill.sql`、抽查 `User`/`BoxingClass`/`Booking`/`AuditLog`、删除临时库。
 - [x] `git diff --check`
 - [x] 数据保留与删除策略文档复核：`docs/data-retention-policy.md`
+- [x] `pnpm miniapp:visual-qa:plan`：安全人工补图计划，不打开微信开发者工具。
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 已存在、9/12 缺失；多设备截图补齐后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`
