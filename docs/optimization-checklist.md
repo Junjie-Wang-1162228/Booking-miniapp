@@ -28,7 +28,7 @@
 - [x] 管理端增加通知任务列表、失败原因查看和手动重试。
 - [x] 小程序端增加空状态、加载骨架和网络错误重试，提升弱网体验。
 - [x] 管理端课程创建增加更严格的时间、容量、描述校验和表单错误提示。
-- [x] 补齐本地自动化验证命令：lint、API E2E、admin build、miniapp build 可一键执行；后续 CI 可复用这些命令，workflow 需用具备 GitHub `workflow` 权限的 token 单独提交。
+- [x] 补齐本地自动化验证命令：lint、API E2E、admin build、miniapp build 可一键执行；GitHub Actions 已复用 `pnpm verify` 作为统一 CI 门禁。
 - [x] 管理端按本地营业日筛选预约，避免 UTC 日期错位。
 - [x] 新增 E2E 覆盖提醒发送、提醒跳过、本地营业日筛选和并发容量。
 - [x] 补管理操作审计日志：创建课程、取消课程、消课、重试通知。
@@ -47,7 +47,7 @@
 - [x] 增加 secret 文件守卫：`.gitignore` 覆盖 `.env*`、证书和私钥，`pnpm security:check` 会拒绝已追踪敏感文件路径；接入 CI 后也应复用该命令。
 - [x] AppID 脱敏守卫扩展到已追踪文档、源码、配置和脚本，防止真实 `wx...` AppID 从 README、docs 或代码中误提交；lockfile 和二进制资产跳过扫描以避免 hash 误报。
 - [x] 生产环境错误响应增加敏感信息脱敏，避免数据库连接串、密钥名、堆栈和内部路径进入客户端响应，同时保留安全业务错误文案。
-- [x] 依赖安全检查接入 `pnpm security:check`；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。CI 接入需补 workflow 权限后提交。
+- [x] 依赖安全检查接入 `pnpm security:check`；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。GitHub Actions 会通过 `pnpm verify` 同步执行安全检查。
 - [x] 生产数据库配置增加启动 guard 和 `pnpm --filter @booking/api config:check`，拒绝本地/测试/shadow 数据库、root/admin/示例数据库账号和生产自动开户。
 - [x] 课程列表返回当前会员是否已预约，小程序把已预约课程显示为“已预约”并禁用按钮，名额文案改为“剩 X 位 / 共 Y 位”。
 - [x] 后台会员管理增加微信解绑/重绑流程，支持换微信或绑定错账号时纠正，并记录 `WECHAT_UNBIND` 审计日志。
@@ -98,6 +98,7 @@
 - [x] 管理后台请求层识别 401 登录过期，自动清理本地 token/user/branch 缓存并回到登录页，避免坏 token 状态下反复报错。
 - [x] 管理后台启动时安全解析本地 user 缓存，缓存损坏时自动清理登录态和门店缓存，避免白屏。
 - [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 lint、API E2E、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
+- [x] 新增 GitHub Actions `Verify` workflow：push 到 `main`、PR 和手动触发时启动 MySQL 8.4 service，安装 pnpm 依赖并运行 `pnpm verify`。
 - [x] API E2E 清库前增加数据库安全守卫：默认只允许本地白名单数据库，避免误连远程或生产库时执行 `deleteMany`。
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
