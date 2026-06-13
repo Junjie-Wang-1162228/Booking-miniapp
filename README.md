@@ -120,6 +120,16 @@ pnpm miniapp:dev
 
 然后在微信开发者工具打开 `apps/miniapp/dist`。
 
+也可以用后台预览脚本一次性补齐缺失的 API、管理端和小程序 watch：
+
+```bash
+pnpm dev:preview:start
+pnpm dev:preview:status
+pnpm dev:preview:stop
+```
+
+`dev:preview:start` 不会重复启动已经运行的预览服务；日志和 PID 写入本地 `.dev/preview`，该目录已忽略，不提交 GitHub。
+
 ## 本地账号
 
 管理后台：
@@ -174,6 +184,9 @@ pnpm miniapp:dev:local
 pnpm dev:db
 pnpm dev:status
 pnpm dev:status:strict
+pnpm dev:preview:start
+pnpm dev:preview:status
+pnpm dev:preview:stop
 pnpm api:dev
 pnpm admin:dev
 pnpm miniapp:dev

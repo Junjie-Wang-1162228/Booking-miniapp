@@ -12,6 +12,7 @@ dist
 id_rsa
 id_ed25519
 .DS_Store
+.dev
 coverage
 db-backups
 .playwright-mcp
