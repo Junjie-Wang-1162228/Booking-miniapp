@@ -100,6 +100,7 @@
 - [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 lint、API E2E、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
 - [x] API E2E 清库前增加数据库安全守卫：默认只允许本地白名单数据库，避免误连远程或生产库时执行 `deleteMany`。
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
+- [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
 
 ## 下一步优化清单
 

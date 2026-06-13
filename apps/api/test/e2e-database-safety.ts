@@ -1,5 +1,5 @@
 const SAFE_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
-const SAFE_DATABASE_NAMES = new Set(['boxing_booking', 'boxing_booking_e2e', 'boxing_booking_test']);
+const SAFE_DATABASE_NAMES = new Set(['boxing_booking_e2e', 'boxing_booking_test']);
 
 function failUnsafeDatabase(message: string): never {
   throw new Error(`Refusing to reset an unsafe E2E database: ${message}`);
