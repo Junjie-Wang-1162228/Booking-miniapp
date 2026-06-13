@@ -10,6 +10,7 @@ test('package exposes a single safe project verification command', () => {
 
   assert.equal(typeof verify, 'string');
   assert.match(verify, /pnpm lint/);
+  assert.match(verify, /pnpm --filter @booking\/api test:e2e/);
   assert.match(verify, /node --test scripts\/\*\.test\.mjs/);
   assert.match(verify, /pnpm security:check/);
   assert.match(verify, /pnpm build/);

@@ -6,7 +6,7 @@
     "dev:db": "docker compose up -d mysql",
     "dev:status": "node scripts/dev-status.mjs",
     "dev:status:test": "node --test scripts/dev-status.test.mjs",
-    "verify": "pnpm lint && node --test scripts/*.test.mjs && pnpm security:check && pnpm build",
+    "verify": "pnpm lint && pnpm --filter @booking/api test:e2e && node --test scripts/*.test.mjs && pnpm security:check && pnpm build",
     "stop:db": "docker compose down",
     "db:logs": "docker compose logs -f mysql",
     "api:dev": "pnpm --filter @booking/api start:dev",
