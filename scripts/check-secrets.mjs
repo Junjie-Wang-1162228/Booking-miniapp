@@ -33,12 +33,34 @@ export function readTrackedFiles() {
   return output.split('\0').filter(Boolean);
 }
 
+export function readStagedFiles() {
+  const output = execFileSync('git', ['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR'], {
+    encoding: 'utf8'
+  });
+  return output.split('\0').filter(Boolean);
+}
+
 export function shouldScanTrackedContent(path) {
   if (GENERATED_CONTENT_FILE_PATTERNS.some((pattern) => pattern.test(path))) {
     return false;
   }
 
   return SCANNED_CONTENT_FILE_PATTERNS.some((pattern) => pattern.test(path));
+}
+
+export function readWorkingTreeContentEntries(files) {
+  return files
+    .filter((file) => shouldScanTrackedContent(file))
+    .map((file) => ({ path: file, content: readFileSync(file, 'utf8') }));
+}
+
+export function readStagedContentEntries(files = readStagedFiles()) {
+  return files
+    .filter((file) => shouldScanTrackedContent(file))
+    .map((file) => ({
+      path: file,
+      content: execFileSync('git', ['show', `:${file}`], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
+    }));
 }
 
 export function findForbiddenTrackedContent(entries) {
@@ -62,12 +84,12 @@ export function findForbiddenTrackedContent(entries) {
 
 function main() {
   const trackedFiles = readTrackedFiles();
-  const forbidden = findForbiddenTrackedFiles(trackedFiles);
-  const forbiddenContent = findForbiddenTrackedContent(
-    trackedFiles
-      .filter((file) => shouldScanTrackedContent(file))
-      .map((file) => ({ path: file, content: readFileSync(file, 'utf8') }))
-  );
+  const stagedFiles = readStagedFiles();
+  const forbidden = findForbiddenTrackedFiles(Array.from(new Set([...trackedFiles, ...stagedFiles])));
+  const forbiddenContent = findForbiddenTrackedContent([
+    ...readWorkingTreeContentEntries(trackedFiles),
+    ...readStagedContentEntries(stagedFiles)
+  ]);
 
   if (forbidden.length > 0) {
     console.error('Tracked secret-like files are not allowed:');

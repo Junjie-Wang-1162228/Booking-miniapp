@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
-import { findForbiddenTrackedContent, findForbiddenTrackedFiles } from './check-secrets.mjs';
+import {
+  findForbiddenTrackedContent,
+  findForbiddenTrackedFiles,
+  readStagedContentEntries,
+  readStagedFiles
+} from './check-secrets.mjs';
 
 test('allows example environment templates', () => {
   const files = ['.env.example', 'apps/api/.env.example', 'apps/api/.env.production.example'];
@@ -82,4 +91,29 @@ test('ignores generated lockfiles when scanning appid-shaped strings', () => {
   ]);
 
   assert.deepEqual(violations, []);
+});
+
+test('scans staged content instead of trusting the working tree copy', () => {
+  const originalCwd = process.cwd();
+  const tempRepo = mkdtempSync(path.join(tmpdir(), 'booking-secrets-'));
+  const realLookingAppId = ['wx', '1234567890abcdef'].join('');
+
+  try {
+    process.chdir(tempRepo);
+    execFileSync('git', ['init'], { stdio: 'ignore' });
+    writeFileSync('README.md', `Local AppID: ${realLookingAppId}\n`);
+    execFileSync('git', ['add', 'README.md'], { stdio: 'ignore' });
+    writeFileSync('README.md', 'Local AppID: touristappid\n');
+
+    assert.deepEqual(readStagedFiles(), ['README.md']);
+    assert.deepEqual(findForbiddenTrackedContent(readStagedContentEntries()), [
+      {
+        path: 'README.md',
+        reason: 'real WeChat AppID must stay in local private config'
+      }
+    ]);
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(tempRepo, { recursive: true, force: true });
+  }
 });
