@@ -95,6 +95,7 @@
 - [x] API 接入配置化错误告警：`ALERT_WEBHOOK_URL` 开启后会对未处理 5xx 和微信通知发送失败发送脱敏 webhook，`ALERT_WEBHOOK_TOKEN` 可配置 bearer token。
 - [x] 新增 `pnpm dev:status` 本地预览健康检查：汇总 MySQL、API `/health`、管理端实际端口、小程序 dist/watch 和视觉 QA 下一步，不启动微信开发者工具。
 - [x] 管理后台请求层增加 10 秒超时和弱网错误归一化，API 卡住或网络失败时显示中文可理解错误，而不是长期悬挂。
+- [x] 管理后台请求层识别 401 登录过期，自动清理本地 token/user/branch 缓存并回到登录页，避免坏 token 状态下反复报错。
 
 ## 下一步优化清单
 

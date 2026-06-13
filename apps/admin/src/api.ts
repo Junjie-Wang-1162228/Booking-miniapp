@@ -25,6 +25,23 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
 const REQUEST_TIMEOUT_MS = 10000;
+export const ADMIN_AUTH_EXPIRED_EVENT = 'booking-admin-auth-expired';
+
+type ErrorResponse = {
+  message?: string | string[];
+};
+
+export class AdminApiError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode: number,
+    readonly data: ErrorResponse
+  ) {
+    super(message);
+    this.name = 'AdminApiError';
+    Object.setPrototypeOf(this, AdminApiError.prototype);
+  }
+}
 
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
@@ -47,12 +64,23 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as { message?: string | string[] };
+    const body = (await response.json().catch(() => ({}))) as ErrorResponse;
     const message = Array.isArray(body.message) ? body.message.join(' / ') : body.message;
-    throw new Error(message || `请求失败：${response.status}`);
+    if (response.status === 401) {
+      dispatchAdminAuthExpired();
+      throw new AdminApiError(message || '登录已过期，请重新登录', response.status, body);
+    }
+
+    throw new AdminApiError(message || `请求失败：${response.status}`, response.status, body);
   }
 
   return response.json() as Promise<T>;
+}
+
+function dispatchAdminAuthExpired() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(ADMIN_AUTH_EXPIRED_EVENT));
+  }
 }
 
 function normalizeAdminRequestError(error: unknown, fallback: string) {

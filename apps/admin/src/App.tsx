@@ -52,7 +52,8 @@ import {
   unbindMemberWechat,
   updateCoach,
   updateMember,
-  updateClass
+  updateClass,
+  ADMIN_AUTH_EXPIRED_EVENT
 } from './api';
 import {
   AdminAuditLog,
@@ -541,6 +542,15 @@ export default function App() {
     setNotificationJobs([]);
     setAuditLogs([]);
   }
+
+  useEffect(() => {
+    const onAuthExpired = () => {
+      handleLogout();
+    };
+
+    window.addEventListener(ADMIN_AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(ADMIN_AUTH_EXPIRED_EVENT, onAuthExpired);
+  }, []);
 
   async function handleBranchChange(branchId: string) {
     localStorage.setItem('admin_branch_id', branchId);
