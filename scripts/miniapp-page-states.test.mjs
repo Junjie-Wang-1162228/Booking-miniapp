@@ -39,7 +39,8 @@ test('empty states explain what the user can do next', () => {
   assert.match(classesSource, /暂无可预约课程/);
   assert.match(classesSource, /刷新课程/);
   assert.match(bookingsSource, /暂无预约/);
-  assert.match(bookingsSource, /刷新记录/);
+  assert.match(bookingsSource, /去约课/);
+  assert.match(bookingsSource, /Taro\.switchTab\(\{\s*url: '\/pages\/classes\/index'/);
   assert.match(profileSource, /暂无消课记录/);
   assert.match(profileSource, /刷新记录/);
 });

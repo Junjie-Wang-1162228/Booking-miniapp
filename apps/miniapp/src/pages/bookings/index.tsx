@@ -91,6 +91,12 @@ export default function BookingsPage() {
     }
   }
 
+  async function goToClasses() {
+    await Taro.switchTab({
+      url: '/pages/classes/index'
+    });
+  }
+
   useDidShow(() => {
     void load();
   });
@@ -147,9 +153,9 @@ export default function BookingsPage() {
         <PageState
           variant="empty"
           title="暂无预约"
-          description="预约成功后会在这里显示，可取消未开始的课程。"
-          actionText="刷新记录"
-          onAction={() => load(selectedBranchId)}
+          description="还没有预约记录，可先去约课页选择适合的训练课程。"
+          actionText="去约课"
+          onAction={goToClasses}
         />
       ) : (
         bookings.map((item) => (
