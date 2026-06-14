@@ -175,8 +175,8 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
   assert.match(readiness.nextAction, /Capture iPhone SE screenshots/);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 17,
-    text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+    line: 20,
+    text: '运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。'
   });
   assert.notEqual(readiness.nextHumanAction.text, readiness.manualTestNext.text);
   assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');

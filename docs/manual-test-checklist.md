@@ -2,22 +2,22 @@
 
 ## 1. 本地环境准备
 
-- [ ] 启动 MySQL：`pnpm dev:db`。
-- [ ] 如果 `3307` 被其他本地容器占用，使用 `BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db` 重建本项目 MySQL，并把 `apps/api/.env` 的 `DATABASE_URL` / `SHADOW_DATABASE_URL` 端口同步改成 `3308`。
+- [x] 启动 MySQL：`pnpm dev:db`。
+- [x] 如果 `3307` 被其他本地容器占用，使用 `BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db` 重建本项目 MySQL，并把 `apps/api/.env` 的 `DATABASE_URL` / `SHADOW_DATABASE_URL` 端口同步改成 `3308`。
 - [ ] 执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。
-- [ ] 可选：运行 `pnpm dev:preview:start` 一次性补齐缺失的 API、管理后台和小程序 watch；需要停止由该脚本托管的后台预览时运行 `pnpm dev:preview:stop`。
-- [ ] 启动 API：`pnpm api:dev`。
-- [ ] 启动管理后台：`pnpm admin:dev`。
-- [ ] 启动小程序 watch：`pnpm miniapp:dev`，确认它使用真实微信登录模式。
-- [ ] 运行 `pnpm dev:status`，确认 API、管理后台和小程序 `dist` 都可预览。
-- [ ] 运行 `pnpm dev:status:strict`，确认没有数据库端口漂移和孤儿 Prisma query-engine；若失败，先处理本地环境再继续真实微信验收。
+- [x] 可选：运行 `pnpm dev:preview:start` 一次性补齐缺失的 API、管理后台和小程序 watch；需要停止由该脚本托管的后台预览时运行 `pnpm dev:preview:stop`。
+- [x] 启动 API：`pnpm api:dev`。
+- [x] 启动管理后台：`pnpm admin:dev`。
+- [x] 启动小程序 watch：`pnpm miniapp:dev`，确认它使用真实微信登录模式。
+- [x] 运行 `pnpm dev:status`，确认 API、管理后台和小程序 `dist` 都可预览。
+- [x] 运行 `pnpm dev:status:strict`，确认没有数据库端口漂移和孤儿 Prisma query-engine；若失败，先处理本地环境再继续真实微信验收。
 
 ## 2. 真实微信登录准备
 
-- [ ] 在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。
-- [ ] 在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。
-- [ ] 确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。
-- [ ] 运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。
+- [x] 在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。
+- [x] 在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。
+- [x] 确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。
+- [x] 运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。
 - [ ] 在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。
 - [ ] 在当前 AppID 下添加至少两个测试微信账号。
 

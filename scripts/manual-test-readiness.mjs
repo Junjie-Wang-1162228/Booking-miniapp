@@ -65,6 +65,14 @@ function createNextHumanAction({ localPreviewOk, strictOk, readyForManualWechat,
     return manualTest.next ?? null;
   }
 
+  if (
+    wechatConfig?.ready === true &&
+    wechatSection.next?.line !== null &&
+    wechatSection.next?.line < WECHAT_CHECKLIST_ACTIONS.wechatCheck.line
+  ) {
+    return WECHAT_CHECKLIST_ACTIONS.wechatCheck;
+  }
+
   return (
     wechatSection.next ?? {
       section: wechatSection.title,
