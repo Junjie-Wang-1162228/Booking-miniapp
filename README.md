@@ -230,10 +230,13 @@ pnpm ops:alerting:test
 pnpm ops:staging:test
 pnpm ops:release-checklist:test
 pnpm ops:manual-test:status
+pnpm ops:manual-test:readiness
 pnpm ops:third-party-notices:test
 ```
 
 `pnpm ops:manual-test:status` 会读取 `docs/manual-test-checklist.md` 的勾选状态，输出 `manual-test-status` JSON，包括总项数、完成数、分组进度和下一条未完成项；它不打开微信开发者工具，也不会因为清单未完成而返回失败。
+
+`pnpm ops:manual-test:readiness` 会执行严格本地状态检查并输出 `manual-test-readiness` JSON，把本地预览、strict 环境门禁、视觉截图矩阵和手工验收清单汇总到一起。它不打开微信开发者工具；只有本地预览和 strict 门禁通过时才表示可以开始真实微信人工验收，视觉截图和完整 checklist 仍作为发布前剩余项继续展示。
 
 微信登录配置检查：
 

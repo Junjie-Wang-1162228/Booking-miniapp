@@ -115,6 +115,7 @@
 - [x] `pnpm dev:status` 的视觉 QA 下一步补充安全截图命令 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`，手工切到目标模拟器后可直接按状态输出继续补图。
 - [x] `pnpm dev:status` 的 `visualQa.captureCommand` 增加结构化安全截图命令，后续人工补图脚本或前端状态面板无需解析自然语言 `nextAction`。
 - [x] 新增 `pnpm ops:manual-test:status` 手工验收清单状态命令：读取 `docs/manual-test-checklist.md` 勾选项并输出 `manual-test-status` JSON，汇总总项数、完成数、分组进度和下一条未完成项；不打开微信开发者工具，也不把未完成清单当作 shell 失败。
+- [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist。
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。
 - [x] 本地初始化迁移命令改为非交互式 `pnpm --filter @booking/api prisma:deploy`；`prisma:migrate` 保留给开发新 schema 变更时创建 migration，避免新库初始化时卡在交互式输入。
 - [x] 新增 `pnpm dev:preview:start/status/stop` 后台预览生命周期命令：缺失时补齐 API、管理端和小程序 watch，日志和 PID 写入 ignored 的 `.dev/preview`，减少依赖临时终端会话。
@@ -218,6 +219,7 @@
 - [x] `pnpm dev:status:test`
 - [x] `pnpm dev:status`
 - [x] `pnpm dev:status:strict`：当前通过，API、管理端、小程序 dist/watch、MySQL 端口归属和 Prisma 进程检查均无失败。
+- [x] `pnpm ops:manual-test:readiness`：当前通过本地人工验收启动门禁；视觉截图矩阵和完整手工 checklist 仍显示为发布前剩余项。
 - [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 有效截图、9/12 缺失；多设备 PNG 截图补齐且尺寸检查通过后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`
