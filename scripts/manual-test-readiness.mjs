@@ -10,6 +10,7 @@ const WECHAT_ENV_KEYS = [
   'WECHAT_LOGIN_MOCK_ENABLED',
   'WECHAT_AUTO_PROVISION_ENABLED'
 ];
+const MINIAPP_REQUIRED_DIST_FILES = ['app.js', 'app.json', 'pages/classes/index.js'];
 const WECHAT_CHECKLIST_ACTIONS = {
   appId: {
     section: '2. 真实微信登录准备',
@@ -30,6 +31,13 @@ const WECHAT_CHECKLIST_ACTIONS = {
     section: '2. 真实微信登录准备',
     line: 20,
     text: '运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。'
+  }
+};
+const MINIAPP_CHECKLIST_ACTIONS = {
+  devtoolsOpen: {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   }
 };
 const MANUAL_TEST_CHECKLIST_ACTIONS = {
@@ -74,11 +82,13 @@ function createNextHumanAction({
   readyForManualWechat,
   manualTest,
   testData,
-  wechatConfig
+  wechatConfig,
+  miniappProject
 }) {
   if (!localPreviewOk || !strictOk) return manualTest.next ?? null;
   if (testData?.ready === false) return testData.nextHumanAction ?? manualTest.next ?? null;
   if (wechatConfig?.ready === false) return wechatConfig.nextHumanAction ?? manualTest.next ?? null;
+  if (miniappProject?.ready === false) return miniappProject.nextHumanAction ?? manualTest.next ?? null;
   if (!readyForManualWechat) return manualTest.next ?? null;
 
   const wechatSection = findSection(manualTest.sections, /真实微信登录准备/);
@@ -324,6 +334,154 @@ export function createWechatConfigReadiness(env = {}, options = {}) {
   };
 }
 
+function normalizeMiniappRoot(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '')
+    .replace(/\/+$/, '');
+}
+
+function isRealLookingWechatAppId(value) {
+  return /\bwx[0-9a-z]{16,}\b/i.test(String(value ?? '').trim());
+}
+
+function safeParseJsonFile(path) {
+  if (!existsSync(path)) return { exists: false, value: null, error: null };
+
+  try {
+    return {
+      exists: true,
+      value: JSON.parse(readFileSync(path, 'utf8')),
+      error: null
+    };
+  } catch (error) {
+    return {
+      exists: true,
+      value: null,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+export function createMiniappProjectReadiness({
+  projectConfig = null,
+  projectConfigParseError = null,
+  privateConfig = null,
+  privateConfigExists = false,
+  privateConfigParseError = null,
+  distFilesPresent = false,
+  missingDistFiles = [],
+  source = null
+} = {}) {
+  const miniprogramRoot = normalizeMiniappRoot(projectConfig?.miniprogramRoot);
+  const miniprogramRootPointsToDist = miniprogramRoot === 'dist';
+  const trackedAppId = String(projectConfig?.appid ?? '').trim();
+  const trackedAppIdPlaceholder = PLACEHOLDER_APP_IDS.has(trackedAppId);
+  const trackedAppIdRealLooking = isRealLookingWechatAppId(trackedAppId);
+  const privateAppId = String(privateConfig?.appid ?? '').trim();
+  const privateAppIdConfigured = privateAppId !== '' && !PLACEHOLDER_APP_IDS.has(privateAppId);
+  const privateAppIdPlaceholder = privateAppId !== '' && PLACEHOLDER_APP_IDS.has(privateAppId);
+  const privateAppIdRealLooking = isRealLookingWechatAppId(privateAppId);
+  const failures = [];
+
+  if (projectConfigParseError) {
+    failures.push(
+      createReadinessFailure({
+        id: 'invalid-project-config',
+        detail: 'apps/miniapp/project.config.json is not valid JSON',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
+  if (!miniprogramRootPointsToDist) {
+    failures.push(
+      createReadinessFailure({
+        id: 'wrong-miniprogram-root',
+        detail: 'miniprogramRoot must point to dist/',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
+  if (!trackedAppIdPlaceholder || trackedAppIdRealLooking) {
+    failures.push(
+      createReadinessFailure({
+        id: trackedAppIdRealLooking ? 'tracked-real-app-id' : 'tracked-app-id-not-placeholder',
+        detail: 'tracked project.config.json appid must stay touristappid',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
+  if (privateConfigParseError) {
+    failures.push(
+      createReadinessFailure({
+        id: 'invalid-private-project-config',
+        detail: 'apps/miniapp/project.private.config.json is not valid JSON',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
+  if (!distFilesPresent) {
+    failures.push(
+      createReadinessFailure({
+        id: 'missing-miniapp-dist',
+        detail:
+          missingDistFiles.length > 0
+            ? `missing miniapp dist files: ${missingDistFiles.join(', ')}`
+            : 'missing miniapp dist files',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
+  return {
+    checked: true,
+    source,
+    miniprogramRootPointsToDist,
+    trackedAppIdPlaceholder,
+    trackedAppIdRealLooking,
+    privateConfigExists,
+    privateAppIdConfigured,
+    privateAppIdPlaceholder,
+    privateAppIdRealLooking,
+    distFilesPresent,
+    missingDistFiles,
+    ready: failures.length === 0,
+    failures: failures.map(({ id, detail }) => ({ id, detail })),
+    nextHumanAction: failures[0]?.nextHumanAction ?? null
+  };
+}
+
+export function readMiniappProjectReadiness({
+  projectConfigPath = resolve(process.cwd(), 'apps/miniapp/project.config.json'),
+  privateConfigPath = resolve(process.cwd(), 'apps/miniapp/project.private.config.json'),
+  distPath = resolve(process.cwd(), 'apps/miniapp/dist'),
+  requiredDistFiles = MINIAPP_REQUIRED_DIST_FILES
+} = {}) {
+  const projectConfigResult = safeParseJsonFile(projectConfigPath);
+  const privateConfigResult = safeParseJsonFile(privateConfigPath);
+  const missingDistFiles = requiredDistFiles.filter((file) => !existsSync(resolve(distPath, file)));
+
+  return createMiniappProjectReadiness({
+    projectConfig: projectConfigResult.value,
+    projectConfigParseError: projectConfigResult.error,
+    privateConfig: privateConfigResult.value,
+    privateConfigExists: privateConfigResult.exists,
+    privateConfigParseError: privateConfigResult.error,
+    distFilesPresent: missingDistFiles.length === 0,
+    missingDistFiles,
+    source: {
+      projectConfig: projectConfigPath,
+      privateConfig: privateConfigPath,
+      dist: distPath
+    }
+  });
+}
+
 export function readWechatConfigReadiness({
   envPath = resolve(process.cwd(), 'apps/api/.env'),
   env = process.env
@@ -421,7 +579,8 @@ export function createManualTestReadiness(
   devStatus,
   {
     testData = createManualTestDataReadiness({}),
-    wechatConfig = createWechatConfigReadiness({})
+    wechatConfig = createWechatConfigReadiness({}),
+    miniappProject = createMiniappProjectReadiness({})
   } = {}
 ) {
   const progress = {
@@ -440,7 +599,12 @@ export function createManualTestReadiness(
   };
   const localPreviewOk = progress.preview.total > 0 && progress.preview.completed === progress.preview.total;
   const strictOk = progress.strict.passed === true;
-  const readyForManualWechat = localPreviewOk && strictOk && testData.ready === true && wechatConfig.ready === true;
+  const readyForManualWechat =
+    localPreviewOk &&
+    strictOk &&
+    testData.ready === true &&
+    wechatConfig.ready === true &&
+    miniappProject.ready === true;
   const gates = [
     createGate({
       id: 'local-preview',
@@ -474,6 +638,13 @@ export function createManualTestReadiness(
       detail: wechatConfig.failures?.[0]?.detail ?? 'passed'
     }),
     createGate({
+      id: 'miniapp-devtools-project',
+      label: '小程序 DevTools 项目配置',
+      ok: miniappProject.ready === true,
+      requiredFor: 'manual-start',
+      detail: miniappProject.failures?.[0]?.detail ?? 'passed'
+    }),
+    createGate({
       id: 'visual-qa-matrix',
       label: '多设备视觉截图矩阵',
       ok: visualQa.complete === true,
@@ -500,6 +671,7 @@ export function createManualTestReadiness(
     gates,
     testData,
     wechatConfig,
+    miniappProject,
     nextAction: devStatus.progress?.nextAction ?? null,
     manualTestNext: manualTest.next ?? null,
     nextHumanAction: createNextHumanAction({
@@ -508,7 +680,8 @@ export function createManualTestReadiness(
       readyForManualWechat,
       manualTest,
       testData,
-      wechatConfig
+      wechatConfig,
+      miniappProject
     }),
     captureCommand: devStatus.visualQa?.captureCommand ?? null
   };
@@ -538,13 +711,15 @@ export function readStrictDevStatus() {
 }
 
 async function main() {
-  const [testData, wechatConfig] = await Promise.all([
+  const [testData, wechatConfig, miniappProject] = await Promise.all([
     readManualTestDataReadiness(),
-    Promise.resolve(readWechatConfigReadiness())
+    Promise.resolve(readWechatConfigReadiness()),
+    Promise.resolve(readMiniappProjectReadiness())
   ]);
   const readiness = createManualTestReadiness(readStrictDevStatus(), {
     testData,
-    wechatConfig
+    wechatConfig,
+    miniappProject
   });
   console.log(JSON.stringify(readiness, null, 2));
   if (!readiness.readyForManualWechat) process.exitCode = 1;

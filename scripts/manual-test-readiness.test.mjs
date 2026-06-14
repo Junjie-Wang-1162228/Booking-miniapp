@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  createMiniappProjectReadiness,
   createManualTestDataReadiness,
   createManualTestReadiness,
   createWechatConfigReadiness
@@ -96,6 +97,23 @@ function createReadyManualTestData() {
       }
     ],
     now: '2026-06-14T00:00:00.000Z'
+  });
+}
+
+function createReadyMiniappProject() {
+  const localPrivateAppId = ['wx', 'abcdef1234567890'].join('');
+
+  return createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'dist/',
+      appid: 'touristappid'
+    },
+    privateConfig: {
+      appid: localPrivateAppId
+    },
+    privateConfigExists: true,
+    distFilesPresent: true,
+    missingDistFiles: []
   });
 }
 
@@ -240,10 +258,99 @@ test('wechat config readiness points to the first incomplete manual checklist it
   );
 });
 
+test('miniapp project readiness keeps tracked AppID placeholder-only while hiding local private AppID', () => {
+  const localPrivateAppId = ['wx', 'abcdef1234567890'].join('');
+  const readiness = createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'dist/',
+      appid: 'touristappid'
+    },
+    privateConfig: {
+      appid: localPrivateAppId
+    },
+    privateConfigExists: true,
+    distFilesPresent: true,
+    missingDistFiles: []
+  });
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.miniprogramRootPointsToDist, true);
+  assert.equal(readiness.trackedAppIdPlaceholder, true);
+  assert.equal(readiness.trackedAppIdRealLooking, false);
+  assert.equal(readiness.privateConfigExists, true);
+  assert.equal(readiness.privateAppIdConfigured, true);
+  assert.equal(readiness.privateAppIdPlaceholder, false);
+  assert.equal(readiness.privateAppIdRealLooking, true);
+  assert.equal(readiness.distFilesPresent, true);
+  assert.deepEqual(readiness.failures, []);
+  assert.doesNotMatch(JSON.stringify(readiness), new RegExp(localPrivateAppId));
+});
+
+test('miniapp project readiness blocks wrong DevTools root or tracked real AppID without leaking it', () => {
+  const trackedRealAppId = ['wx', '1234567890abcdef'].join('');
+  const readiness = createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'src/',
+      appid: trackedRealAppId
+    },
+    distFilesPresent: false,
+    missingDistFiles: ['app.js', 'app.json']
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.miniprogramRootPointsToDist, false);
+  assert.equal(readiness.trackedAppIdPlaceholder, false);
+  assert.equal(readiness.trackedAppIdRealLooking, true);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'wrong-miniprogram-root',
+      detail: 'miniprogramRoot must point to dist/'
+    },
+    {
+      id: 'tracked-real-app-id',
+      detail: 'tracked project.config.json appid must stay touristappid'
+    },
+    {
+      id: 'missing-miniapp-dist',
+      detail: 'missing miniapp dist files: app.js, app.json'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
+  });
+  assert.doesNotMatch(JSON.stringify(readiness), new RegExp(trackedRealAppId));
+});
+
+test('manual test readiness blocks manual start when miniapp DevTools project config is unsafe', () => {
+  const readiness = createManualTestReadiness(createDevStatus(), {
+    wechatConfig: createReadyWechatConfig(),
+    testData: createReadyManualTestData(),
+    miniappProject: createMiniappProjectReadiness({
+      projectConfig: { miniprogramRoot: 'src/', appid: 'touristappid' },
+      distFilesPresent: true
+    })
+  });
+
+  assert.equal(readiness.readyForManualWechat, false);
+  assert.equal(readiness.gates.find((gate) => gate.id === 'miniapp-devtools-project')?.ok, false);
+  assert.equal(
+    readiness.gates.find((gate) => gate.id === 'miniapp-devtools-project')?.detail,
+    'miniprogramRoot must point to dist/'
+  );
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
+  });
+});
+
 test('manual test readiness allows starting manual WeChat checks when strict local preview and WeChat config are healthy', () => {
   const readiness = createManualTestReadiness(createDevStatus(), {
     wechatConfig: createReadyWechatConfig(),
-    testData: createReadyManualTestData()
+    testData: createReadyManualTestData(),
+    miniappProject: createReadyMiniappProject()
   });
 
   assert.equal(readiness.mode, 'manual-test-readiness');
@@ -259,6 +366,7 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
       { id: 'strict-dev-status', ok: true, requiredFor: 'manual-start' },
       { id: 'manual-test-data', ok: true, requiredFor: 'manual-start' },
       { id: 'wechat-login-config', ok: true, requiredFor: 'manual-start' },
+      { id: 'miniapp-devtools-project', ok: true, requiredFor: 'manual-start' },
       { id: 'visual-qa-matrix', ok: false, requiredFor: 'release' },
       { id: 'manual-checklist', ok: false, requiredFor: 'release' }
     ]
@@ -289,7 +397,8 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
 test('manual test readiness blocks manual WeChat checks when seeded local test data is missing', () => {
   const readiness = createManualTestReadiness(createDevStatus(), {
     wechatConfig: createReadyWechatConfig(),
-    testData: createManualTestDataReadiness({ adminLoginOk: false })
+    testData: createManualTestDataReadiness({ adminLoginOk: false }),
+    miniappProject: createReadyMiniappProject()
   });
 
   assert.equal(readiness.readyForManualWechat, false);
@@ -305,7 +414,8 @@ test('manual test readiness blocks manual WeChat checks when seeded local test d
 test('manual test readiness blocks manual WeChat checks when local WeChat config is incomplete', () => {
   const readiness = createManualTestReadiness(createDevStatus(), {
     wechatConfig: createWechatConfigReadiness({}),
-    testData: createReadyManualTestData()
+    testData: createReadyManualTestData(),
+    miniappProject: createReadyMiniappProject()
   });
 
   assert.equal(readiness.readyForManualWechat, false);
@@ -333,7 +443,8 @@ test('manual test readiness blocks manual start when strict local preview is not
     }),
     {
       wechatConfig: createReadyWechatConfig(),
-      testData: createReadyManualTestData()
+      testData: createReadyManualTestData(),
+      miniappProject: createReadyMiniappProject()
     }
   );
 
@@ -376,7 +487,8 @@ test('manual test readiness marks release ready only when all release gates pass
     }),
     {
       wechatConfig: createReadyWechatConfig(),
-      testData: createReadyManualTestData()
+      testData: createReadyManualTestData(),
+      miniappProject: createReadyMiniappProject()
     }
   );
 
@@ -404,8 +516,11 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /店长只能访问城东店/);
   assert.match(readme, /wechatConfig/);
   assert.match(readme, /真实微信登录配置/);
+  assert.match(readme, /miniappProject/);
+  assert.match(readme, /小程序 DevTools 项目配置/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
   assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
+  assert.match(optimizationChecklist, /小程序 DevTools 项目配置门禁/);
 });
