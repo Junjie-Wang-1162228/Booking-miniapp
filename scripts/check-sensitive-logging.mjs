@@ -17,6 +17,7 @@ const LOG_CALL_PATTERN =
 
 const SENSITIVE_PATTERNS = [
   { term: 'accessToken', pattern: /\baccess[_-]?token\b/i },
+  { term: 'appId', pattern: /\b(?:[A-Z0-9_]*APP_ID[A-Z0-9_]*|appId|app_id|appid)\b/i },
   { term: 'appSecret', pattern: /\b(?:[A-Z0-9_]*APP_SECRET[A-Z0-9_]*|appSecret|app_secret)\b/ },
   { term: 'authorization', pattern: /\bauthorization\b/i },
   { term: 'cookie', pattern: /\bcookie\b/i },

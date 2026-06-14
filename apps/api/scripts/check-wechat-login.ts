@@ -80,7 +80,7 @@ async function main() {
   const failures: string[] = [];
 
   console.log(`Using env file: ${config.envPath}`);
-  console.log(`MINIAPP_APP_ID: ${config.appId || '<empty>'}`);
+  console.log(`MINIAPP_APP_ID: ${mask(config.appId)}`);
   console.log(`MINIAPP_APP_SECRET: ${mask(config.appSecret)}`);
   console.log(`WECHAT_LOGIN_MOCK_ENABLED: ${config.mockEnabled}`);
   console.log(`WECHAT_AUTO_PROVISION_ENABLED: ${config.autoProvisionEnabled}`);

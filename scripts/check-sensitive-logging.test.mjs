@@ -27,8 +27,22 @@ test('flags logging calls that include unmasked sensitive identifiers', () => {
   ]);
 });
 
+test('flags logging calls that include unmasked WeChat AppID values', () => {
+  const source = 'console.log(`MINIAPP_APP_ID: ${config.appId}`);';
+
+  assert.deepEqual(scanSourceForSensitiveLogging('apps/api/scripts/check-wechat-login.ts', source), [
+    {
+      file: 'apps/api/scripts/check-wechat-login.ts',
+      line: 1,
+      term: 'appId',
+      text: 'console.log(`MINIAPP_APP_ID: ${config.appId}`);'
+    }
+  ]);
+});
+
 test('allows sensitive labels when the logged value is explicitly masked', () => {
   const source = `
+    console.log(\`MINIAPP_APP_ID: \${mask(config.appId)}\`);
     console.log(\`MINIAPP_APP_SECRET: \${mask(config.appSecret)}\`);
     console.log(\`openid: \${mask(session.openid ?? '')}\`);
   `;
