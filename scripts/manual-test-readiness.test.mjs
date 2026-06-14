@@ -78,6 +78,19 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
       { id: 'manual-checklist', ok: false, requiredFor: 'release' }
     ]
   );
+  assert.equal(readiness.readyForRelease, false);
+  assert.deepEqual(readiness.releaseBlockers, [
+    {
+      id: 'visual-qa-matrix',
+      label: '多设备视觉截图矩阵',
+      detail: '3/12'
+    },
+    {
+      id: 'manual-checklist',
+      label: '手工验收清单',
+      detail: '0/41'
+    }
+  ]);
   assert.match(readiness.nextAction, /Capture iPhone SE screenshots/);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
@@ -112,6 +125,40 @@ test('manual test readiness blocks manual start when strict local preview is not
   });
   assert.equal(readiness.gates.find((gate) => gate.id === 'local-preview')?.ok, false);
   assert.equal(readiness.gates.find((gate) => gate.id === 'strict-dev-status')?.ok, false);
+});
+
+test('manual test readiness marks release ready only when all release gates pass', () => {
+  const readiness = createManualTestReadiness(
+    createDevStatus({
+      progress: {
+        preview: { completed: 4, total: 4, percent: 100 },
+        visualQa: { completed: 12, total: 12, percent: 100 },
+        manualTest: { completed: 41, total: 41, percent: 100 },
+        strict: { enabled: true, passed: true, failures: [] },
+        nextAction: 'All local preview and visual QA checks are complete.'
+      },
+      visualQa: {
+        complete: true,
+        existingCount: 12,
+        requiredCount: 12,
+        captureCommand: 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
+      },
+      manualTest: {
+        mode: 'manual-test-status',
+        complete: true,
+        completed: 41,
+        total: 41,
+        percent: 100,
+        next: null,
+        sections: []
+      }
+    })
+  );
+
+  assert.equal(readiness.readyForManualWechat, true);
+  assert.equal(readiness.readyForRelease, true);
+  assert.deepEqual(readiness.releaseBlockers, []);
+  assert.equal(readiness.nextHumanAction, null);
 });
 
 test('package exposes manual test readiness command', () => {

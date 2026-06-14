@@ -40,6 +40,16 @@ function createNextHumanAction({ readyForManualWechat, manualTest }) {
   );
 }
 
+function createReleaseBlockers(gates) {
+  return gates
+    .filter((gate) => gate.requiredFor === 'release' && !gate.ok)
+    .map((gate) => ({
+      id: gate.id,
+      label: gate.label,
+      detail: gate.detail
+    }));
+}
+
 export function createManualTestReadiness(devStatus) {
   const progress = {
     preview: percentFromProgress(devStatus.progress?.preview),
@@ -91,11 +101,14 @@ export function createManualTestReadiness(devStatus) {
       detail: `${progress.manualTest.completed}/${progress.manualTest.total}`
     })
   ];
+  const releaseBlockers = createReleaseBlockers(gates);
 
   return {
     mode: 'manual-test-readiness',
     opensDevTools: false,
     readyForManualWechat,
+    readyForRelease: releaseBlockers.length === 0,
+    releaseBlockers,
     progress,
     gates,
     nextAction: devStatus.progress?.nextAction ?? null,
