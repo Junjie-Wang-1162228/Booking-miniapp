@@ -40,7 +40,11 @@ function createDevStatus(overrides = {}) {
         section: '1. 本地环境准备',
         line: 5,
         text: '启动 MySQL：`pnpm dev:db`。'
-      }
+      },
+      sections: [
+        { title: '1. 本地环境准备', completed: 0, total: 9, percent: 0 },
+        { title: '2. 真实微信登录准备', completed: 0, total: 6, percent: 0 }
+      ]
     },
     ...overrides
   };
@@ -65,6 +69,12 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     ]
   );
   assert.match(readiness.nextAction, /Capture iPhone SE screenshots/);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: null,
+    text: '本地预览和 strict 环境门禁已通过；继续完成真实微信登录准备。'
+  });
+  assert.notEqual(readiness.nextHumanAction.text, readiness.manualTestNext.text);
   assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');
 });
 
@@ -85,6 +95,11 @@ test('manual test readiness blocks manual start when strict local preview is not
 
   assert.equal(readiness.readyForManualWechat, false);
   assert.match(readiness.nextAction, /pnpm dev:preview:start/);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '1. 本地环境准备',
+    line: 5,
+    text: '启动 MySQL：`pnpm dev:db`。'
+  });
   assert.equal(readiness.gates.find((gate) => gate.id === 'local-preview')?.ok, false);
   assert.equal(readiness.gates.find((gate) => gate.id === 'strict-dev-status')?.ok, false);
 });

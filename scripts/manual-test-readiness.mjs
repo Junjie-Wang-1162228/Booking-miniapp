@@ -19,6 +19,25 @@ function createGate({ id, label, ok, requiredFor, detail }) {
   };
 }
 
+function findSection(sections = [], titlePattern) {
+  return sections.find((section) => titlePattern.test(section.title));
+}
+
+function createNextHumanAction({ readyForManualWechat, manualTest }) {
+  if (!readyForManualWechat) return manualTest.next ?? null;
+
+  const wechatSection = findSection(manualTest.sections, /真实微信登录准备/);
+  if (!wechatSection || wechatSection.completed >= wechatSection.total) {
+    return manualTest.next ?? null;
+  }
+
+  return {
+    section: wechatSection.title,
+    line: null,
+    text: '本地预览和 strict 环境门禁已通过；继续完成真实微信登录准备。'
+  };
+}
+
 export function createManualTestReadiness(devStatus) {
   const progress = {
     preview: percentFromProgress(devStatus.progress?.preview),
@@ -28,7 +47,8 @@ export function createManualTestReadiness(devStatus) {
   };
   const manualTest = devStatus.manualTest ?? {
     complete: progress.manualTest.total > 0 && progress.manualTest.completed === progress.manualTest.total,
-    next: null
+    next: null,
+    sections: []
   };
   const visualQa = devStatus.visualQa ?? {
     complete: progress.visualQa.total > 0 && progress.visualQa.completed === progress.visualQa.total
@@ -78,6 +98,7 @@ export function createManualTestReadiness(devStatus) {
     gates,
     nextAction: devStatus.progress?.nextAction ?? null,
     manualTestNext: manualTest.next ?? null,
+    nextHumanAction: createNextHumanAction({ readyForManualWechat, manualTest }),
     captureCommand: devStatus.visualQa?.captureCommand ?? null
   };
 }
