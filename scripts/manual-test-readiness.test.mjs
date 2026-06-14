@@ -78,7 +78,9 @@ function createReadyWechatConfig() {
 function createReadyManualTestData() {
   return createManualTestDataReadiness({
     adminLoginOk: true,
+    managerLoginOk: true,
     branches: [{ name: '城东店' }, { name: '城西店' }],
+    managerBranches: [{ name: '城东店' }],
     classes: [
       {
         title: '基础拳击燃脂',
@@ -102,17 +104,22 @@ test('manual test data readiness verifies seeded admin branches and future class
 
   assert.equal(readiness.ready, true);
   assert.equal(readiness.adminLoginOk, true);
+  assert.equal(readiness.managerLoginOk, true);
   assert.equal(readiness.eastBranchPresent, true);
   assert.equal(readiness.westBranchPresent, true);
+  assert.equal(readiness.managerEastBranchPresent, true);
+  assert.equal(readiness.managerWestBranchAbsent, true);
   assert.equal(readiness.futureClassCount, 2);
   assert.deepEqual(readiness.failures, []);
-  assert.doesNotMatch(JSON.stringify(readiness), /accessToken|Bearer|admin123456/);
+  assert.doesNotMatch(JSON.stringify(readiness), /accessToken|Bearer|admin123456|manager123456/);
 });
 
 test('manual test data readiness points to the non-destructive seed verification step when data is missing', () => {
   const readiness = createManualTestDataReadiness({
     adminLoginOk: true,
+    managerLoginOk: true,
     branches: [{ name: '城东店' }],
+    managerBranches: [{ name: '城东店' }],
     classes: [],
     now: '2026-06-14T00:00:00.000Z'
   });
@@ -132,6 +139,37 @@ test('manual test data readiness points to the non-destructive seed verification
     section: '1. 本地环境准备',
     line: 7,
     text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
+  });
+});
+
+test('manual test data readiness blocks when east manager branch scope is unsafe', () => {
+  const readiness = createManualTestDataReadiness({
+    adminLoginOk: true,
+    managerLoginOk: true,
+    branches: [{ name: '城东店' }, { name: '城西店' }],
+    managerBranches: [{ name: '城东店' }, { name: '城西店' }],
+    classes: [
+      {
+        title: '基础拳击燃脂',
+        branchName: '城东店',
+        startsAt: '2099-01-01T11:30:00.000Z',
+        status: 'SCHEDULED'
+      }
+    ],
+    now: '2026-06-14T00:00:00.000Z'
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'manager-west-branch-visible',
+      detail: 'east-manager can access 城西店'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '3. 后台权限和排课',
+    line: 31,
+    text: '确认店长只能选择 `城东店`，不能查看或操作 `城西店` 数据。'
   });
 });
 
@@ -362,9 +400,12 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /manual-test-readiness/);
   assert.match(readme, /testData/);
   assert.match(readme, /本地验收测试数据/);
+  assert.match(readme, /east-manager/);
+  assert.match(readme, /店长只能访问城东店/);
   assert.match(readme, /wechatConfig/);
   assert.match(readme, /真实微信登录配置/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
+  assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
 });

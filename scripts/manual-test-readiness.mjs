@@ -37,6 +37,11 @@ const MANUAL_TEST_CHECKLIST_ACTIONS = {
     section: '1. 本地环境准备',
     line: 7,
     text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
+  },
+  managerScope: {
+    section: '3. 后台权限和排课',
+    line: 31,
+    text: '确认店长只能选择 `城东店`，不能查看或操作 `城西店` 数据。'
   }
 };
 const DEFAULT_API_BASE_URL = 'http://localhost:4000';
@@ -146,14 +151,21 @@ function createReadinessFailure({ id, detail, nextHumanAction }) {
 
 export function createManualTestDataReadiness({
   adminLoginOk = false,
+  managerLoginOk = false,
   branches = [],
+  managerBranches = [],
   classes = [],
   now = new Date().toISOString(),
   source = null
 } = {}) {
   const branchNames = new Set(branches.map((branch) => String(branch.name ?? '').trim()).filter(Boolean));
+  const managerBranchNames = new Set(
+    managerBranches.map((branch) => String(branch.name ?? '').trim()).filter(Boolean)
+  );
   const eastBranchPresent = branchNames.has('城东店');
   const westBranchPresent = branchNames.has('城西店');
+  const managerEastBranchPresent = managerBranchNames.has('城东店');
+  const managerWestBranchAbsent = !managerBranchNames.has('城西店');
   const nowMs = Date.parse(now);
   const futureClassCount = classes.filter((boxingClass) => {
     if (boxingClass.status && boxingClass.status !== 'SCHEDULED') return false;
@@ -168,6 +180,16 @@ export function createManualTestDataReadiness({
         id: 'admin-login-failed',
         detail: 'admin login failed',
         nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.testData
+      })
+    );
+  }
+
+  if (!managerLoginOk) {
+    failures.push(
+      createReadinessFailure({
+        id: 'manager-login-failed',
+        detail: 'east-manager login failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.managerScope
       })
     );
   }
@@ -192,6 +214,26 @@ export function createManualTestDataReadiness({
     );
   }
 
+  if (managerLoginOk && !managerEastBranchPresent) {
+    failures.push(
+      createReadinessFailure({
+        id: 'manager-missing-east-branch',
+        detail: 'east-manager cannot access 城东店',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.managerScope
+      })
+    );
+  }
+
+  if (managerLoginOk && !managerWestBranchAbsent) {
+    failures.push(
+      createReadinessFailure({
+        id: 'manager-west-branch-visible',
+        detail: 'east-manager can access 城西店',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.managerScope
+      })
+    );
+  }
+
   if (futureClassCount === 0) {
     failures.push(
       createReadinessFailure({
@@ -206,8 +248,11 @@ export function createManualTestDataReadiness({
     checked: true,
     source,
     adminLoginOk,
+    managerLoginOk,
     eastBranchPresent,
     westBranchPresent,
+    managerEastBranchPresent,
+    managerWestBranchAbsent,
     futureClassCount,
     ready: failures.length === 0,
     failures: failures.map(({ id, detail }) => ({ id, detail })),
@@ -329,6 +374,8 @@ export async function readManualTestDataReadiness({
   const { values } = readLocalEnvValues(envPath, env);
   const username = values.ADMIN_USERNAME || 'admin';
   const password = values.ADMIN_PASSWORD || 'admin123456';
+  const managerUsername = 'east-manager';
+  const managerPassword = values.MANAGER_PASSWORD || 'manager123456';
   const source = { apiBaseUrl };
   const login = await fetchJson(`${apiBaseUrl}/auth/admin-login`, {
     method: 'POST',
@@ -344,15 +391,27 @@ export async function readManualTestDataReadiness({
     });
   }
 
+  const managerLogin = await fetchJson(`${apiBaseUrl}/auth/admin-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: managerUsername, password: managerPassword })
+  });
+  const managerAccessToken = managerLogin.body?.accessToken;
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
-  const [branches, classes] = await Promise.all([
+  const managerAuthHeaders = managerAccessToken ? { Authorization: `Bearer ${managerAccessToken}` } : null;
+  const [branches, classes, managerBranches] = await Promise.all([
     fetchJson(`${apiBaseUrl}/admin/branches`, { headers: authHeaders }),
-    fetchJson(`${apiBaseUrl}/admin/classes`, { headers: authHeaders })
+    fetchJson(`${apiBaseUrl}/admin/classes`, { headers: authHeaders }),
+    managerAuthHeaders
+      ? fetchJson(`${apiBaseUrl}/admin/branches`, { headers: managerAuthHeaders })
+      : Promise.resolve({ ok: false, body: [] })
   ]);
 
   return createManualTestDataReadiness({
     adminLoginOk: true,
+    managerLoginOk: managerLogin.ok && Boolean(managerAccessToken),
     branches: Array.isArray(branches.body) ? branches.body : [],
+    managerBranches: Array.isArray(managerBranches.body) ? managerBranches.body : [],
     classes: Array.isArray(classes.body) ? classes.body : [],
     source
   });
