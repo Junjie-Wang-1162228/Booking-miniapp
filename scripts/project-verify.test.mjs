@@ -52,8 +52,8 @@ test('GitHub Actions verify workflow runs the same safe project gate', () => {
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:\s*true/);
-  assert.match(workflow, /actions\/checkout@v4/);
-  assert.match(workflow, /actions\/setup-node@v4/);
+  assert.match(workflow, /actions\/checkout@v5/);
+  assert.match(workflow, /actions\/setup-node@v5/);
   assert.match(workflow, /corepack enable/);
   assert.match(workflow, /corepack prepare pnpm@9\.15\.9 --activate/);
   assert.match(workflow, /pnpm install --frozen-lockfile/);

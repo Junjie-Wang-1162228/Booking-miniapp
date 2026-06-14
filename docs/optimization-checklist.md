@@ -103,6 +103,7 @@
 - [x] 小程序“预约”页空状态从单纯刷新改为“去约课”，新会员没有预约记录时可直接跳回约课页选择课程。
 - [x] 新增项目级 `pnpm verify` 统一质量门禁，串联 Prisma Client 生成、lint、API E2E、项目脚本测试、安全检查和三端构建；不打开微信开发者工具，也不把人工截图矩阵放入自动门禁。
 - [x] 新增 GitHub Actions `Verify` workflow：push 到 `main`、PR 和手动触发时启动 MySQL 8.4 service，安装 pnpm 依赖并运行 `pnpm verify`。
+- [x] GitHub Actions `Verify` workflow 升级到 `actions/checkout@v5` 和 `actions/setup-node@v5`，匹配 Node 24 runner，避免 Node 20 JavaScript action 弃用告警继续污染 CI 结果。
 - [x] API E2E 清库前增加数据库安全守卫：默认只允许本地白名单数据库，避免误连远程或生产库时执行 `deleteMany`。
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
