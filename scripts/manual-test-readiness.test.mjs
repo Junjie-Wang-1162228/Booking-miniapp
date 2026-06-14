@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { createManualTestReadiness, createWechatConfigReadiness } from './manual-test-readiness.mjs';
+import {
+  createManualTestDataReadiness,
+  createManualTestReadiness,
+  createWechatConfigReadiness
+} from './manual-test-readiness.mjs';
 
 const packagePath = 'package.json';
 const readmePath = 'README.md';
@@ -70,6 +74,66 @@ function createReadyWechatConfig() {
     WECHAT_AUTO_PROVISION_ENABLED: 'false'
   });
 }
+
+function createReadyManualTestData() {
+  return createManualTestDataReadiness({
+    adminLoginOk: true,
+    branches: [{ name: '城东店' }, { name: '城西店' }],
+    classes: [
+      {
+        title: '基础拳击燃脂',
+        branchName: '城东店',
+        startsAt: '2099-01-01T11:30:00.000Z',
+        status: 'SCHEDULED'
+      },
+      {
+        title: '进阶组合拳',
+        branchName: '城西店',
+        startsAt: '2099-01-02T12:00:00.000Z',
+        status: 'SCHEDULED'
+      }
+    ],
+    now: '2026-06-14T00:00:00.000Z'
+  });
+}
+
+test('manual test data readiness verifies seeded admin branches and future classes without exposing tokens', () => {
+  const readiness = createReadyManualTestData();
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.adminLoginOk, true);
+  assert.equal(readiness.eastBranchPresent, true);
+  assert.equal(readiness.westBranchPresent, true);
+  assert.equal(readiness.futureClassCount, 2);
+  assert.deepEqual(readiness.failures, []);
+  assert.doesNotMatch(JSON.stringify(readiness), /accessToken|Bearer|admin123456/);
+});
+
+test('manual test data readiness points to the non-destructive seed verification step when data is missing', () => {
+  const readiness = createManualTestDataReadiness({
+    adminLoginOk: true,
+    branches: [{ name: '城东店' }],
+    classes: [],
+    now: '2026-06-14T00:00:00.000Z'
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'missing-west-branch',
+      detail: 'missing 城西店 branch'
+    },
+    {
+      id: 'missing-future-classes',
+      detail: 'missing seeded future classes'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '1. 本地环境准备',
+    line: 7,
+    text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
+  });
+});
 
 test('wechat config readiness reports local real-login prerequisites without exposing secrets', () => {
   const realLookingAppId = ['wx', '1234567890abcdef'].join('');
@@ -140,7 +204,8 @@ test('wechat config readiness points to the first incomplete manual checklist it
 
 test('manual test readiness allows starting manual WeChat checks when strict local preview and WeChat config are healthy', () => {
   const readiness = createManualTestReadiness(createDevStatus(), {
-    wechatConfig: createReadyWechatConfig()
+    wechatConfig: createReadyWechatConfig(),
+    testData: createReadyManualTestData()
   });
 
   assert.equal(readiness.mode, 'manual-test-readiness');
@@ -154,6 +219,7 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     [
       { id: 'local-preview', ok: true, requiredFor: 'manual-start' },
       { id: 'strict-dev-status', ok: true, requiredFor: 'manual-start' },
+      { id: 'manual-test-data', ok: true, requiredFor: 'manual-start' },
       { id: 'wechat-login-config', ok: true, requiredFor: 'manual-start' },
       { id: 'visual-qa-matrix', ok: false, requiredFor: 'release' },
       { id: 'manual-checklist', ok: false, requiredFor: 'release' }
@@ -182,9 +248,26 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
   assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');
 });
 
+test('manual test readiness blocks manual WeChat checks when seeded local test data is missing', () => {
+  const readiness = createManualTestReadiness(createDevStatus(), {
+    wechatConfig: createReadyWechatConfig(),
+    testData: createManualTestDataReadiness({ adminLoginOk: false })
+  });
+
+  assert.equal(readiness.readyForManualWechat, false);
+  assert.equal(readiness.gates.find((gate) => gate.id === 'manual-test-data')?.ok, false);
+  assert.equal(readiness.gates.find((gate) => gate.id === 'manual-test-data')?.detail, 'admin login failed');
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '1. 本地环境准备',
+    line: 7,
+    text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
+  });
+});
+
 test('manual test readiness blocks manual WeChat checks when local WeChat config is incomplete', () => {
   const readiness = createManualTestReadiness(createDevStatus(), {
-    wechatConfig: createWechatConfigReadiness({})
+    wechatConfig: createWechatConfigReadiness({}),
+    testData: createReadyManualTestData()
   });
 
   assert.equal(readiness.readyForManualWechat, false);
@@ -211,7 +294,8 @@ test('manual test readiness blocks manual start when strict local preview is not
       strict: { enabled: true, passed: false, failures: ['API preview is not ready.'] }
     }),
     {
-      wechatConfig: createReadyWechatConfig()
+      wechatConfig: createReadyWechatConfig(),
+      testData: createReadyManualTestData()
     }
   );
 
@@ -253,7 +337,8 @@ test('manual test readiness marks release ready only when all release gates pass
       }
     }),
     {
-      wechatConfig: createReadyWechatConfig()
+      wechatConfig: createReadyWechatConfig(),
+      testData: createReadyManualTestData()
     }
   );
 
@@ -275,8 +360,11 @@ test('docs expose manual test readiness command', () => {
 
   assert.match(readme, /pnpm ops:manual-test:readiness/);
   assert.match(readme, /manual-test-readiness/);
+  assert.match(readme, /testData/);
+  assert.match(readme, /本地验收测试数据/);
   assert.match(readme, /wechatConfig/);
   assert.match(readme, /真实微信登录配置/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
+  assert.match(optimizationChecklist, /本地验收测试数据门禁/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
 });

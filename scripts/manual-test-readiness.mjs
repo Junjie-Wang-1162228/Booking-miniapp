@@ -32,6 +32,14 @@ const WECHAT_CHECKLIST_ACTIONS = {
     text: '运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。'
   }
 };
+const MANUAL_TEST_CHECKLIST_ACTIONS = {
+  testData: {
+    section: '1. 本地环境准备',
+    line: 7,
+    text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
+  }
+};
+const DEFAULT_API_BASE_URL = 'http://localhost:4000';
 
 function percentFromProgress(progress = {}) {
   const completed = progress.completed ?? 0;
@@ -55,8 +63,16 @@ function findSection(sections = [], titlePattern) {
   return sections.find((section) => titlePattern.test(section.title));
 }
 
-function createNextHumanAction({ localPreviewOk, strictOk, readyForManualWechat, manualTest, wechatConfig }) {
+function createNextHumanAction({
+  localPreviewOk,
+  strictOk,
+  readyForManualWechat,
+  manualTest,
+  testData,
+  wechatConfig
+}) {
   if (!localPreviewOk || !strictOk) return manualTest.next ?? null;
+  if (testData?.ready === false) return testData.nextHumanAction ?? manualTest.next ?? null;
   if (wechatConfig?.ready === false) return wechatConfig.nextHumanAction ?? manualTest.next ?? null;
   if (!readyForManualWechat) return manualTest.next ?? null;
 
@@ -122,6 +138,81 @@ function readBoolean(value, defaultValue) {
 
 function createWechatFailure({ id, detail, nextHumanAction }) {
   return { id, detail, nextHumanAction };
+}
+
+function createReadinessFailure({ id, detail, nextHumanAction }) {
+  return { id, detail, nextHumanAction };
+}
+
+export function createManualTestDataReadiness({
+  adminLoginOk = false,
+  branches = [],
+  classes = [],
+  now = new Date().toISOString(),
+  source = null
+} = {}) {
+  const branchNames = new Set(branches.map((branch) => String(branch.name ?? '').trim()).filter(Boolean));
+  const eastBranchPresent = branchNames.has('城东店');
+  const westBranchPresent = branchNames.has('城西店');
+  const nowMs = Date.parse(now);
+  const futureClassCount = classes.filter((boxingClass) => {
+    if (boxingClass.status && boxingClass.status !== 'SCHEDULED') return false;
+    const startsAtMs = Date.parse(String(boxingClass.startsAt ?? ''));
+    return Number.isFinite(startsAtMs) && startsAtMs > nowMs;
+  }).length;
+  const failures = [];
+
+  if (!adminLoginOk) {
+    failures.push(
+      createReadinessFailure({
+        id: 'admin-login-failed',
+        detail: 'admin login failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.testData
+      })
+    );
+  }
+
+  if (!eastBranchPresent) {
+    failures.push(
+      createReadinessFailure({
+        id: 'missing-east-branch',
+        detail: 'missing 城东店 branch',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.testData
+      })
+    );
+  }
+
+  if (!westBranchPresent) {
+    failures.push(
+      createReadinessFailure({
+        id: 'missing-west-branch',
+        detail: 'missing 城西店 branch',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.testData
+      })
+    );
+  }
+
+  if (futureClassCount === 0) {
+    failures.push(
+      createReadinessFailure({
+        id: 'missing-future-classes',
+        detail: 'missing seeded future classes',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.testData
+      })
+    );
+  }
+
+  return {
+    checked: true,
+    source,
+    adminLoginOk,
+    eastBranchPresent,
+    westBranchPresent,
+    futureClassCount,
+    ready: failures.length === 0,
+    failures: failures.map(({ id, detail }) => ({ id, detail })),
+    nextHumanAction: failures[0]?.nextHumanAction ?? null
+  };
 }
 
 export function createWechatConfigReadiness(env = {}, options = {}) {
@@ -204,7 +295,76 @@ export function readWechatConfigReadiness({
   });
 }
 
-export function createManualTestReadiness(devStatus, { wechatConfig = createWechatConfigReadiness({}) } = {}) {
+async function fetchJson(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const body = await response.json().catch(() => null);
+    return { ok: response.ok, status: response.status, body };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function readLocalEnvValues(envPath, env = process.env) {
+  const envFileExists = existsSync(envPath);
+  const fileEnv = envFileExists ? parseEnvSource(readFileSync(envPath, 'utf8')) : {};
+  return { envFileExists, values: { ...fileEnv, ...env } };
+}
+
+export async function readManualTestDataReadiness({
+  apiBaseUrl = DEFAULT_API_BASE_URL,
+  envPath = resolve(process.cwd(), 'apps/api/.env'),
+  env = process.env
+} = {}) {
+  const { values } = readLocalEnvValues(envPath, env);
+  const username = values.ADMIN_USERNAME || 'admin';
+  const password = values.ADMIN_PASSWORD || 'admin123456';
+  const source = { apiBaseUrl };
+  const login = await fetchJson(`${apiBaseUrl}/auth/admin-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const accessToken = login.body?.accessToken;
+
+  if (!login.ok || !accessToken) {
+    return createManualTestDataReadiness({
+      adminLoginOk: false,
+      source
+    });
+  }
+
+  const authHeaders = { Authorization: `Bearer ${accessToken}` };
+  const [branches, classes] = await Promise.all([
+    fetchJson(`${apiBaseUrl}/admin/branches`, { headers: authHeaders }),
+    fetchJson(`${apiBaseUrl}/admin/classes`, { headers: authHeaders })
+  ]);
+
+  return createManualTestDataReadiness({
+    adminLoginOk: true,
+    branches: Array.isArray(branches.body) ? branches.body : [],
+    classes: Array.isArray(classes.body) ? classes.body : [],
+    source
+  });
+}
+
+export function createManualTestReadiness(
+  devStatus,
+  {
+    testData = createManualTestDataReadiness({}),
+    wechatConfig = createWechatConfigReadiness({})
+  } = {}
+) {
   const progress = {
     preview: percentFromProgress(devStatus.progress?.preview),
     visualQa: percentFromProgress(devStatus.progress?.visualQa),
@@ -221,7 +381,7 @@ export function createManualTestReadiness(devStatus, { wechatConfig = createWech
   };
   const localPreviewOk = progress.preview.total > 0 && progress.preview.completed === progress.preview.total;
   const strictOk = progress.strict.passed === true;
-  const readyForManualWechat = localPreviewOk && strictOk && wechatConfig.ready === true;
+  const readyForManualWechat = localPreviewOk && strictOk && testData.ready === true && wechatConfig.ready === true;
   const gates = [
     createGate({
       id: 'local-preview',
@@ -239,6 +399,13 @@ export function createManualTestReadiness(devStatus, { wechatConfig = createWech
         progress.strict.failures && progress.strict.failures.length > 0
           ? progress.strict.failures.join(' ')
           : 'passed'
+    }),
+    createGate({
+      id: 'manual-test-data',
+      label: '本地验收测试数据',
+      ok: testData.ready === true,
+      requiredFor: 'manual-start',
+      detail: testData.failures?.[0]?.detail ?? 'passed'
     }),
     createGate({
       id: 'wechat-login-config',
@@ -272,6 +439,7 @@ export function createManualTestReadiness(devStatus, { wechatConfig = createWech
     releaseBlockers,
     progress,
     gates,
+    testData,
     wechatConfig,
     nextAction: devStatus.progress?.nextAction ?? null,
     manualTestNext: manualTest.next ?? null,
@@ -280,6 +448,7 @@ export function createManualTestReadiness(devStatus, { wechatConfig = createWech
       strictOk,
       readyForManualWechat,
       manualTest,
+      testData,
       wechatConfig
     }),
     captureCommand: devStatus.visualQa?.captureCommand ?? null
@@ -309,19 +478,22 @@ export function readStrictDevStatus() {
   return parseJsonOutput(result.stdout);
 }
 
-function main() {
+async function main() {
+  const [testData, wechatConfig] = await Promise.all([
+    readManualTestDataReadiness(),
+    Promise.resolve(readWechatConfigReadiness())
+  ]);
   const readiness = createManualTestReadiness(readStrictDevStatus(), {
-    wechatConfig: readWechatConfigReadiness()
+    testData,
+    wechatConfig
   });
   console.log(JSON.stringify(readiness, null, 2));
   if (!readiness.readyForManualWechat) process.exitCode = 1;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    main();
-  } catch (error) {
+  main().catch((error) => {
     console.error(error instanceof Error ? error.stack : error);
     process.exit(1);
-  }
+  });
 }

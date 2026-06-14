@@ -4,7 +4,7 @@
 
 - [x] 启动 MySQL：`pnpm dev:db`。
 - [x] 如果 `3307` 被其他本地容器占用，使用 `BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db` 重建本项目 MySQL，并把 `apps/api/.env` 的 `DATABASE_URL` / `SHADOW_DATABASE_URL` 端口同步改成 `3308`。
-- [ ] 执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。
+- [x] 执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。
 - [x] 可选：运行 `pnpm dev:preview:start` 一次性补齐缺失的 API、管理后台和小程序 watch；需要停止由该脚本托管的后台预览时运行 `pnpm dev:preview:stop`。
 - [x] 启动 API：`pnpm api:dev`。
 - [x] 启动管理后台：`pnpm admin:dev`。
