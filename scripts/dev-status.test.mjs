@@ -206,6 +206,60 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.deepEqual(report.notes, []);
 });
 
+test('createDevStatusReport includes manual checklist progress after visual QA is complete', () => {
+  const report = createDevStatusReport({
+    mysql: {
+      ok: true,
+      service: 'mysql',
+      status: 'Up 5 hours (healthy)'
+    },
+    api: {
+      ok: true,
+      url: 'http://localhost:4000/health',
+      body: { ok: true }
+    },
+    admin: {
+      ok: true,
+      url: 'http://localhost:5174',
+      checkedPorts: [5173, 5174]
+    },
+    miniapp: {
+      ok: true,
+      distPath: 'apps/miniapp/dist',
+      watchRunning: true,
+      latestBuildAt: '2026-06-13T08:56:47.000Z'
+    },
+    visualQa: {
+      complete: true,
+      existingCount: 12,
+      requiredCount: 12,
+      next: null
+    },
+    manualTest: {
+      checklistPath: 'docs/manual-test-checklist.md',
+      complete: false,
+      completed: 2,
+      total: 4,
+      percent: 50,
+      next: {
+        section: '会员端小程序',
+        line: 18,
+        text: '完成约课成功路径'
+      },
+      sections: []
+    }
+  });
+
+  assert.deepEqual(report.progress.manualTest, {
+    completed: 2,
+    total: 4,
+    percent: 50
+  });
+  assert.equal(report.manualTest.next.text, '完成约课成功路径');
+  assert.match(report.progress.nextAction, /Continue manual test checklist/);
+  assert.match(report.progress.nextAction, /会员端小程序 line 18: 完成约课成功路径/);
+});
+
 test('createDevStatusReport warns when DATABASE_URL is served by another mysql container', () => {
   const remediation = createDatabasePortDriftRemediation({
     database: {

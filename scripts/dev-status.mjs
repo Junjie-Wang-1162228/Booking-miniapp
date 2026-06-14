@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createManualTestStatus } from './manual-test-status.mjs';
 import { CONFIRMED_CAPTURE_COMMAND, createNextMissingDeviceReport, verifyScreenshotMatrix } from './miniapp-visual-qa.mjs';
 
 const DEFAULT_API_HEALTH_URL = 'http://localhost:4000/health';
@@ -12,6 +13,14 @@ const API_ENV_PATH = 'apps/api/.env';
 const LOCAL_DATABASE_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EMPTY_PRISMA_ENGINE_SUMMARY = { totalCount: 0, orphanCount: 0, orphanPids: [] };
+const EMPTY_MANUAL_TEST_STATUS = {
+  complete: true,
+  completed: 0,
+  total: 0,
+  percent: 100,
+  next: null,
+  sections: []
+};
 
 export function parseDockerComposeServices(output) {
   return output
@@ -124,7 +133,7 @@ function percent(completed, total) {
   return Math.round((completed / total) * 100);
 }
 
-function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa }) {
+function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa, manualTest }) {
   const previewItems = [
     { label: 'MySQL', ok: mysql.ok },
     { label: 'API', ok: api.ok },
@@ -139,6 +148,8 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
   const completedPreviewItems = previewItems.filter((item) => item.ok).length;
   const visualCompleted = visualQa.existingCount ?? 0;
   const visualTotal = visualQa.requiredCount ?? 0;
+  const manualCompleted = manualTest.completed ?? 0;
+  const manualTotal = manualTest.total ?? 0;
   const missingAppPreviewLabels = appPreviewItems.filter((item) => !item.ok).map((item) => item.label);
 
   let nextAction = 'All local preview and visual QA checks are complete.';
@@ -154,6 +165,10 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
     nextAction =
       `Capture ${visualQa.next.deviceName} screenshots for ${visualQa.next.missingLabels.join(', ')}. ` +
       `After selecting that simulator in WeChat DevTools, run ${CONFIRMED_CAPTURE_COMMAND}.${targetSuffix}`;
+  } else if (!manualTest.complete && manualTest.next) {
+    nextAction =
+      `Continue manual test checklist: ${manualTest.next.section} line ${manualTest.next.line}: ` +
+      `${manualTest.next.text}.`;
   }
 
   return {
@@ -167,6 +182,11 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
       total: visualTotal,
       percent: percent(visualCompleted, visualTotal)
     },
+    manualTest: {
+      completed: manualCompleted,
+      total: manualTotal,
+      percent: manualTest.percent ?? percent(manualCompleted, manualTotal)
+    },
     strict: {
       enabled: strict,
       passed: strictFailures.length === 0,
@@ -176,7 +196,16 @@ function createProgress({ strict, strictFailures, mysql, api, admin, miniapp, vi
   };
 }
 
-export function createDevStatusReport({ strict = false, mysql, api, admin, miniapp, visualQa, diagnostics = {} }) {
+export function createDevStatusReport({
+  strict = false,
+  mysql,
+  api,
+  admin,
+  miniapp,
+  visualQa,
+  manualTest = EMPTY_MANUAL_TEST_STATUS,
+  diagnostics = {}
+}) {
   const notes = [];
   const strictFailures = [];
   const degradedPreviewServices = [
@@ -215,7 +244,7 @@ export function createDevStatusReport({ strict = false, mysql, api, admin, minia
   }
 
   const previewOk = mysql.ok && api.ok && admin.ok && miniapp.ok;
-  const progress = createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa });
+  const progress = createProgress({ strict, strictFailures, mysql, api, admin, miniapp, visualQa, manualTest });
 
   return {
     mode: 'dev-status',
@@ -245,6 +274,7 @@ export function createDevStatusReport({ strict = false, mysql, api, admin, minia
       ...visualQa,
       captureCommand: CONFIRMED_CAPTURE_COMMAND
     },
+    manualTest,
     diagnostics,
     notes
   };
@@ -434,6 +464,7 @@ async function main() {
       requiredCount: visualReport.requiredCount,
       next: createNextMissingDeviceReport(visualReport)
     },
+    manualTest: createManualTestStatus(),
     diagnostics: {
       prismaEngines: processes.prismaEngines
     }

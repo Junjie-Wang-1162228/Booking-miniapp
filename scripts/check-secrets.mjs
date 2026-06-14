@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 const FORBIDDEN_FILE_PATTERNS = [
   /(^|\/)\.env($|\.)/,
+  /(^|\/)project\.private\.config\.json$/,
   /\.(pem|key|p12|pfx)$/i,
   /(^|\/)id_(rsa|ed25519)$/
 ];

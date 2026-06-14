@@ -23,6 +23,12 @@ test('flags tracked environment files that can contain real secrets', () => {
   assert.deepEqual(findForbiddenTrackedFiles(files), files);
 });
 
+test('flags tracked WeChat DevTools private project config files', () => {
+  const files = ['apps/miniapp/project.private.config.json'];
+
+  assert.deepEqual(findForbiddenTrackedFiles(files), files);
+});
+
 test('flags tracked private keys and certificate bundles', () => {
   const files = [
     'certs/prod.pem',

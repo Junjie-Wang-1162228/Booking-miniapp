@@ -45,6 +45,7 @@
 - [x] 生产环境禁止 seed 或登录继续使用默认管理员密码，覆盖 `admin` 和 `east-manager` 两个种子管理员账号。
 - [x] Demo seed 在 `NODE_ENV=production` 下直接拒绝运行，避免阿杰/小林/测试课程进入生产数据。
 - [x] 增加 secret 文件守卫：`.gitignore` 覆盖 `.env*`、证书和私钥，`pnpm security:check` 会拒绝已追踪敏感文件路径；接入 CI 后也应复用该命令。
+- [x] 禁止跟踪微信开发者工具本地私有配置 `project.private.config.json`，真实 AppID 只能留在本地私有配置、`.env` 或部署 secret store。
 - [x] AppID 脱敏守卫扩展到已追踪文档、源码、配置和脚本，防止真实 `wx...` AppID 从 README、docs 或代码中误提交；lockfile 和二进制资产跳过扫描以避免 hash 误报。
 - [x] 生产环境错误响应增加敏感信息脱敏，避免数据库连接串、密钥名、堆栈和内部路径进入客户端响应，同时保留安全业务错误文案。
 - [x] 依赖安全检查接入 `pnpm security:check`；移除未使用的 `@nutui/nutui-react-taro`，把前端构建插件归类为 devDependencies，并用 pnpm overrides 修补 Taro 传递依赖漏洞。GitHub Actions 会通过 `pnpm verify` 同步执行安全检查。
