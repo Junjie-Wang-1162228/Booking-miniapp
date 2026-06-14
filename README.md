@@ -158,6 +158,234 @@ member-c：东店同学 / 城东店 / 4 节课
 pnpm miniapp:dev:local
 ```
 
+## 部署指南
+
+本项目没有绑定具体云厂商。协作者或自动化 agent 部署时，把它拆成四个对象处理：MySQL 数据库、API Node 服务、管理后台静态站点、微信小程序构建包。所有真实 secret 只放在部署平台的 secret store 或受控 env-file，不写入 Git。
+
+### 部署前准备
+
+推荐运行环境：
+
+- Node.js 24。
+- pnpm 9.15.9，和仓库 `packageManager` 保持一致。
+- MySQL 8.x，生产推荐托管 MySQL 或云数据库。
+- 一个 API HTTPS 域名，例如 `https://api.example.com`。
+- 一个管理后台 HTTPS 域名，例如 `https://admin.example.com`。
+- 拳馆自己的微信小程序 AppID、AppSecret、订阅消息模板 ID。
+- 微信后台已配置 request 合法域名、隐私保护指引、服务类目和体验成员。
+
+部署账号分层：
+
+- API 运行账号：只用于 `DATABASE_URL`，使用低权限 MySQL 账号，例如 `booking_app`。
+- 迁移账号：只在发布窗口执行 Prisma migration，例如 `booking_migrator`。
+- 备份账号：只读导出，例如 `booking_backup`。
+- 恢复账号：只在受控恢复窗口或恢复演练使用，例如 `booking_restore`。
+
+账号权限模板见 `docs/production-db-accounts.md`。不要让 API 常驻环境使用 root、管理员账号、迁移账号、备份账号或恢复账号。
+
+### 环境变量清单
+
+API 运行时必须配置：
+
+```bash
+NODE_ENV=production
+API_PORT=4000
+JWT_SECRET=<random-long-production-secret>
+CORS_ORIGINS=https://admin.example.com
+DATABASE_URL=mysql://booking_app:<password>@db.example.com:3306/boxing_booking_prod
+MINIAPP_APP_ID=<wx-app-id>
+MINIAPP_APP_SECRET=<wx-app-secret>
+WECHAT_AUTO_PROVISION_ENABLED=false
+WECHAT_NOTIFICATION_WORKER_ENABLED=true
+BOOKING_CANCEL_CUTOFF_MINUTES=120
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_LOGIN_MAX=200
+RATE_LIMIT_BOOKING_MAX=120
+```
+
+按需配置通知和告警：
+
+```bash
+WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id>
+WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id>
+WECHAT_CLASS_CANCELED_TEMPLATE_ID=<class-canceled-template-id>
+WECHAT_CLASS_RESCHEDULED_TEMPLATE_ID=<class-rescheduled-template-id>
+WECHAT_SUBSCRIBE_PAGE=pages/bookings/index
+WECHAT_SUBSCRIBE_MINIPROGRAM_STATE=formal
+WECHAT_SUBSCRIBE_CLASS_TITLE_FIELD=thing1
+WECHAT_SUBSCRIBE_CLASS_TIME_FIELD=time2
+WECHAT_SUBSCRIBE_BRANCH_FIELD=thing3
+ALERT_WEBHOOK_URL=<alert-webhook-url>
+ALERT_WEBHOOK_TOKEN=<alert-webhook-token>
+```
+
+管理后台构建时配置：
+
+```bash
+VITE_API_BASE_URL=https://api.example.com
+```
+
+小程序构建时配置：
+
+```bash
+TARO_APP_AUTH_MODE=wechat
+TARO_APP_API_BASE_URL=https://api.example.com
+TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id>
+TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id>
+```
+
+staging 环境使用独立域名、数据库和 secret，例如 `https://staging-api.example.com`、`https://staging-admin.example.com`、`boxing_booking_staging`。staging 详细约束见 `docs/staging-runbook.md`。
+
+### 一键部署命令模板
+
+下面模板适合 CI/CD、服务器脚本或其他 agent 复制执行。把尖括号占位值替换成部署平台 secret；不要把替换后的命令写回 README。
+
+```bash
+set -euo pipefail
+
+corepack enable
+corepack prepare pnpm@9.15.9 --activate
+pnpm install --frozen-lockfile
+
+# 1. 本地或 CI 质量门禁。该命令不打开微信开发者工具。
+pnpm verify
+
+# 2. 生产配置自检。必须使用 API 运行时的低权限 DATABASE_URL。
+NODE_ENV=production \
+JWT_SECRET="<random-long-production-secret>" \
+CORS_ORIGINS="https://admin.example.com" \
+DATABASE_URL="mysql://booking_app:<password>@db.example.com:3306/boxing_booking_prod" \
+WECHAT_AUTO_PROVISION_ENABLED=false \
+pnpm --filter @booking/api config:check
+
+# 3. 发版前备份。备份 env-file 应只包含备份账号 DATABASE_URL。
+pnpm db:backup -- --dry-run --env-file /secure/env/prod-backup.env
+pnpm db:backup -- --env-file /secure/env/prod-backup.env --out "/secure/backups/boxing-booking-$(date +%F-%H%M%S).sql"
+
+# 4. 数据库迁移。迁移 env-file 应只包含迁移账号 DATABASE_URL。
+set -a
+. /secure/env/prod-migration.env
+set +a
+pnpm --filter @booking/api prisma:deploy
+
+# 5. 三端构建。admin 和 miniapp 的 API 地址在构建时注入。
+VITE_API_BASE_URL="https://api.example.com" pnpm --filter @booking/admin build
+TARO_APP_AUTH_MODE=wechat \
+TARO_APP_API_BASE_URL="https://api.example.com" \
+TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" \
+TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" \
+pnpm --filter @booking/miniapp build:weapp
+pnpm --filter @booking/api build
+```
+
+如果部署到 staging，把 `https://api.example.com` 换成 staging API 域名；如果部署到 production，则换成 production API 域名。
+
+### API 服务部署
+
+API 构建产物入口：
+
+```bash
+node apps/api/dist/src/main.js
+```
+
+API 进程启动前必须已经注入生产 API 环境变量。常见部署方式：
+
+- Docker / Kubernetes：镜像启动命令使用 `node apps/api/dist/src/main.js`，secret 通过平台注入。
+- PM2 / systemd：工作目录为仓库根目录，启动命令同上，env-file 存放在服务器受控目录。
+- PaaS：构建命令使用 `pnpm install --frozen-lockfile && pnpm --filter @booking/api build`，启动命令使用 `node apps/api/dist/src/main.js`。
+
+API 发布后立即烟测：
+
+```bash
+curl -fsS https://api.example.com/health
+```
+
+期望返回：
+
+```json
+{ "ok": true }
+```
+
+### 管理后台部署
+
+管理后台是静态资源应用。构建：
+
+```bash
+VITE_API_BASE_URL=https://api.example.com pnpm --filter @booking/admin build
+```
+
+部署目录：
+
+```text
+apps/admin/dist
+```
+
+把该目录发布到 Nginx、对象存储静态站点、Vercel、Netlify 或其他静态托管服务。所有前端路由都应回退到 `index.html`。管理后台域名必须加入 API 的 `CORS_ORIGINS`，否则浏览器会被 CORS 拦截。
+
+### 小程序部署
+
+构建：
+
+```bash
+TARO_APP_AUTH_MODE=wechat \
+TARO_APP_API_BASE_URL=https://api.example.com \
+TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> \
+TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> \
+pnpm --filter @booking/miniapp build:weapp
+```
+
+微信开发者工具打开目录：
+
+```text
+apps/miniapp/dist
+```
+
+上传前确认：
+
+- `apps/miniapp/project.config.json` 仍只提交 `touristappid` 占位。
+- 真实 AppID 放在微信开发者工具本地私有配置或部署环境中。
+- 微信后台 request 合法域名包含 API HTTPS 域名。
+- 体验版使用真实微信登录，不使用 `pnpm miniapp:dev:local` 的本地假会员模式。
+- 提交审核前完成 `docs/manual-test-checklist.md` 和 `docs/miniapp-visual-qa.md` 的人工验收。
+
+### 部署后烟测
+
+每次 staging 或 production 发布后至少执行：
+
+```bash
+curl -fsS https://api.example.com/health
+pnpm ops:release-checklist:test
+pnpm ops:staging:test
+```
+
+人工烟测范围：
+
+- 管理后台能登录。
+- 店长账号只能看到自己门店。
+- 小程序能微信登录。
+- 未绑定微信进入绑定码流程。
+- 管理员能创建会员并绑定微信。
+- 会员只能看到所属门店课程。
+- 会员能预约有余位课程。
+- 会员能在截止时间前取消预约。
+- 后台能查看今日课程、执行消课、手动取消预约。
+- 通知任务和审计日志能记录关键操作。
+
+生产发布、回滚和观察窗口按 `docs/release-checklist.md` 执行；数据库备份、恢复和恢复演练按 `docs/production-data-runbook.md` 执行。
+
+### Agent 部署规则
+
+其他 agent 处理部署时必须遵守：
+
+- 先运行 `git status --short --branch --ignored`，确认没有要误提交的本地 secret、dist、截图或备份。
+- 不读取、不打印、不提交真实 AppID、AppSecret、JWT secret、数据库密码或告警 token。
+- 修改部署命令前先运行 `pnpm verify` 或说明无法运行的原因。
+- 使用 `pnpm --filter @booking/api config:check` 验证生产 API 环境变量。
+- 不在自动化里运行会打开微信开发者工具的 `miniapp:visual-qa:capture` 或 `capture-next`。
+- 不对生产库运行 `prisma:seed`。
+- 不用 root 或示例账号作为生产 `DATABASE_URL`。
+- 发布前备份，发布后烟测，失败时按 release checklist 回滚。
+
 ## 敏感信息和脱敏规则
 
 不要提交以下内容：
