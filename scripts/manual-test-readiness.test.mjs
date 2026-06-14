@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { createManualTestReadiness } from './manual-test-readiness.mjs';
+import { createManualTestReadiness, createWechatConfigReadiness } from './manual-test-readiness.mjs';
 
 const packagePath = 'package.json';
 const readmePath = 'README.md';
@@ -60,8 +60,88 @@ function createDevStatus(overrides = {}) {
   };
 }
 
-test('manual test readiness allows starting manual WeChat checks when strict local preview is healthy', () => {
-  const readiness = createManualTestReadiness(createDevStatus());
+function createReadyWechatConfig() {
+  const realLookingAppId = ['wx', '1234567890abcdef'].join('');
+
+  return createWechatConfigReadiness({
+    MINIAPP_APP_ID: realLookingAppId,
+    MINIAPP_APP_SECRET: 'test-secret',
+    WECHAT_LOGIN_MOCK_ENABLED: 'false',
+    WECHAT_AUTO_PROVISION_ENABLED: 'false'
+  });
+}
+
+test('wechat config readiness reports local real-login prerequisites without exposing secrets', () => {
+  const realLookingAppId = ['wx', '1234567890abcdef'].join('');
+  const readiness = createWechatConfigReadiness({
+    MINIAPP_APP_ID: realLookingAppId,
+    MINIAPP_APP_SECRET: 'test-secret',
+    WECHAT_LOGIN_MOCK_ENABLED: 'false',
+    WECHAT_AUTO_PROVISION_ENABLED: 'false'
+  });
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.appIdConfigured, true);
+  assert.equal(readiness.appIdPlaceholder, false);
+  assert.equal(readiness.appSecretConfigured, true);
+  assert.equal(readiness.mockLoginEnabled, false);
+  assert.equal(readiness.autoProvisionEnabled, false);
+  assert.deepEqual(readiness.failures, []);
+  assert.doesNotMatch(JSON.stringify(readiness), new RegExp(realLookingAppId));
+  assert.doesNotMatch(JSON.stringify(readiness), /test-secret/);
+});
+
+test('wechat config readiness points to the first incomplete manual checklist item', () => {
+  assert.deepEqual(createWechatConfigReadiness({}).nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 17,
+    text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+  });
+
+  assert.deepEqual(
+    createWechatConfigReadiness({
+      MINIAPP_APP_ID: 'touristappid',
+      MINIAPP_APP_SECRET: 'test-secret',
+      WECHAT_AUTO_PROVISION_ENABLED: 'false'
+    }).nextHumanAction,
+    {
+      section: '2. 真实微信登录准备',
+      line: 17,
+      text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+    }
+  );
+
+  const realLookingAppId = ['wx', '1234567890abcdef'].join('');
+  assert.deepEqual(
+    createWechatConfigReadiness({
+      MINIAPP_APP_ID: realLookingAppId,
+      WECHAT_AUTO_PROVISION_ENABLED: 'false'
+    }).nextHumanAction,
+    {
+      section: '2. 真实微信登录准备',
+      line: 18,
+      text: '在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。'
+    }
+  );
+
+  assert.deepEqual(
+    createWechatConfigReadiness({
+      MINIAPP_APP_ID: realLookingAppId,
+      MINIAPP_APP_SECRET: 'test-secret',
+      WECHAT_AUTO_PROVISION_ENABLED: 'true'
+    }).nextHumanAction,
+    {
+      section: '2. 真实微信登录准备',
+      line: 19,
+      text: '确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。'
+    }
+  );
+});
+
+test('manual test readiness allows starting manual WeChat checks when strict local preview and WeChat config are healthy', () => {
+  const readiness = createManualTestReadiness(createDevStatus(), {
+    wechatConfig: createReadyWechatConfig()
+  });
 
   assert.equal(readiness.mode, 'manual-test-readiness');
   assert.equal(readiness.opensDevTools, false);
@@ -74,6 +154,7 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     [
       { id: 'local-preview', ok: true, requiredFor: 'manual-start' },
       { id: 'strict-dev-status', ok: true, requiredFor: 'manual-start' },
+      { id: 'wechat-login-config', ok: true, requiredFor: 'manual-start' },
       { id: 'visual-qa-matrix', ok: false, requiredFor: 'release' },
       { id: 'manual-checklist', ok: false, requiredFor: 'release' }
     ]
@@ -101,6 +182,21 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
   assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');
 });
 
+test('manual test readiness blocks manual WeChat checks when local WeChat config is incomplete', () => {
+  const readiness = createManualTestReadiness(createDevStatus(), {
+    wechatConfig: createWechatConfigReadiness({})
+  });
+
+  assert.equal(readiness.readyForManualWechat, false);
+  assert.equal(readiness.gates.find((gate) => gate.id === 'wechat-login-config')?.ok, false);
+  assert.equal(readiness.gates.find((gate) => gate.id === 'wechat-login-config')?.detail, 'missing MINIAPP_APP_ID');
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 17,
+    text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+  });
+});
+
 test('manual test readiness blocks manual start when strict local preview is not healthy', () => {
   const readiness = createManualTestReadiness(
     createDevStatus({
@@ -113,7 +209,10 @@ test('manual test readiness blocks manual start when strict local preview is not
         nextAction: 'Run pnpm dev:preview:start to restore local preview services: API, miniapp.'
       },
       strict: { enabled: true, passed: false, failures: ['API preview is not ready.'] }
-    })
+    }),
+    {
+      wechatConfig: createReadyWechatConfig()
+    }
   );
 
   assert.equal(readiness.readyForManualWechat, false);
@@ -152,7 +251,10 @@ test('manual test readiness marks release ready only when all release gates pass
         next: null,
         sections: []
       }
-    })
+    }),
+    {
+      wechatConfig: createReadyWechatConfig()
+    }
   );
 
   assert.equal(readiness.readyForManualWechat, true);
@@ -173,5 +275,8 @@ test('docs expose manual test readiness command', () => {
 
   assert.match(readme, /pnpm ops:manual-test:readiness/);
   assert.match(readme, /manual-test-readiness/);
+  assert.match(readme, /wechatConfig/);
+  assert.match(readme, /真实微信登录配置/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
+  assert.match(optimizationChecklist, /真实微信登录配置门禁/);
 });

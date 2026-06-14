@@ -1,5 +1,37 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+
+const PLACEHOLDER_APP_IDS = new Set(['touristappid']);
+const WECHAT_ENV_KEYS = [
+  'MINIAPP_APP_ID',
+  'MINIAPP_APP_SECRET',
+  'WECHAT_LOGIN_MOCK_ENABLED',
+  'WECHAT_AUTO_PROVISION_ENABLED'
+];
+const WECHAT_CHECKLIST_ACTIONS = {
+  appId: {
+    section: '2. 真实微信登录准备',
+    line: 17,
+    text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+  },
+  appSecret: {
+    section: '2. 真实微信登录准备',
+    line: 18,
+    text: '在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。'
+  },
+  autoProvision: {
+    section: '2. 真实微信登录准备',
+    line: 19,
+    text: '确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。'
+  },
+  wechatCheck: {
+    section: '2. 真实微信登录准备',
+    line: 20,
+    text: '运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。'
+  }
+};
 
 function percentFromProgress(progress = {}) {
   const completed = progress.completed ?? 0;
@@ -23,7 +55,9 @@ function findSection(sections = [], titlePattern) {
   return sections.find((section) => titlePattern.test(section.title));
 }
 
-function createNextHumanAction({ readyForManualWechat, manualTest }) {
+function createNextHumanAction({ localPreviewOk, strictOk, readyForManualWechat, manualTest, wechatConfig }) {
+  if (!localPreviewOk || !strictOk) return manualTest.next ?? null;
+  if (wechatConfig?.ready === false) return wechatConfig.nextHumanAction ?? manualTest.next ?? null;
   if (!readyForManualWechat) return manualTest.next ?? null;
 
   const wechatSection = findSection(manualTest.sections, /真实微信登录准备/);
@@ -42,7 +76,7 @@ function createNextHumanAction({ readyForManualWechat, manualTest }) {
 
 function createReleaseBlockers(gates) {
   return gates
-    .filter((gate) => gate.requiredFor === 'release' && !gate.ok)
+    .filter((gate) => !gate.ok)
     .map((gate) => ({
       id: gate.id,
       label: gate.label,
@@ -50,7 +84,119 @@ function createReleaseBlockers(gates) {
     }));
 }
 
-export function createManualTestReadiness(devStatus) {
+function parseEnvSource(source) {
+  return source
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .reduce((env, line) => {
+      const separatorIndex = line.indexOf('=');
+      if (separatorIndex === -1) return env;
+
+      const key = line.slice(0, separatorIndex).trim();
+      const rawValue = line.slice(separatorIndex + 1).trim();
+      env[key] = rawValue.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+      return env;
+    }, {});
+}
+
+function pickEnv(env) {
+  return WECHAT_ENV_KEYS.reduce((values, key) => {
+    if (env[key] !== undefined) values[key] = env[key];
+    return values;
+  }, {});
+}
+
+function readBoolean(value, defaultValue) {
+  if (value === undefined || value === null || String(value).trim() === '') return defaultValue;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+function createWechatFailure({ id, detail, nextHumanAction }) {
+  return { id, detail, nextHumanAction };
+}
+
+export function createWechatConfigReadiness(env = {}, options = {}) {
+  const appId = String(env.MINIAPP_APP_ID ?? '').trim();
+  const appSecret = String(env.MINIAPP_APP_SECRET ?? '').trim();
+  const mockLoginEnabled = readBoolean(env.WECHAT_LOGIN_MOCK_ENABLED, false);
+  const autoProvisionEnabled = readBoolean(env.WECHAT_AUTO_PROVISION_ENABLED, true);
+  const appIdPlaceholder = appId !== '' && PLACEHOLDER_APP_IDS.has(appId);
+  const appIdConfigured = appId !== '' && !appIdPlaceholder;
+  const appSecretConfigured = appSecret !== '';
+  const failures = [];
+
+  if (!appIdConfigured) {
+    failures.push(
+      createWechatFailure({
+        id: appIdPlaceholder ? 'placeholder-app-id' : 'missing-app-id',
+        detail: appIdPlaceholder ? 'placeholder MINIAPP_APP_ID' : 'missing MINIAPP_APP_ID',
+        nextHumanAction: WECHAT_CHECKLIST_ACTIONS.appId
+      })
+    );
+  }
+
+  if (!appSecretConfigured) {
+    failures.push(
+      createWechatFailure({
+        id: 'missing-app-secret',
+        detail: 'missing MINIAPP_APP_SECRET',
+        nextHumanAction: WECHAT_CHECKLIST_ACTIONS.appSecret
+      })
+    );
+  }
+
+  if (mockLoginEnabled) {
+    failures.push(
+      createWechatFailure({
+        id: 'mock-login-enabled',
+        detail: 'WECHAT_LOGIN_MOCK_ENABLED must be false',
+        nextHumanAction: WECHAT_CHECKLIST_ACTIONS.wechatCheck
+      })
+    );
+  }
+
+  if (autoProvisionEnabled) {
+    failures.push(
+      createWechatFailure({
+        id: 'auto-provision-enabled',
+        detail: 'WECHAT_AUTO_PROVISION_ENABLED must be false',
+        nextHumanAction: WECHAT_CHECKLIST_ACTIONS.autoProvision
+      })
+    );
+  }
+
+  return {
+    checked: true,
+    source: options.source ?? null,
+    appIdConfigured,
+    appIdPlaceholder,
+    appSecretConfigured,
+    mockLoginEnabled,
+    autoProvisionEnabled,
+    ready: failures.length === 0,
+    failures: failures.map(({ id, detail }) => ({ id, detail })),
+    nextHumanAction: failures[0]?.nextHumanAction ?? null
+  };
+}
+
+export function readWechatConfigReadiness({
+  envPath = resolve(process.cwd(), 'apps/api/.env'),
+  env = process.env
+} = {}) {
+  const envFileExists = existsSync(envPath);
+  const fileEnv = envFileExists ? parseEnvSource(readFileSync(envPath, 'utf8')) : {};
+  const mergedEnv = { ...fileEnv, ...pickEnv(env) };
+
+  return createWechatConfigReadiness(mergedEnv, {
+    source: {
+      envFile: envPath,
+      envFileExists
+    }
+  });
+}
+
+export function createManualTestReadiness(devStatus, { wechatConfig = createWechatConfigReadiness({}) } = {}) {
   const progress = {
     preview: percentFromProgress(devStatus.progress?.preview),
     visualQa: percentFromProgress(devStatus.progress?.visualQa),
@@ -67,7 +213,7 @@ export function createManualTestReadiness(devStatus) {
   };
   const localPreviewOk = progress.preview.total > 0 && progress.preview.completed === progress.preview.total;
   const strictOk = progress.strict.passed === true;
-  const readyForManualWechat = localPreviewOk && strictOk;
+  const readyForManualWechat = localPreviewOk && strictOk && wechatConfig.ready === true;
   const gates = [
     createGate({
       id: 'local-preview',
@@ -85,6 +231,13 @@ export function createManualTestReadiness(devStatus) {
         progress.strict.failures && progress.strict.failures.length > 0
           ? progress.strict.failures.join(' ')
           : 'passed'
+    }),
+    createGate({
+      id: 'wechat-login-config',
+      label: '真实微信登录配置',
+      ok: wechatConfig.ready === true,
+      requiredFor: 'manual-start',
+      detail: wechatConfig.failures?.[0]?.detail ?? 'passed'
     }),
     createGate({
       id: 'visual-qa-matrix',
@@ -111,9 +264,16 @@ export function createManualTestReadiness(devStatus) {
     releaseBlockers,
     progress,
     gates,
+    wechatConfig,
     nextAction: devStatus.progress?.nextAction ?? null,
     manualTestNext: manualTest.next ?? null,
-    nextHumanAction: createNextHumanAction({ readyForManualWechat, manualTest }),
+    nextHumanAction: createNextHumanAction({
+      localPreviewOk,
+      strictOk,
+      readyForManualWechat,
+      manualTest,
+      wechatConfig
+    }),
     captureCommand: devStatus.visualQa?.captureCommand ?? null
   };
 }
@@ -142,7 +302,9 @@ export function readStrictDevStatus() {
 }
 
 function main() {
-  const readiness = createManualTestReadiness(readStrictDevStatus());
+  const readiness = createManualTestReadiness(readStrictDevStatus(), {
+    wechatConfig: readWechatConfigReadiness()
+  });
   console.log(JSON.stringify(readiness, null, 2));
   if (!readiness.readyForManualWechat) process.exitCode = 1;
 }

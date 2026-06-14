@@ -173,7 +173,7 @@ pnpm miniapp:dev:local
 - 禁止跟踪 `.env*` 真实配置文件。
 - 禁止跟踪微信开发者工具本地私有配置 `project.private.config.json`。
 - 禁止跟踪私钥和证书文件。
-- 禁止在日志调用中直接输出手机号、openid、JWT/token、AppSecret、密码等敏感字段。
+- 禁止在日志调用中直接输出手机号、openid、JWT/token、AppID、AppSecret、密码等敏感字段。
 - 禁止在已追踪文档、源码、配置、脚本和暂存区内容中提交真实 `wx...` AppID；`apps/miniapp/project.config.json` 使用 `touristappid` 占位。
 
 如果需要配置真实 AppID，请放在本地微信开发者工具私有配置或本地环境变量中。
@@ -236,7 +236,7 @@ pnpm ops:third-party-notices:test
 
 `pnpm ops:manual-test:status` 会读取 `docs/manual-test-checklist.md` 的勾选状态，输出 `manual-test-status` JSON，包括总项数、完成数、分组进度、全局下一条未完成项，以及每个分组自己的 `next`；它不打开微信开发者工具，也不会因为清单未完成而返回失败。
 
-`pnpm ops:manual-test:readiness` 会执行严格本地状态检查并输出 `manual-test-readiness` JSON，把本地预览、strict 环境门禁、视觉截图矩阵和手工验收清单汇总到一起。它不打开微信开发者工具；只有本地预览和 strict 门禁通过时才表示可以开始真实微信人工验收，视觉截图和完整 checklist 仍作为发布前剩余项继续展示。输出里的 `nextHumanAction` 会在本地门禁已通过时跳过重复的本地启动步骤，直接提示真实微信登录准备分组里的具体下一条任务和行号；`readyForRelease` 只会在视觉截图矩阵和完整手工 checklist 都通过时为 `true`，未满足时会在 `releaseBlockers` 中列出发布阻断项。
+`pnpm ops:manual-test:readiness` 会执行严格本地状态检查并输出 `manual-test-readiness` JSON，把本地预览、strict 环境门禁、真实微信登录配置、视觉截图矩阵和手工验收清单汇总到一起。它不打开微信开发者工具；只有本地预览、strict 门禁和本地微信登录配置都通过时才表示可以开始真实微信人工验收，视觉截图和完整 checklist 仍作为发布前剩余项继续展示。输出里的 `wechatConfig` 只包含 AppID 是否已配置、是否仍为占位、AppSecret 是否已配置、mock 登录和自动开户开关等布尔状态，不输出真实 AppID 或 Secret。`nextHumanAction` 会在本地门禁已通过时跳过重复的本地启动步骤，直接提示真实微信登录准备分组里的具体下一条任务和行号；`readyForRelease` 只会在所有 readiness 门禁、视觉截图矩阵和完整手工 checklist 都通过时为 `true`，未满足时会在 `releaseBlockers` 中列出发布阻断项。
 
 微信登录配置检查：
 
