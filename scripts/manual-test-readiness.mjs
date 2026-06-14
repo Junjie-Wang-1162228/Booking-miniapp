@@ -31,11 +31,13 @@ function createNextHumanAction({ readyForManualWechat, manualTest }) {
     return manualTest.next ?? null;
   }
 
-  return {
-    section: wechatSection.title,
-    line: null,
-    text: '本地预览和 strict 环境门禁已通过；继续完成真实微信登录准备。'
-  };
+  return (
+    wechatSection.next ?? {
+      section: wechatSection.title,
+      line: null,
+      text: '本地预览和 strict 环境门禁已通过；继续完成真实微信登录准备。'
+    }
+  );
 }
 
 export function createManualTestReadiness(devStatus) {

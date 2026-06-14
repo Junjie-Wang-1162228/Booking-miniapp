@@ -66,11 +66,32 @@ test('manual test status parser summarizes checked items by section', () => {
       title: section.title,
       completed: section.completed,
       total: section.total,
-      percent: section.percent
+      percent: section.percent,
+      next: section.next
     })),
     [
-      { title: '1. 本地环境准备', completed: 1, total: 2, percent: 50 },
-      { title: '2. 视觉走查', completed: 0, total: 1, percent: 0 }
+      {
+        title: '1. 本地环境准备',
+        completed: 1,
+        total: 2,
+        percent: 50,
+        next: {
+          section: '1. 本地环境准备',
+          line: 6,
+          text: '运行 `pnpm dev:status`。'
+        }
+      },
+      {
+        title: '2. 视觉走查',
+        completed: 0,
+        total: 1,
+        percent: 0,
+        next: {
+          section: '2. 视觉走查',
+          line: 10,
+          text: '运行 `pnpm miniapp:visual-qa`。'
+        }
+      }
     ]
   );
 });

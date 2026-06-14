@@ -43,7 +43,17 @@ function createDevStatus(overrides = {}) {
       },
       sections: [
         { title: '1. 本地环境准备', completed: 0, total: 9, percent: 0 },
-        { title: '2. 真实微信登录准备', completed: 0, total: 6, percent: 0 }
+        {
+          title: '2. 真实微信登录准备',
+          completed: 0,
+          total: 6,
+          percent: 0,
+          next: {
+            section: '2. 真实微信登录准备',
+            line: 17,
+            text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+          }
+        }
       ]
     },
     ...overrides
@@ -71,8 +81,8 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
   assert.match(readiness.nextAction, /Capture iPhone SE screenshots/);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: null,
-    text: '本地预览和 strict 环境门禁已通过；继续完成真实微信登录准备。'
+    line: 17,
+    text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
   });
   assert.notEqual(readiness.nextHumanAction.text, readiness.manualTestNext.text);
   assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');

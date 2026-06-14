@@ -72,12 +72,23 @@ export function parseManualChecklist(source, checklistPath = DEFAULT_CHECKLIST_P
           text: next.text
         }
       : null,
-    sections: sections.map((section) => ({
-      title: section.title,
-      completed: section.completed,
-      total: section.total,
-      percent: section.percent
-    }))
+    sections: sections.map((section) => {
+      const sectionNext = section.tasks.find((task) => !task.completed) ?? null;
+
+      return {
+        title: section.title,
+        completed: section.completed,
+        total: section.total,
+        percent: section.percent,
+        next: sectionNext
+          ? {
+              section: sectionNext.section,
+              line: sectionNext.line,
+              text: sectionNext.text
+            }
+          : null
+      };
+    })
   };
 }
 
