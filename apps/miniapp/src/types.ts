@@ -2,6 +2,7 @@ export type MemberKey = 'member-a' | 'member-b' | 'member-c';
 export type BookingStatus = 'BOOKED' | 'CANCELED';
 export type AttendanceStatus = 'PENDING' | 'ATTENDED';
 export type ClassStatus = 'SCHEDULED' | 'CANCELED';
+export type StaffRole = 'OWNER' | 'MANAGER' | 'COACH';
 
 export type AuthUser = {
   id: string;
@@ -19,9 +20,10 @@ export type MemberBranch = {
   name: string;
   address: string | null;
   phone: string | null;
-  memberNo: string | null;
-  isDefault: boolean;
-  lessonBalance: { remaining: number };
+  memberNo?: string | null;
+  isDefault?: boolean;
+  lessonBalance?: { remaining: number };
+  staffRole?: StaffRole;
 };
 
 export type AuthResponse = {
@@ -84,4 +86,73 @@ export type Deduction = {
     branchId: string;
     startsAt: string;
   };
+};
+
+export type AdminClassInput = {
+  branchId: string;
+  coachId?: string;
+  title: string;
+  coach: string;
+  startsAt: string;
+  durationMin: number;
+  capacity: number;
+  description: string;
+};
+
+export type AdminClass = AdminClassInput & {
+  id: string;
+  gymId: string;
+  branchName: string | null;
+  coachId: string | null;
+  remainingSpots: number;
+  bookedCount: number;
+  status: ClassStatus;
+};
+
+export type AdminBooking = {
+  id: string;
+  gymId: string;
+  branchId: string;
+  status: BookingStatus;
+  attendanceStatus: AttendanceStatus;
+  deductionId: string | null;
+  createdAt: string;
+  canceledAt: string | null;
+  member: {
+    id: string;
+    displayName: string;
+    phone: string | null;
+  };
+  boxingClass: {
+    id: string;
+    title: string;
+    coach: string;
+    branchId: string;
+    coachId: string | null;
+    startsAt: string;
+    durationMin: number;
+    status: ClassStatus;
+  };
+};
+
+export type AdminMember = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  displayName: string;
+  phone: string | null;
+  memberNo: string | null;
+  status: string;
+  joinedAt: string;
+  lessonBalance: { remaining: number };
+  wechatBound: boolean;
+};
+
+export type AdminDailyMetrics = {
+  date: string;
+  branchIds: string[];
+  bookingCreatedCount: number;
+  bookingCanceledCount: number;
+  lessonDeductedCount: number;
+  fullClassCount: number;
 };

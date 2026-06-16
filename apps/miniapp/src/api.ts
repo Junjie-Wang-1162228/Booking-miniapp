@@ -1,5 +1,17 @@
 import Taro from '@tarojs/taro';
-import { AuthResponse, Booking, BoxingClass, Deduction, MemberBranch, MemberKey } from './types';
+import {
+  AdminBooking,
+  AdminClass,
+  AdminClassInput,
+  AdminDailyMetrics,
+  AdminMember,
+  AuthResponse,
+  Booking,
+  BoxingClass,
+  Deduction,
+  MemberBranch,
+  MemberKey
+} from './types';
 
 const API_BASE = __API_BASE_URL__;
 const AUTH_MODE = __AUTH_MODE__;
@@ -11,7 +23,7 @@ const BRANCH_KEY = 'selected_branch_id';
 const REQUEST_TIMEOUT_MS = 10000;
 
 type RequestOptions = {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH';
   data?: unknown;
   token?: string;
 };
@@ -253,4 +265,79 @@ export function cancelBooking(token: string, bookingId: string) {
 
 export function getMyDeductions(token: string, branchId: string) {
   return requestJson<Deduction[]>(`/deductions/me?branchId=${encodeURIComponent(branchId)}`, { token });
+}
+
+function queryString(params: Record<string, string | undefined>) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
+export function getAdminDailyMetrics(token: string, filters: { branchId?: string; date?: string }) {
+  return requestJson<AdminDailyMetrics>(`/admin/metrics/daily${queryString(filters)}`, { token });
+}
+
+export function getAdminClasses(token: string, branchId?: string) {
+  return requestJson<AdminClass[]>(`/admin/classes${queryString({ branchId })}`, { token });
+}
+
+export function createAdminClass(token: string, input: AdminClassInput) {
+  return requestJson<AdminClass>('/admin/classes', {
+    method: 'POST',
+    token,
+    data: input
+  });
+}
+
+export function updateAdminClass(token: string, id: string, input: Partial<AdminClassInput>) {
+  return requestJson<AdminClass>(`/admin/classes/${id}`, {
+    method: 'PATCH',
+    token,
+    data: input
+  });
+}
+
+export function cancelAdminClass(token: string, id: string) {
+  return requestJson<AdminClass>(`/admin/classes/${id}/cancel`, {
+    method: 'POST',
+    token
+  });
+}
+
+export function getAdminBookings(
+  token: string,
+  filters: { branchId?: string; date?: string; status?: 'BOOKED' | 'CANCELED'; q?: string } = {}
+) {
+  return requestJson<AdminBooking[]>(`/admin/bookings${queryString(filters)}`, { token });
+}
+
+export function deductAdminBooking(token: string, bookingId: string, note?: string) {
+  return requestJson<Deduction>(`/admin/bookings/${bookingId}/deduct`, {
+    method: 'POST',
+    token,
+    data: { note }
+  });
+}
+
+export function cancelAdminBooking(token: string, bookingId: string, reason?: string) {
+  return requestJson<AdminBooking>(`/admin/bookings/${bookingId}/cancel`, {
+    method: 'POST',
+    token,
+    data: { reason }
+  });
+}
+
+export function getAdminMembers(token: string, filters: { branchId?: string; q?: string } = {}) {
+  return requestJson<AdminMember[]>(`/admin/members${queryString(filters)}`, { token });
+}
+
+export function bindAdminMemberWechat(token: string, id: string, input: { branchId: string; bindingCode: string }) {
+  return requestJson<AdminMember>(`/admin/members/${id}/wechat-bind`, {
+    method: 'POST',
+    token,
+    data: input
+  });
 }

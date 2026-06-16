@@ -116,7 +116,7 @@ export default function ClassesPage() {
   const { runLocked, isActionLocked } = useActionLock();
   const devAuthMode = isDevAuthMode();
   const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
-  const selectedBalance = selectedBranch?.lessonBalance.remaining ?? user?.lessonBalance?.remaining ?? 0;
+  const selectedBalance = selectedBranch?.lessonBalance?.remaining ?? user?.lessonBalance?.remaining ?? 0;
   const dateFilters = createClassDateFilters(classes);
   const filteredClasses =
     selectedDateKey === 'all' ? classes : classes.filter((item) => getClassDateKey(item.startsAt) === selectedDateKey);

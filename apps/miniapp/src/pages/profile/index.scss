@@ -74,6 +74,61 @@
   word-break: break-word;
 }
 
+.ops-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 92px;
+  margin-top: 18px;
+  padding: 20px 22px;
+  border-radius: 8px;
+  background: #e73535;
+  color: #ffffff;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.ops-entry__main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 16px;
+}
+
+.ops-entry__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.ops-entry__title,
+.ops-entry__meta {
+  display: block;
+}
+
+.ops-entry__title {
+  color: #ffffff;
+  font-size: 29px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.ops-entry__meta {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 22px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.ops-entry__arrow {
+  flex: 0 0 auto;
+  margin-left: 14px;
+  color: #ffffff;
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .compliance-list {
   display: flex;
   flex-direction: column;

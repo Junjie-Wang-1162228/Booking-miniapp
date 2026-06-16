@@ -35,18 +35,20 @@ export default function ProfilePage() {
   const [loadError, setLoadError] = useState('');
   const { runLocked, isActionLocked } = useActionLock();
   const devAuthMode = isDevAuthMode();
+  const canOpenOps = user?.role === 'ADMIN' && branches.length > 0;
   const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
-  const selectedBalance = selectedBranch?.lessonBalance.remaining ?? user?.lessonBalance?.remaining ?? 0;
+  const selectedBalance = selectedBranch?.lessonBalance?.remaining ?? user?.lessonBalance?.remaining ?? 0;
   const phoneText = user?.phone || '未登记';
   const memberNoText = selectedBranch?.memberNo || '未登记';
   const branchNameText = selectedBranch?.name || '未选择门店';
+  const roleText = user?.role === 'ADMIN' ? selectedBranch?.staffRole || 'ADMIN' : '会员';
 
   async function load(currentToken = token, preferredBranchId?: string) {
     setLoading(true);
     setLoadError('');
     try {
       const session = await loadMemberSession({ token: currentToken, member, preferredBranchId });
-      const deductionList = session.selectedBranchId
+      const deductionList = session.user.role !== 'ADMIN' && session.selectedBranchId
         ? await getMyDeductions(session.token, session.selectedBranchId)
         : [];
       setToken(session.token);
@@ -66,7 +68,7 @@ export default function ProfilePage() {
     setLoadError('');
     try {
       const session = await switchDevelopmentMember(nextMember);
-      const deductionList = session.selectedBranchId
+      const deductionList = session.user.role !== 'ADMIN' && session.selectedBranchId
         ? await getMyDeductions(session.token, session.selectedBranchId)
         : [];
       setMember(nextMember);
@@ -89,7 +91,7 @@ export default function ProfilePage() {
     setLoading(true);
     setLoadError('');
     try {
-      const deductionList = await getMyDeductions(token, branchId);
+      const deductionList = user?.role === 'ADMIN' ? [] : await getMyDeductions(token, branchId);
       setDeductions(deductionList);
     } catch (error) {
       setLoadError(formatApiError(error, '消课记录加载失败'));
@@ -132,6 +134,12 @@ export default function ProfilePage() {
     });
   }
 
+  async function openOps() {
+    await Taro.navigateTo({
+      url: '/pages/ops/index'
+    });
+  }
+
   async function refreshPage() {
     try {
       await load(getStoredToken(), selectedBranchId);
@@ -156,7 +164,7 @@ export default function ProfilePage() {
         <BrandLogo subLabel="MEMBER CENTER" />
         <Text className="title">{user?.displayName || memberNames[member]}</Text>
         <Text className="subtitle">
-          {selectedBranch?.name ?? '当前门店'} · 剩余课时 {selectedBalance} 节
+          {selectedBranch?.name ?? '当前门店'} · {user?.role === 'ADMIN' ? '运营管理' : `剩余课时 ${selectedBalance} 节`}
         </Text>
       </View>
 
@@ -210,19 +218,36 @@ export default function ProfilePage() {
             <Text className="profile-summary__value">{phoneText}</Text>
           </View>
           <View className="profile-summary__item">
-            <Text className="profile-summary__label">会员编号</Text>
-            <Text className="profile-summary__value">{memberNoText}</Text>
+            <Text className="profile-summary__label">{user?.role === 'ADMIN' ? '运营角色' : '会员编号'}</Text>
+            <Text className="profile-summary__value">{user?.role === 'ADMIN' ? roleText : memberNoText}</Text>
           </View>
           <View className="profile-summary__item">
             <Text className="profile-summary__label">当前门店</Text>
             <Text className="profile-summary__value">{branchNameText}</Text>
           </View>
           <View className="profile-summary__item">
-            <Text className="profile-summary__label">剩余课时</Text>
-            <Text className="profile-summary__value">{selectedBalance} 节</Text>
+            <Text className="profile-summary__label">{user?.role === 'ADMIN' ? '操作范围' : '剩余课时'}</Text>
+            <Text className="profile-summary__value">{user?.role === 'ADMIN' ? '当前门店' : `${selectedBalance} 节`}</Text>
           </View>
         </View>
       </View>
+
+      {canOpenOps && (
+        <Button
+          className="ops-entry"
+          disabled={isActionLocked('open-ops')}
+          onClick={() => void runLocked('open-ops', openOps)}
+        >
+          <View className="ops-entry__main">
+            <AppIcon name="calendar" />
+            <View className="ops-entry__copy">
+              <Text className="ops-entry__title">运营管理</Text>
+              <Text className="ops-entry__meta">排课、名单、消课和会员绑定</Text>
+            </View>
+          </View>
+          <Text className="ops-entry__arrow">›</Text>
+        </Button>
+      )}
 
       {devAuthMode && (
         <View className="notice-card">
@@ -282,38 +307,42 @@ export default function ProfilePage() {
         </Button>
       </View>
 
-      <Text className="section-title">消课记录</Text>
-      {loading && deductions.length === 0 ? (
-        <LoadingCards count={2} />
-      ) : loadError ? (
-        <PageState
-          variant="error"
-          title="记录加载失败"
-          description={loadError}
-          actionText="重新加载"
-          onAction={() => load(token, selectedBranchId)}
-        />
-      ) : deductions.length === 0 ? (
-        <PageState
-          variant="empty"
-          title="暂无消课记录"
-          description="到店上课并由管理员确认后，记录会出现在这里。"
-          actionText="刷新记录"
-          onAction={() => load(token, selectedBranchId)}
-        />
-      ) : (
-        deductions.map((item) => (
-          <View className="card deduction-card" key={item.id}>
-            <View className="row">
-              <View className="card-main">
-                <Text className="card-title">{item.boxingClass.title}</Text>
-                <Text className="meta">{formatTime(item.createdAt)} · {item.boxingClass.coach}</Text>
+      {user?.role !== 'ADMIN' && (
+        <>
+          <Text className="section-title">消课记录</Text>
+          {loading && deductions.length === 0 ? (
+            <LoadingCards count={2} />
+          ) : loadError ? (
+            <PageState
+              variant="error"
+              title="记录加载失败"
+              description={loadError}
+              actionText="重新加载"
+              onAction={() => load(token, selectedBranchId)}
+            />
+          ) : deductions.length === 0 ? (
+            <PageState
+              variant="empty"
+              title="暂无消课记录"
+              description="到店上课并由管理员确认后，记录会出现在这里。"
+              actionText="刷新记录"
+              onAction={() => load(token, selectedBranchId)}
+            />
+          ) : (
+            deductions.map((item) => (
+              <View className="card deduction-card" key={item.id}>
+                <View className="row">
+                  <View className="card-main">
+                    <Text className="card-title">{item.boxingClass.title}</Text>
+                    <Text className="meta">{formatTime(item.createdAt)} · {item.boxingClass.coach}</Text>
+                  </View>
+                  <Text className="pill red">-{item.amount}</Text>
+                </View>
+                <Text className="meta">{item.note || '管理员已确认到课'}</Text>
               </View>
-              <Text className="pill red">-{item.amount}</Text>
-            </View>
-            <Text className="meta">{item.note || '管理员已确认到课'}</Text>
-          </View>
-        ))
+            ))
+          )}
+        </>
       )}
     </View>
   );
