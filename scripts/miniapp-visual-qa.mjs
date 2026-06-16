@@ -14,7 +14,7 @@ const DEFAULT_AUTO_PORT = 19000;
 const DEVTOOLS_CONFIRM_ENV = 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS';
 const DEVTOOLS_CONFIRM_FLAG = '--allow-devtools';
 const TARGET_NEXT_FLAG = '--target-next';
-export const CONFIRMED_CAPTURE_COMMAND = `${DEVTOOLS_CONFIRM_ENV}=1 pnpm miniapp:visual-qa:capture-next`;
+export const CONFIRMED_CAPTURE_COMMAND = `cross-env ${DEVTOOLS_CONFIRM_ENV}=1 pnpm miniapp:visual-qa:capture-next`;
 
 const pages = [
   { label: 'classes', pagePath: '/pages/classes/index' },

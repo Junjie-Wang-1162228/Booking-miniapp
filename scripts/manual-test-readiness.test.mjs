@@ -26,14 +26,14 @@ function createDevStatus(overrides = {}) {
       manualTest: { completed: 0, total: 41, percent: 0 },
       strict: { enabled: true, passed: true, failures: [] },
       nextAction:
-        'Capture iPhone SE screenshots for classes, bookings, profile. After selecting that simulator in WeChat DevTools, run MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next.'
+        'Capture iPhone SE screenshots for classes, bookings, profile. After selecting that simulator in WeChat DevTools, run cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next.'
     },
     strict: { enabled: true, passed: true, failures: [] },
     visualQa: {
       complete: false,
       existingCount: 3,
       requiredCount: 12,
-      captureCommand: 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
+      captureCommand: 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
     },
     manualTest: {
       mode: 'manual-test-status',
@@ -391,7 +391,7 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     text: '运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。'
   });
   assert.notEqual(readiness.nextHumanAction.text, readiness.manualTestNext.text);
-  assert.equal(readiness.captureCommand, 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');
+  assert.equal(readiness.captureCommand, 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next');
 });
 
 test('manual test readiness blocks manual WeChat checks when seeded local test data is missing', () => {
@@ -473,7 +473,7 @@ test('manual test readiness marks release ready only when all release gates pass
         complete: true,
         existingCount: 12,
         requiredCount: 12,
-        captureCommand: 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
+        captureCommand: 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
       },
       manualTest: {
         mode: 'manual-test-status',

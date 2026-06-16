@@ -63,7 +63,7 @@ pnpm lint
 pnpm --filter @booking/api test:e2e
 pnpm --filter @booking/api build
 pnpm --filter @booking/admin build
-TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp
 pnpm security:check
 pnpm ops:staging:test
 pnpm miniapp:visual-qa

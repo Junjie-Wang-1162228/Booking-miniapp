@@ -32,7 +32,7 @@ test('release checklist uses the project verification and production safety comm
     'pnpm --filter @booking/api test:e2e',
     'pnpm --filter @booking/api build',
     'pnpm --filter @booking/admin build',
-    'TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp',
+    'cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp',
     'pnpm security:check',
     'pnpm --filter @booking/api config:check',
     'pnpm db:backup -- --dry-run',

@@ -1122,7 +1122,7 @@ Do not duplicate branch resolution logic more than twice. If duplication grows, 
 Run:
 
 ```bash
-PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp build:weapp
+pnpm --filter @booking/miniapp build:weapp
 ```
 
 Expected: Taro build succeeds.

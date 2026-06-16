@@ -218,7 +218,7 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
       ]
     );
     assert.deepEqual(plan.commands, [
-      'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next',
+      'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next',
       'pnpm miniapp:visual-qa:next',
       'pnpm miniapp:visual-qa:check'
     ]);
@@ -226,7 +226,7 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
     assert.match(plan.steps[1], /classes, bookings, profile/);
     assert.match(plan.steps[2], /iphone-se-classes\.png/);
     assert.match(plan.steps[3], /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1/);
-    assert.match(plan.commands[0], /^MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 /);
+    assert.match(plan.commands[0], /^cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 /);
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
   }
@@ -330,6 +330,6 @@ test('captureVisualQaScreenshots refuses to launch DevTools without confirmation
       port: 19000,
       allowDevToolsLaunch: false
     }),
-    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
+    /cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
   );
 });

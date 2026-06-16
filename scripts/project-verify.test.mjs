@@ -33,6 +33,21 @@ test('package exposes a single safe project verification command', () => {
   assert.doesNotMatch(verify, /miniapp:visual-qa:capture|miniapp:visual-qa:check/);
 });
 
+test('workspace scripts stay portable and use local dependencies', () => {
+  const miniappPackageJson = JSON.parse(readFileSync('apps/miniapp/package.json', 'utf8'));
+  const rootScripts = Object.values(packageJson.scripts).join('\n');
+  const miniappScripts = Object.values(miniappPackageJson.scripts).join('\n');
+  const trackedScripts = `${rootScripts}\n${miniappScripts}`;
+
+  assert.equal(packageJson.devDependencies['cross-env'], '^7.0.3');
+  assert.equal(packageJson.scripts['miniapp:dev'], 'cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp dev:weapp');
+  assert.equal(packageJson.scripts['miniapp:dev:local'], 'cross-env TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp dev:weapp');
+  assert.equal(miniappPackageJson.scripts['dev:weapp'], 'taro build --type weapp --watch');
+  assert.equal(miniappPackageJson.scripts['build:weapp'], 'taro build --type weapp');
+  assert.doesNotMatch(trackedScripts, /\/opt\/homebrew|brew|npm\s+i\s+-g|pnpm\s+add\s+-g/);
+  assert.doesNotMatch(trackedScripts, /(^|&&\s*)[A-Z_]+=/);
+});
+
 test('README documents pnpm verify as the pre-push quality gate', () => {
   assert.match(readme, /pnpm verify/);
   assert.match(readme, /统一质量门禁/);
@@ -41,7 +56,7 @@ test('README documents pnpm verify as the pre-push quality gate', () => {
 
 test('README documents dev status visual QA screenshot targets', () => {
   assert.match(readme, /`pnpm dev:status`[^\n]*视觉截图矩阵完成度[^\n]*截图保存路径/);
-  assert.match(readme, /`pnpm dev:status`[^\n]*MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/);
+  assert.match(readme, /`pnpm dev:status`[^\n]*cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/);
   assert.match(readme, /visualQa\.captureCommand/);
 });
 

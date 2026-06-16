@@ -177,7 +177,7 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.equal(report.visualQa.next.deviceName, 'iPhone SE');
   assert.equal(
     report.visualQa.captureCommand,
-    'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
+    'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
   );
   assert.deepEqual(report.progress.preview, {
     completed: 4,
@@ -201,7 +201,7 @@ test('createDevStatusReport marks local preview ready when required services are
   assert.match(report.progress.nextAction, /iphone-se-classes\.png/);
   assert.match(
     report.progress.nextAction,
-    /MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
+    /cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next/
   );
   assert.deepEqual(report.notes, []);
 });

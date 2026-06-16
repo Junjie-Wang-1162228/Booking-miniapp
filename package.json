@@ -15,8 +15,8 @@
     "db:logs": "docker compose logs -f mysql",
     "api:dev": "pnpm --filter @booking/api start:dev",
     "admin:dev": "pnpm --filter @booking/admin dev",
-    "miniapp:dev": "TARO_APP_AUTH_MODE=wechat PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp dev:weapp",
-    "miniapp:dev:local": "TARO_APP_AUTH_MODE=dev PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp dev:weapp",
+    "miniapp:dev": "cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp dev:weapp",
+    "miniapp:dev:local": "cross-env TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp dev:weapp",
     "miniapp:visual-qa": "node scripts/miniapp-visual-qa.mjs",
     "miniapp:visual-qa:capture": "node scripts/miniapp-visual-qa.mjs --capture",
     "miniapp:visual-qa:capture-next": "node scripts/miniapp-visual-qa.mjs --capture --target-next",
@@ -69,7 +69,7 @@
     "security:check-secrets": "node scripts/check-secrets.mjs",
     "security:check-secrets:test": "node --test scripts/check-secrets.test.mjs",
     "test": "pnpm --filter @booking/api test:e2e",
-    "build": "pnpm --filter @booking/api build && pnpm --filter @booking/admin build && PATH=/opt/homebrew/bin:$PATH pnpm --filter @booking/miniapp build:weapp",
+    "build": "pnpm --filter @booking/api build && pnpm --filter @booking/admin build && pnpm --filter @booking/miniapp build:weapp",
     "lint": "pnpm --filter @booking/api lint && pnpm --filter @booking/admin lint"
   },
   "pnpm": {
@@ -83,6 +83,7 @@
     }
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "miniprogram-automator": "0.12.1"
   }
 }

@@ -61,6 +61,14 @@ scripts        项目级静态检查和运维测试脚本
 
 ## 本地启动
 
+前置环境：
+
+- Node.js 24。
+- pnpm 9.15.9，推荐通过 Corepack 启用：`corepack enable && corepack prepare pnpm@9.15.9 --activate`。
+- Docker Desktop，用于本地 MySQL。
+
+依赖全部由仓库 `package.json` / `pnpm-lock.yaml` 管理；不要让协作者全局安装 Taro、Vite、Nest CLI 或其他项目 CLI。`pnpm install` 后，`pnpm` 会自动使用 workspace 里的本地依赖。脚本中的临时环境变量统一通过 `cross-env` 处理，兼容 macOS、Linux 和 Windows。
+
 1. 安装依赖：
 
 ```bash
@@ -73,6 +81,12 @@ pnpm install
 cp .env.example apps/api/.env
 ```
 
+Windows PowerShell 可用：
+
+```powershell
+Copy-Item .env.example apps/api/.env
+```
+
 3. 启动 MySQL：
 
 ```bash
@@ -82,7 +96,7 @@ pnpm dev:db
 如果 `localhost:3307` 已被其他本地项目占用，不要直接停掉不确定归属的容器。可以临时改用本项目独立端口：
 
 ```bash
-BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db
+cross-env BOOKING_MYSQL_HOST_PORT=3308 pnpm dev:db
 ```
 
 然后把本地 `apps/api/.env` 里的 `DATABASE_URL` 和 `SHADOW_DATABASE_URL` 端口同步改成 `3308`，再运行 `pnpm dev:status:strict` 确认端口和 API 环境一致。长期使用 3308 时，可把 `BOOKING_MYSQL_HOST_PORT=3308` 放在仓库根目录本地 `.env` 或 shell 环境变量中；这些本地文件不要提交。
@@ -269,12 +283,8 @@ set +a
 pnpm --filter @booking/api prisma:deploy
 
 # 5. 三端构建。admin 和 miniapp 的 API 地址在构建时注入。
-VITE_API_BASE_URL="https://api.example.com" pnpm --filter @booking/admin build
-TARO_APP_AUTH_MODE=wechat \
-TARO_APP_API_BASE_URL="https://api.example.com" \
-TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" \
-TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" \
-pnpm --filter @booking/miniapp build:weapp
+cross-env VITE_API_BASE_URL="https://api.example.com" pnpm --filter @booking/admin build
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL="https://api.example.com" TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" pnpm --filter @booking/miniapp build:weapp
 pnpm --filter @booking/api build
 ```
 
@@ -327,11 +337,7 @@ apps/admin/dist
 构建：
 
 ```bash
-TARO_APP_AUTH_MODE=wechat \
-TARO_APP_API_BASE_URL=https://api.example.com \
-TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> \
-TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> \
-pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL=https://api.example.com TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> pnpm --filter @booking/miniapp build:weapp
 ```
 
 微信开发者工具打开目录：
@@ -422,7 +428,7 @@ pnpm miniapp:dev
 pnpm miniapp:dev:local
 ```
 
-`pnpm dev:status` 会同时显示 `DATABASE_URL` 的非敏感连接目标和发布该本地端口的 Docker 容器；如果 compose MySQL 健康但 API 实际连接到另一个容器，它会在 `notes` 中提示并给出处理建议，便于排查本地数据库漂移。它也会检测本项目残留的孤儿 Prisma query-engine 进程，只提示 PID 和人工处理建议，不会自动结束进程。输出中的 `progress` 会汇总本地预览完成度、视觉截图矩阵完成度、人工验收 checklist 完成度、下一步动作、截图保存路径，以及手动切到目标模拟器后应运行的 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`。同一命令也会在 `visualQa.captureCommand` 输出结构化截图命令，方便复制或被后续脚本读取。
+`pnpm dev:status` 会同时显示 `DATABASE_URL` 的非敏感连接目标和发布该本地端口的 Docker 容器；如果 compose MySQL 健康但 API 实际连接到另一个容器，它会在 `notes` 中提示并给出处理建议，便于排查本地数据库漂移。它也会检测本项目残留的孤儿 Prisma query-engine 进程，只提示 PID 和人工处理建议，不会自动结束进程。输出中的 `progress` 会汇总本地预览完成度、视觉截图矩阵完成度、人工验收 checklist 完成度、下一步动作、截图保存路径，以及手动切到目标模拟器后应运行的 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`。同一命令也会在 `visualQa.captureCommand` 输出结构化截图命令，方便复制或被后续脚本读取。
 
 `pnpm dev:status:strict` 使用同一套检查，但会把数据库端口漂移和孤儿 Prisma query-engine 视为失败。适合在继续手工验收、截图补齐或发布前确认本地环境是否足够标准；普通 `pnpm dev:status` 仍用于快速确认预览服务是否能打开。
 
@@ -503,7 +509,7 @@ pnpm miniapp:visual-qa:check
 `pnpm miniapp:visual-qa` 只输出状态，不打开微信开发者工具；输出中的 `progress` 表示截图完成度，`next.missingScreenshots` 会列出下一台设备缺失页面和截图保存路径。普通 `pnpm miniapp:visual-qa:capture` 会先拒绝执行，避免误打开微信开发者工具。需要截图时，先在微信开发者工具里手动切到目标模拟器设备，再显式确认运行：
 
 ```bash
-MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next
+cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next
 ```
 
 `capture-next` 会校验当前模拟器设备必须等于下一台缺失设备，避免还停在其他设备时误采截图。

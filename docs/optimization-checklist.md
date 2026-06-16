@@ -113,7 +113,7 @@
 - [x] 新增 `pnpm dev:status:strict` 严格本地环境门禁：普通状态查询继续用于预览可用性；严格模式会把数据库端口漂移和孤儿 Prisma query-engine 当作失败，适合截图验收或发布前使用。
 - [x] `pnpm dev:status` 输出 `progress` 汇总：展示本地预览完成度、视觉截图矩阵完成度和下一步动作；严格模式失败时优先提示 strict 门禁缺口，方便继续推进验收。
 - [x] `pnpm dev:status` 的视觉 QA 下一步补充 `missingScreenshots` 和截图保存路径，手工补图时无需再切到单独的 visual-qa 命令查目标文件。
-- [x] `pnpm dev:status` 的视觉 QA 下一步补充安全截图命令 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`，手工切到目标模拟器后可直接按状态输出继续补图。
+- [x] `pnpm dev:status` 的视觉 QA 下一步补充安全截图命令 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`，手工切到目标模拟器后可直接按状态输出继续补图。
 - [x] `pnpm dev:status` 的 `visualQa.captureCommand` 增加结构化安全截图命令，后续人工补图脚本或前端状态面板无需解析自然语言 `nextAction`。
 - [x] 新增 `pnpm ops:manual-test:status` 手工验收清单状态命令：读取 `docs/manual-test-checklist.md` 勾选项并输出 `manual-test-status` JSON，汇总总项数、完成数、分组进度、全局下一条未完成项和每个分组自己的 `next`；不打开微信开发者工具，也不把未完成清单当作 shell 失败。
 - [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist；`manual-test-status` 的每个分组会输出具体 `next`，`nextHumanAction` 会在本地门禁已通过时直接提示真实微信登录准备分组里的下一条任务和行号，`readyForRelease` 与 `releaseBlockers` 会明确发布是否仍被视觉截图或完整手工 checklist 阻断，避免重复做已验证的本地启动项或误判可发布。
@@ -137,8 +137,8 @@
 - [x] `pnpm --filter @booking/api test:e2e`
 - [x] `pnpm --filter @booking/api build`
 - [x] `pnpm --filter @booking/admin build`
-- [x] `TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp`
-- [x] `TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp build:weapp`
+- [x] `cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp`
+- [x] `cross-env TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp build:weapp`
 - [x] `pnpm miniapp:visual-qa:test`
 - [x] `pnpm miniapp:compliance:test`
 - [x] `pnpm miniapp:booking-rules:test`

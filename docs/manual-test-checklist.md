@@ -52,7 +52,7 @@
 
 - [ ] 运行 `pnpm miniapp:visual-qa`，确认当前截图矩阵状态、完成度和下一台缺失设备；该命令不会打开微信开发者工具。
 - [ ] 按 `pnpm miniapp:visual-qa:plan` 输出的下一台设备和截图保存路径，在微信开发者工具中手动切换模拟器设备。
-- [ ] 切到目标设备后，再显式执行 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next` 采集截图；如果当前模拟器设备不等于下一台缺失设备，命令应拒绝保存。
+- [ ] 切到目标设备后，再显式执行 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next` 采集截图；如果当前模拟器设备不等于下一台缺失设备，命令应拒绝保存。
 - [ ] 每采集一台设备后运行 `pnpm miniapp:visual-qa:next`，确认输出中的完成度、缺失页面和截图保存路径，直到 4 台设备 x 3 个页面都补齐。
 - [ ] 最后运行 `pnpm miniapp:visual-qa:check`，确认 12 张真实 PNG 截图全部存在且尺寸匹配。
 
