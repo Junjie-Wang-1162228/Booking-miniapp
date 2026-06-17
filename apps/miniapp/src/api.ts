@@ -22,6 +22,10 @@ const MEMBER_KEY = 'member_key';
 const BRANCH_KEY = 'selected_branch_id';
 const REQUEST_TIMEOUT_MS = 10000;
 
+type SubscribeMessageResult = Record<string, string | undefined> & {
+  errMsg?: string;
+};
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH';
   data?: unknown;
@@ -158,9 +162,7 @@ export async function requestClassReminderSubscription(): Promise<ReminderSubscr
   }
 
   try {
-    const result = await Taro.requestSubscribeMessage({
-      tmplIds: [WECHAT_SUBSCRIBE_TEMPLATE_ID]
-    });
+    const result = await requestWechatSubscribeMessage([WECHAT_SUBSCRIBE_TEMPLATE_ID]);
     return result[WECHAT_SUBSCRIBE_TEMPLATE_ID] === 'accept' ? 'accepted' : 'rejected';
   } catch {
     return 'rejected';
@@ -185,7 +187,7 @@ export async function requestBookingSubscriptions(reminderEnabled: boolean): Pro
   }
 
   try {
-    const result = await Taro.requestSubscribeMessage({ tmplIds });
+    const result = await requestWechatSubscribeMessage(tmplIds);
     return {
       bookingConfirmationAccepted:
         Boolean(WECHAT_BOOKING_CREATED_TEMPLATE_ID) && result[WECHAT_BOOKING_CREATED_TEMPLATE_ID] === 'accept',
@@ -195,6 +197,13 @@ export async function requestBookingSubscriptions(reminderEnabled: boolean): Pro
   } catch {
     return { bookingConfirmationAccepted: false, classReminderAccepted: false };
   }
+}
+
+function requestWechatSubscribeMessage(tmplIds: string[]) {
+  const requestSubscribeMessage = Taro.requestSubscribeMessage as unknown as (option: {
+    tmplIds: string[];
+  }) => Promise<SubscribeMessageResult>;
+  return requestSubscribeMessage({ tmplIds });
 }
 
 export async function devLogin(member: MemberKey) {

@@ -1,4 +1,4 @@
-import { Button, Input, Text, Textarea, View } from '@tarojs/components';
+import { Button, Input, Picker, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
 import { useMemo, useState } from 'react';
 import {
@@ -20,6 +20,13 @@ import { loadMemberSession } from '../../member-session';
 import { attendanceStatusLabel, bookingStatusLabel, classStatusLabel } from '../../status-labels';
 import { AdminBooking, AdminClass, AdminClassInput, AdminDailyMetrics, AdminMember, AuthUser, MemberBranch } from '../../types';
 import { formatTime } from '../../utils';
+import {
+  businessDateKeyForIso,
+  formatBusinessDate,
+  parseBusinessDateTime,
+  resolveBusinessTimezoneOffsetMinutes,
+  toBusinessDateTimeParts
+} from '../../ops-date';
 import { AppIcon } from '../../components/AppIcon';
 import { BrandLogo } from '../../components/BrandLogo';
 import { LoadingCards, PageState } from '../../components/PageState';
@@ -30,7 +37,8 @@ type OpsSection = 'today' | 'classes' | 'bookings' | 'members';
 type ClassFormState = {
   title: string;
   coach: string;
-  startsAtLocal: string;
+  startsAtDate: string;
+  startsAtTime: string;
   durationMin: string;
   capacity: string;
   description: string;
@@ -39,37 +47,21 @@ type ClassFormState = {
 const defaultClassForm: ClassFormState = {
   title: '',
   coach: '',
-  startsAtLocal: '',
+  startsAtDate: '',
+  startsAtTime: '',
   durationMin: '60',
   capacity: '8',
   description: ''
 };
 
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function parseLocalDateTime(value: string) {
-  const normalized = value.trim().replace(' ', 'T');
-  const date = new Date(normalized);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function toLocalInputValue(value: string) {
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
-}
+const BUSINESS_TIMEZONE_OFFSET_MINUTES = resolveBusinessTimezoneOffsetMinutes(__BUSINESS_TIMEZONE_OFFSET_MINUTES__);
 
 function getInputValue(event: { detail: { value: string } }) {
   return event.detail.value;
+}
+
+function getPickerValue(event: { detail: { value: string | number | string[] } }) {
+  return String(event.detail.value);
 }
 
 function isActiveBooking(booking: AdminBooking) {
@@ -99,6 +91,8 @@ export default function OpsPage() {
     () => todayBookings.filter((item) => item.attendanceStatus === 'PENDING' && !item.deductionId),
     [todayBookings]
   );
+  const businessToday = formatBusinessDate(new Date(), BUSINESS_TIMEZONE_OFFSET_MINUTES);
+  const loadedBusinessDate = metrics?.date ?? businessToday;
 
   function updateClassForm(key: keyof ClassFormState, value: string) {
     setClassForm((current) => ({ ...current, [key]: value }));
@@ -117,7 +111,7 @@ export default function OpsPage() {
       if (!branchId) {
         throw new Error('当前员工账号没有可运营门店');
       }
-      const today = localDateKey();
+      const today = formatBusinessDate(new Date(), BUSINESS_TIMEZONE_OFFSET_MINUTES);
       const [nextMetrics, nextClasses, nextBookings, nextMembers] = await Promise.all([
         getAdminDailyMetrics(session.token, { branchId, date: today }),
         getAdminClasses(session.token, branchId),
@@ -152,11 +146,13 @@ export default function OpsPage() {
   }
 
   function startEditClass(item: AdminClass) {
+    const startsAt = toBusinessDateTimeParts(item.startsAt, BUSINESS_TIMEZONE_OFFSET_MINUTES);
     setEditingClass(item);
     setClassForm({
       title: item.title,
       coach: item.coach,
-      startsAtLocal: toLocalInputValue(item.startsAt),
+      startsAtDate: startsAt.date,
+      startsAtTime: startsAt.time,
       durationMin: String(item.durationMin),
       capacity: String(item.capacity),
       description: item.description
@@ -165,7 +161,11 @@ export default function OpsPage() {
   }
 
   function buildClassPayload(): AdminClassInput | null {
-    const startsAt = parseLocalDateTime(classForm.startsAtLocal);
+    const startsAt = parseBusinessDateTime(
+      classForm.startsAtDate,
+      classForm.startsAtTime,
+      BUSINESS_TIMEZONE_OFFSET_MINUTES
+    );
     const durationMin = Number(classForm.durationMin);
     const capacity = Number(classForm.capacity);
 
@@ -398,7 +398,14 @@ export default function OpsPage() {
               <Text className="section-title">今日运营</Text>
               <View className="ops-metrics">
                 <View className="ops-metric">
-                  <Text className="ops-metric__value">{classes.filter((item) => item.startsAt.slice(0, 10) === localDateKey()).length}</Text>
+                  <Text className="ops-metric__value">
+                    {
+                      classes.filter(
+                        (item) =>
+                          businessDateKeyForIso(item.startsAt, BUSINESS_TIMEZONE_OFFSET_MINUTES) === loadedBusinessDate
+                      ).length
+                    }
+                  </Text>
                   <Text className="ops-metric__label">今日课程</Text>
                 </View>
                 <View className="ops-metric">
@@ -439,7 +446,30 @@ export default function OpsPage() {
                 <Text className="ops-form-title">{editingClass ? '编辑课程' : '创建课程'}</Text>
                 <Input className="ops-input" value={classForm.title} placeholder="课程名，如 基础拳击燃脂" maxlength={60} onInput={(event) => updateClassForm('title', getInputValue(event))} />
                 <Input className="ops-input" value={classForm.coach} placeholder="展示教练名，如 Coach Leo" maxlength={40} onInput={(event) => updateClassForm('coach', getInputValue(event))} />
-                <Input className="ops-input" value={classForm.startsAtLocal} placeholder="上课时间：2026-06-20T18:30" onInput={(event) => updateClassForm('startsAtLocal', getInputValue(event))} />
+                <View className="ops-two-inputs">
+                  <Picker
+                    className="ops-picker-wrap"
+                    mode="date"
+                    value={classForm.startsAtDate}
+                    start={businessToday}
+                    end="2099-12-31"
+                    onChange={(event) => updateClassForm('startsAtDate', getPickerValue(event))}
+                  >
+                    <View className={`ops-picker ${classForm.startsAtDate ? '' : 'placeholder'}`}>
+                      {classForm.startsAtDate || '选择日期'}
+                    </View>
+                  </Picker>
+                  <Picker
+                    className="ops-picker-wrap"
+                    mode="time"
+                    value={classForm.startsAtTime}
+                    onChange={(event) => updateClassForm('startsAtTime', getPickerValue(event))}
+                  >
+                    <View className={`ops-picker ${classForm.startsAtTime ? '' : 'placeholder'}`}>
+                      {classForm.startsAtTime || '选择时间'}
+                    </View>
+                  </Picker>
+                </View>
                 <View className="ops-two-inputs">
                   <Input className="ops-input" value={classForm.durationMin} type="number" placeholder="时长分钟" onInput={(event) => updateClassForm('durationMin', getInputValue(event))} />
                   <Input className="ops-input" value={classForm.capacity} type="number" placeholder="容量人数" onInput={(event) => updateClassForm('capacity', getInputValue(event))} />

@@ -70,7 +70,7 @@
     "security:check-secrets:test": "node --test scripts/check-secrets.test.mjs",
     "test": "pnpm --filter @booking/api test:e2e",
     "build": "pnpm --filter @booking/api build && pnpm --filter @booking/admin build && pnpm --filter @booking/miniapp build:weapp",
-    "lint": "pnpm --filter @booking/api lint && pnpm --filter @booking/admin lint"
+    "lint": "pnpm --filter @booking/api lint && pnpm --filter @booking/admin lint && pnpm --filter @booking/miniapp lint"
   },
   "pnpm": {
     "overrides": {

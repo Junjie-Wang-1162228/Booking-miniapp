@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev:weapp": "taro build --type weapp --watch",
-    "build:weapp": "taro build --type weapp"
+    "build:weapp": "taro build --type weapp",
+    "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@babel/runtime": "^7.25.0",

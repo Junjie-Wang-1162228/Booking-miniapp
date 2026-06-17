@@ -29,6 +29,7 @@ MINIAPP_APP_ID=staging-or-test-appid
 MINIAPP_APP_SECRET=staging-secret
 WECHAT_BOOKING_CREATED_TEMPLATE_ID=staging-template-id
 WECHAT_SUBSCRIBE_TEMPLATE_ID=staging-template-id
+BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 ALERT_WEBHOOK_URL=https://alerts.example.com/staging/boxing-booking
 ALERT_WEBHOOK_TOKEN=staging-alert-token
 ```
@@ -40,7 +41,10 @@ TARO_APP_AUTH_MODE=wechat
 TARO_APP_API_BASE_URL=https://staging-api.example.com
 TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=staging-template-id
 TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=staging-template-id
+TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 ```
+
+API 和小程序的营业时区偏移必须一致，否则运营端“今日”统计和预约名单会出现错日。
 
 ## 部署前 No-Go
 
@@ -63,7 +67,7 @@ pnpm lint
 pnpm --filter @booking/api test:e2e
 pnpm --filter @booking/api build
 pnpm --filter @booking/admin build
-cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
 pnpm security:check
 pnpm ops:staging:test
 pnpm miniapp:visual-qa

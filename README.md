@@ -215,6 +215,7 @@ BOOKING_CANCEL_CUTOFF_MINUTES=120
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_LOGIN_MAX=200
 RATE_LIMIT_BOOKING_MAX=120
+BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 ```
 
 按需配置通知和告警：
@@ -246,7 +247,10 @@ TARO_APP_AUTH_MODE=wechat
 TARO_APP_API_BASE_URL=https://api.example.com
 TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id>
 TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id>
+TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 ```
+
+`BUSINESS_TIMEZONE_OFFSET_MINUTES` 和 `TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES` 必须保持一致。默认 `480` 表示东八区；如果拳馆实际营业时区不是东八区，两边一起改，避免运营端“今日课程/预约名单/消课”错日。
 
 staging 环境使用独立域名、数据库和 secret，例如 `https://staging-api.example.com`、`https://staging-admin.example.com`、`boxing_booking_staging`。staging 详细约束见 `docs/staging-runbook.md`。
 
@@ -284,7 +288,7 @@ pnpm --filter @booking/api prisma:deploy
 
 # 5. 三端构建。admin 和 miniapp 的 API 地址在构建时注入。
 cross-env VITE_API_BASE_URL="https://api.example.com" pnpm --filter @booking/admin build
-cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL="https://api.example.com" TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL="https://api.example.com" TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
 pnpm --filter @booking/api build
 ```
 
@@ -337,7 +341,7 @@ apps/admin/dist
 构建：
 
 ```bash
-cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL=https://api.example.com TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL=https://api.example.com TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
 ```
 
 微信开发者工具打开目录：

@@ -5,6 +5,7 @@ const apiBaseUrl = nodeProcess?.env?.TARO_APP_API_BASE_URL || 'http://localhost:
 const authMode = nodeProcess?.env?.TARO_APP_AUTH_MODE || 'wechat';
 const subscribeTemplateId = nodeProcess?.env?.TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID || '';
 const bookingCreatedTemplateId = nodeProcess?.env?.TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID || '';
+const businessTimezoneOffsetMinutes = nodeProcess?.env?.TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES || '480';
 
 export default defineConfig({
   projectName: 'boxing-booking-miniapp',
@@ -23,7 +24,8 @@ export default defineConfig({
     __API_BASE_URL__: JSON.stringify(apiBaseUrl),
     __AUTH_MODE__: JSON.stringify(authMode),
     __WECHAT_SUBSCRIBE_TEMPLATE_ID__: JSON.stringify(subscribeTemplateId),
-    __WECHAT_BOOKING_CREATED_TEMPLATE_ID__: JSON.stringify(bookingCreatedTemplateId)
+    __WECHAT_BOOKING_CREATED_TEMPLATE_ID__: JSON.stringify(bookingCreatedTemplateId),
+    __BUSINESS_TIMEZONE_OFFSET_MINUTES__: JSON.stringify(businessTimezoneOffsetMinutes)
   },
   mini: {
     postcss: {
