@@ -10,7 +10,7 @@ async function bootstrap() {
   assertProductionDatabaseConfig(config);
   app.enableCors({ origin: resolveCorsOrigin(config), credentials: true });
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-  await app.listen(Number(config.get('API_PORT') ?? 4000));
+  await app.listen(Number(config.get('PORT') ?? config.get('API_PORT') ?? 4000));
 }
 
 bootstrap();

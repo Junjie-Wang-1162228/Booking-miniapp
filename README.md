@@ -254,6 +254,8 @@ TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 
 staging 环境使用独立域名、数据库和 secret，例如 `https://staging-api.example.com`、`https://staging-admin.example.com`、`boxing_booking_staging`。staging 详细约束见 `docs/staging-runbook.md`。
 
+如果当前只做微信真机调试，可以暂时不部署网站后台，先按 `docs/cloudbase-miniapp-runbook.md` 把 API 部署到 CloudBase Run，再用小程序内运营端管理课程和预约。
+
 ### 一键部署命令模板
 
 下面模板适合 CI/CD、服务器脚本或其他 agent 复制执行。把尖括号占位值替换成部署平台 secret；不要把替换后的命令写回 README。
