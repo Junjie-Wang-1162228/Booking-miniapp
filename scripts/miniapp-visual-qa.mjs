@@ -317,6 +317,7 @@ export function readOptions(argv, env = process.env) {
     checkMatrix: false,
     nextMissing: false,
     manualPlan: false,
+    handoff: false,
     targetNext: false
   };
 
@@ -343,6 +344,10 @@ export function readOptions(argv, env = process.env) {
     if (arg === '--manual-plan') {
       options.mode = 'manual-plan';
       options.manualPlan = true;
+    }
+    if (arg === '--handoff') {
+      options.mode = 'handoff';
+      options.handoff = true;
     }
   }
 
@@ -398,6 +403,63 @@ export function createManualCapturePlan(report) {
     ],
     commands: [CONFIRMED_CAPTURE_COMMAND, 'pnpm miniapp:visual-qa:next', 'pnpm miniapp:visual-qa:check']
   };
+}
+
+function listMarkdownLines(items, formatter, emptyText) {
+  if (!items || items.length === 0) return [`- ${emptyText}`];
+  return items.map(formatter);
+}
+
+export function createVisualQaHandoffMarkdown(report) {
+  const progress = createProgress(report);
+  const plan = createManualCapturePlan(report);
+  const invalidReasons = [...new Set(report.invalid.map((item) => item.reason).filter(Boolean))];
+  const steps = plan.nextDevice
+    ? [
+        `切换微信开发者工具模拟器到 ${plan.nextDevice.deviceName}（${plan.nextDevice.viewport}）。`,
+        `确认需要补图的页面：${plan.nextDevice.missingLabels.join('、')}。`,
+        `截图将保存到：${plan.targetScreenshots.map((item) => item.outputPath).join('，')}。`,
+        `只在模拟器已经切到目标设备后运行截图命令：${CONFIRMED_CAPTURE_COMMAND}。`,
+        '截图完成后运行 `pnpm miniapp:visual-qa:next` 查看下一台设备；全部补齐后运行 `pnpm miniapp:visual-qa:check`。'
+      ]
+    : ['截图矩阵已补齐，运行 `pnpm miniapp:visual-qa:check` 做最终检查。'];
+
+  return [
+    '# 小程序视觉截图补图计划',
+    '',
+    '## 当前状态',
+    '',
+    '- 不会打开微信开发者工具；这里只生成补图计划。',
+    `- 进度：${progress.completed}/${progress.total}，${progress.percent}%，缺失 ${progress.missing}，无效 ${progress.invalid}`,
+    '',
+    '## 下一台设备',
+    '',
+    plan.nextDevice
+      ? `- 下一台设备：${plan.nextDevice.deviceName}（${plan.nextDevice.viewport}）`
+      : '- 下一台设备：无，截图矩阵已补齐。',
+    ...listMarkdownLines(
+      plan.targetScreenshots,
+      (screenshot) => `- ${screenshot.label}：${screenshot.pagePath} -> \`${screenshot.outputPath}\``,
+      '没有缺失截图路径。'
+    ),
+    '',
+    '## 无效截图',
+    '',
+    ...listMarkdownLines(invalidReasons, (reason) => `- ${reason}`, '没有无效截图原因。'),
+    '',
+    '## 操作顺序',
+    '',
+    ...listMarkdownLines(
+      steps,
+      (step, index) => `${index + 1}. ${step}`,
+      '当前没有补图步骤。'
+    ),
+    '',
+    '## 可复制命令',
+    '',
+    ...listMarkdownLines(plan.commands, (command) => `- \`${command}\``, '没有可执行命令。'),
+    ''
+  ].join('\n');
 }
 
 export async function captureVisualQaScreenshots(options) {
@@ -471,6 +533,12 @@ async function main() {
   if (options.manualPlan) {
     const report = verifyScreenshotMatrix(options.outputDir);
     console.log(JSON.stringify(createManualCapturePlan(report), null, 2));
+    return;
+  }
+
+  if (options.handoff) {
+    const report = verifyScreenshotMatrix(options.outputDir);
+    console.log(createVisualQaHandoffMarkdown(report));
     return;
   }
 

@@ -561,10 +561,11 @@ pnpm db:restore -- --file /secure/backups/backup.sql --confirm-local-restore
 ```bash
 pnpm miniapp:visual-qa
 pnpm miniapp:visual-qa:next
+pnpm miniapp:visual-qa:handoff
 pnpm miniapp:visual-qa:check
 ```
 
-`pnpm miniapp:visual-qa` 只输出状态，不打开微信开发者工具；输出中的 `progress` 表示截图完成度，`next.missingScreenshots` 会列出下一台设备缺失页面和截图保存路径。普通 `pnpm miniapp:visual-qa:capture` 会先拒绝执行，避免误打开微信开发者工具。需要截图时，先在微信开发者工具里手动切到目标模拟器设备，再显式确认运行：
+`pnpm miniapp:visual-qa` 只输出状态，不打开微信开发者工具；输出中的 `progress` 表示截图完成度，`next.missingScreenshots` 会列出下一台设备缺失页面和截图保存路径。`pnpm miniapp:visual-qa:handoff` 会输出中文 Markdown《小程序视觉截图补图计划》，包含下一台设备、截图保存路径、无效截图原因、操作顺序和可复制命令，适合发给协作者补图。普通 `pnpm miniapp:visual-qa:capture` 会先拒绝执行，避免误打开微信开发者工具。需要截图时，先在微信开发者工具里手动切到目标模拟器设备，再显式确认运行：
 
 ```bash
 cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next

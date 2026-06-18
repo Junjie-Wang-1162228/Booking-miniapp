@@ -110,6 +110,7 @@ test('createManualTestHandoffMarkdown renders a safe Chinese handoff report', ()
   assert.match(markdown, /`pnpm dev:preview:status`/);
   assert.match(markdown, /`pnpm miniapp:prepare-device`/);
   assert.match(markdown, /`pnpm ops:manual-test:handoff`/);
+  assert.match(markdown, /`pnpm miniapp:visual-qa:handoff`/);
   assert.match(markdown, /`pnpm miniapp:visual-qa:check`/);
   assert.match(markdown, /多设备视觉截图矩阵：0\/12/);
   assert.match(markdown, /手工验收清单：16\/46/);

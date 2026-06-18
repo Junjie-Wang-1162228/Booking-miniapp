@@ -84,6 +84,7 @@ export function createManualTestHandoffMarkdown(summary) {
     '- `pnpm dev:preview:status`：刷新本地预览、真机包和验收进度。',
     '- `pnpm miniapp:prepare-device`：重建真机调试包并确认后端可被手机访问。',
     '- `pnpm ops:manual-test:handoff`：重新生成这份中文交接报告。',
+    '- `pnpm miniapp:visual-qa:handoff`：生成中文视觉截图补图计划。',
     `- \`${captureCommand}\`：手动切到目标模拟器设备后采集下一组截图。`,
     '- `pnpm miniapp:visual-qa:check`：补图后检查截图矩阵是否完整有效。',
     '',

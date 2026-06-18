@@ -10,6 +10,7 @@ import {
   createNextMissingDeviceReport,
   createScreenshotMatrix,
   createScreenshotPlan,
+  createVisualQaHandoffMarkdown,
   captureVisualQaScreenshots,
   findNextMissingDevice,
   readOptions,
@@ -263,6 +264,36 @@ test('createManualCapturePlan gives safe next-step instructions without opening 
   }
 });
 
+test('createVisualQaHandoffMarkdown renders a Chinese no-DevTools capture handoff', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-handoff-'));
+  try {
+    for (const staleScreenshot of createScreenshotPlan('iPhone 12/13 (Pro)', outputDir)) {
+      writeValidScreenshot(staleScreenshot.outputPath);
+      utimesSync(staleScreenshot.outputPath, new Date('2026-06-17T12:00:00Z'), new Date('2026-06-17T12:00:00Z'));
+    }
+
+    const markdown = createVisualQaHandoffMarkdown(
+      verifyScreenshotMatrix(outputDir, { staleAfter: new Date('2026-06-18T00:00:00Z') })
+    );
+
+    assert.match(markdown, /^# 小程序视觉截图补图计划/m);
+    assert.match(markdown, /不会打开微信开发者工具/);
+    assert.match(markdown, /进度：0\/12，0%，缺失 9，无效 3/);
+    assert.match(markdown, /下一台设备：iPhone SE（375 x 667）/);
+    assert.match(markdown, /classes：\/pages\/classes\/index -> `.*iphone-se-classes\.png`/);
+    assert.match(markdown, /bookings：\/pages\/bookings\/index -> `.*iphone-se-bookings\.png`/);
+    assert.match(markdown, /profile：\/pages\/profile\/index -> `.*iphone-se-profile\.png`/);
+    assert.match(markdown, /screenshot is older than latest miniapp UI source/);
+    assert.match(markdown, /切换微信开发者工具模拟器到 iPhone SE（375 x 667）/);
+    assert.match(markdown, /只在模拟器已经切到目标设备后运行截图命令/);
+    assert.match(markdown, /`cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`/);
+    assert.match(markdown, /`pnpm miniapp:visual-qa:check`/);
+    assert.doesNotMatch(markdown, /AppSecret|MINIAPP_APP_SECRET|accessToken|Bearer|wx[0-9a-z]{16,}/i);
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
 test('package exposes a next-device guarded visual capture script', () => {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 
@@ -270,6 +301,7 @@ test('package exposes a next-device guarded visual capture script', () => {
     packageJson.scripts['miniapp:visual-qa:capture-next'],
     'node scripts/miniapp-visual-qa.mjs --capture --target-next'
   );
+  assert.equal(packageJson.scripts['miniapp:visual-qa:handoff'], 'node scripts/miniapp-visual-qa.mjs --handoff');
 });
 
 test('createManualCapturePlan reports completion when the screenshot matrix is complete', () => {
@@ -308,6 +340,13 @@ test('readOptions supports a manual plan mode that does not open DevTools', () =
   assert.equal(options.mode, 'manual-plan');
   assert.equal(options.opensDevTools, false);
   assert.equal(options.manualPlan, true);
+});
+
+test('readOptions supports a handoff mode that does not open DevTools', () => {
+  const options = readOptions(['--handoff']);
+  assert.equal(options.mode, 'handoff');
+  assert.equal(options.opensDevTools, false);
+  assert.equal(options.handoff, true);
 });
 
 test('readOptions requires capture confirmation before opening DevTools', () => {

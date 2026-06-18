@@ -241,6 +241,7 @@
 - [x] `git diff --check`
 - [x] 数据保留与删除策略文档复核：`docs/data-retention-policy.md`
 - [x] `pnpm miniapp:visual-qa:plan`：安全人工补图计划，不打开微信开发者工具。
+- [x] `pnpm miniapp:visual-qa:handoff`：中文 Markdown 视觉截图补图计划，输出下一台设备、截图保存路径、无效截图原因、操作顺序和可复制命令，不打开微信开发者工具。
 - [x] `pnpm miniapp:visual-qa:next`：安全下一设备提示，输出完成度、缺失页面和截图保存路径。
 - [x] `pnpm miniapp:visual-qa:capture` 未显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 时按设计失败，不打开微信开发者工具。
 - [x] `pnpm miniapp:visual-qa:capture-next`：显式确认后只允许当前模拟器设备等于下一台缺失设备时采集，降低手动补图误采风险。
