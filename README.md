@@ -189,7 +189,7 @@ member-b：小林 / 城西店 / 6 节课
 member-c：东店同学 / 城东店 / 4 节课
 ```
 
-正式或接近正式的微信登录调试，应使用 `pnpm miniapp:dev`，并在 `apps/api/.env` 中配置自己的 `MINIAPP_APP_ID` 和 `MINIAPP_APP_SECRET`。这些真实值只能保存在本地 `.env`、部署平台 secret store 或微信开发者工具本地私有配置中，不能提交 GitHub。
+正式或接近正式的微信登录调试，应使用 `pnpm miniapp:dev`，并在 `apps/api/.env` 中配置自己的 `MINIAPP_APP_ID` 和 `MINIAPP_APP_SECRET`。配置完成后运行 `pnpm miniapp:sync-private-config`，把真实 AppID 同步到本地 ignored 的微信开发者工具私有配置；命令只输出脱敏状态，不输出真实 AppID。这些真实值只能保存在本地 `.env`、部署平台 secret store 或微信开发者工具本地私有配置中，不能提交 GitHub。
 
 本地假会员调试可使用：
 
@@ -380,7 +380,7 @@ apps/miniapp/dist
 上传前确认：
 
 - `apps/miniapp/project.config.json` 仍只提交 `touristappid` 占位。
-- 真实 AppID 放在微信开发者工具本地私有配置或部署环境中。
+- 真实 AppID 放在微信开发者工具本地私有配置或部署环境中；本地可运行 `pnpm miniapp:sync-private-config` 从 `apps/api/.env` 同步到 `project.private.config.json`。
 - 微信后台 request 合法域名包含 API HTTPS 域名。
 - 体验版使用真实微信登录，不使用 `pnpm miniapp:dev:local` 的本地假会员模式。
 - 提交审核前完成 `docs/manual-test-checklist.md` 和 `docs/miniapp-visual-qa.md` 的人工验收。
@@ -441,7 +441,7 @@ pnpm ops:staging:test
 - 禁止在日志调用中直接输出手机号、openid、JWT/token、AppID、AppSecret、密码等敏感字段。
 - 禁止在已追踪文档、源码、配置、脚本和暂存区内容中提交真实 `wx...` AppID；`apps/miniapp/project.config.json` 使用 `touristappid` 占位。
 
-如果需要配置真实 AppID，请放在本地微信开发者工具私有配置或本地环境变量中。
+如果需要配置真实 AppID，请放在本地微信开发者工具私有配置或本地环境变量中。配置好 `apps/api/.env` 的 `MINIAPP_APP_ID` 后，可运行 `pnpm miniapp:sync-private-config` 自动写入 ignored 的 `apps/miniapp/project.private.config.json`；命令输出不输出真实 AppID。
 微信开发者工具生成的 `apps/miniapp/project.private.config.json` 和 `apps/miniapp/dist/**` 只保留在本地；仓库内 `.env.example` 和 `apps/miniapp/project.config.json` 仅使用 `touristappid` 占位。
 
 ## 常用命令
@@ -455,6 +455,7 @@ pnpm dev:preview:status
 pnpm dev:preview:stop
 pnpm api:dev
 pnpm admin:dev
+pnpm miniapp:sync-private-config
 pnpm miniapp:dev
 pnpm miniapp:dev:local
 ```
