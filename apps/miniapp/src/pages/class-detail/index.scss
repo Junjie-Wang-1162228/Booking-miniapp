@@ -223,6 +223,11 @@
   background: #4a4a4a;
 }
 
+.detail-primary-action.is-admin {
+  border-color: #4f4f4f;
+  background: #3b3b3b;
+}
+
 .detail-primary-action[disabled] {
   color: #ffffff;
   opacity: 0.92;

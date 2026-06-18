@@ -28,7 +28,8 @@ test('class detail page shows operational booking information', () => {
 
   assert.match(detailSource, /useRouter/);
   assert.match(detailSource, /loadMemberSession/);
-  assert.match(detailSource, /getClasses/);
+  assert.match(detailSource, /loadVisibleClasses/);
+  assert.match(detailSource, /isBookableClass/);
   assert.match(detailSource, /训练内容/);
   assert.match(detailSource, /适合人群/);
   assert.match(detailSource, /装备要求/);

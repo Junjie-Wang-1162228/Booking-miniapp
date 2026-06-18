@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   createBooking,
   formatApiError,
-  getClasses,
   getStoredMember,
   getStoredToken,
   isDevAuthMode,
@@ -13,6 +12,7 @@ import {
 } from '../../api';
 import { developmentMembers, loadMemberSession, memberNames, switchDevelopmentMember } from '../../member-session';
 import { AuthUser, BoxingClass, MemberBranch, MemberKey } from '../../types';
+import { loadVisibleClasses } from '../../visible-classes';
 import { formatTime } from '../../utils';
 import { AppIcon, type AppIconName } from '../../components/AppIcon';
 import { BrandLogo } from '../../components/BrandLogo';
@@ -21,7 +21,14 @@ import { filterBookableClasses } from '../../class-availability';
 import { useActionLock } from '../../use-action-lock';
 import './index.scss';
 
-function getClassAction(boxingClass: BoxingClass): { disabled: boolean; icon: AppIconName; label: string; variant: string } {
+function getClassAction(
+  boxingClass: BoxingClass,
+  userRole?: AuthUser['role']
+): { disabled: boolean; icon: AppIconName; label: string; variant: string } {
+  if (userRole === 'ADMIN') {
+    return { disabled: true, icon: 'calendar', label: '运营查看', variant: 'is-admin' };
+  }
+
   if (boxingClass.isBookedByMe) {
     return { disabled: true, icon: 'check', label: '已预约', variant: 'is-booked' };
   }
@@ -139,7 +146,7 @@ export default function ClassesPage() {
     setLoadError('');
     try {
       const session = await loadMemberSession({ token: currentToken, member, preferredBranchId });
-      const classList = session.selectedBranchId ? await getClasses(session.token, session.selectedBranchId) : [];
+      const classList = session.selectedBranchId ? await loadVisibleClasses(session, session.selectedBranchId) : [];
       setToken(session.token);
       setUser(session.user);
       setBranches(session.branches);
@@ -157,7 +164,7 @@ export default function ClassesPage() {
     setLoadError('');
     try {
       const session = await switchDevelopmentMember(nextMember);
-      const classList = session.selectedBranchId ? await getClasses(session.token, session.selectedBranchId) : [];
+      const classList = session.selectedBranchId ? await loadVisibleClasses(session, session.selectedBranchId) : [];
       setMember(nextMember);
       setToken(session.token);
       setUser(session.user);
@@ -172,13 +179,22 @@ export default function ClassesPage() {
   }
 
   async function switchBranch(branchId: string) {
-    if (!token || branchId === selectedBranchId) return;
+    if (!token || !user || branchId === selectedBranchId) return;
     setStoredBranchId(branchId);
     setSelectedBranchId(branchId);
     setLoading(true);
     setLoadError('');
     try {
-      const classList = await getClasses(token, branchId);
+      const classList = await loadVisibleClasses(
+        {
+          token,
+          user,
+          branches,
+          selectedBranchId: branchId,
+          selectedBranch: branches.find((branch) => branch.id === branchId) ?? null
+        },
+        branchId
+      );
       applyLoadedClasses(classList);
     } catch (error) {
       setLoadError(formatApiError(error, '门店课程加载失败'));
@@ -211,7 +227,7 @@ export default function ClassesPage() {
   }
 
   async function bookClass(boxingClass: BoxingClass) {
-    if (!token || !selectedBranchId || boxingClass.remainingSpots <= 0 || boxingClass.isBookedByMe) return;
+    if (!token || !selectedBranchId || user?.role === 'ADMIN' || boxingClass.remainingSpots <= 0 || boxingClass.isBookedByMe) return;
     setLoading(true);
     try {
       const subscription = await requestBookingSubscriptions(reminder);
@@ -302,16 +318,18 @@ export default function ClassesPage() {
         </View>
       )}
 
-      <View className="reminder-row">
-        <View className="reminder-copy-wrap">
-          <AppIcon name="bell" />
-          <View>
-            <Text className="reminder-title">开课前 2 小时提醒</Text>
-            <Text className="reminder-copy">需要微信订阅消息授权后发送</Text>
+      {user?.role !== 'ADMIN' && (
+        <View className="reminder-row">
+          <View className="reminder-copy-wrap">
+            <AppIcon name="bell" />
+            <View>
+              <Text className="reminder-title">开课前 2 小时提醒</Text>
+              <Text className="reminder-copy">需要微信订阅消息授权后发送</Text>
+            </View>
           </View>
+          <Switch checked={reminder} color="#e31b23" onChange={(event) => setReminder(event.detail.value)} />
         </View>
-        <Switch checked={reminder} color="#e31b23" onChange={(event) => setReminder(event.detail.value)} />
-      </View>
+      )}
 
       <Text className="section-title">可预约课程</Text>
       {classes.length > 0 && (
@@ -358,7 +376,7 @@ export default function ClassesPage() {
               <Text className="class-date-count">{group.classes.length} 节课</Text>
             </View>
             {group.classes.map((item) => {
-              const action = getClassAction(item);
+              const action = getClassAction(item, user?.role);
 
               return (
                 <View className="card class-card" key={item.id}>

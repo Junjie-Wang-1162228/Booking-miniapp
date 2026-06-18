@@ -4,13 +4,13 @@ import { useState } from 'react';
 import {
   createBooking,
   formatApiError,
-  getClasses,
   getStoredMember,
   getStoredToken,
   requestBookingSubscriptions
 } from '../../api';
 import { loadMemberSession } from '../../member-session';
-import { BoxingClass, MemberBranch } from '../../types';
+import { AuthUser, BoxingClass, MemberBranch } from '../../types';
+import { loadVisibleClasses } from '../../visible-classes';
 import { formatTime } from '../../utils';
 import { AppIcon, type AppIconName } from '../../components/AppIcon';
 import { LoadingCards, PageState } from '../../components/PageState';
@@ -18,7 +18,14 @@ import { isBookableClass } from '../../class-availability';
 import { useActionLock } from '../../use-action-lock';
 import './index.scss';
 
-function getClassAction(boxingClass: BoxingClass): { disabled: boolean; icon: AppIconName; label: string; variant: string } {
+function getClassAction(
+  boxingClass: BoxingClass,
+  userRole?: AuthUser['role']
+): { disabled: boolean; icon: AppIconName; label: string; variant: string } {
+  if (userRole === 'ADMIN') {
+    return { disabled: true, icon: 'calendar', label: '运营查看', variant: 'is-admin' };
+  }
+
   if (boxingClass.isBookedByMe) {
     return { disabled: true, icon: 'check', label: '已预约', variant: 'is-booked' };
   }
@@ -79,6 +86,7 @@ export default function ClassDetailPage() {
   const classId = `${router.params?.id ?? ''}`;
   const routeBranchId = `${router.params?.branchId ?? ''}`;
   const [token, setToken] = useState(getStoredToken());
+  const [userRole, setUserRole] = useState<AuthUser['role'] | undefined>();
   const [boxingClass, setBoxingClass] = useState<BoxingClass | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<MemberBranch | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,7 +103,7 @@ export default function ClassDetailPage() {
         preferredBranchId: routeBranchId
       });
       const branchId = routeBranchId || session.selectedBranchId;
-      const classList = branchId ? await getClasses(session.token, branchId) : [];
+      const classList = branchId ? await loadVisibleClasses(session, branchId) : [];
       const nextClass = classList.find((item) => item.id === classId && isBookableClass(item)) ?? null;
       const nextBranch =
         session.branches.find((branch) => branch.id === (nextClass?.branchId || branchId)) ??
@@ -103,6 +111,7 @@ export default function ClassDetailPage() {
         null;
 
       setToken(session.token);
+      setUserRole(session.user.role);
       setBoxingClass(nextClass);
       setSelectedBranch(nextBranch);
     } catch (error) {
@@ -132,7 +141,7 @@ export default function ClassDetailPage() {
   }
 
   async function bookClass() {
-    if (!token || !boxingClass || boxingClass.remainingSpots <= 0 || boxingClass.isBookedByMe) return;
+    if (!token || !boxingClass || userRole === 'ADMIN' || boxingClass.remainingSpots <= 0 || boxingClass.isBookedByMe) return;
     setLoading(true);
     try {
       const subscription = await requestBookingSubscriptions(true);
@@ -227,7 +236,7 @@ export default function ClassDetailPage() {
     );
   }
 
-  const action = getClassAction(boxingClass);
+  const action = getClassAction(boxingClass, userRole);
   const branchName = boxingClass.branchName ?? selectedBranch?.name ?? '当前门店';
   const coachInitials = getCoachInitials(boxingClass.coach);
   const coachIntro = getCoachIntro(boxingClass);
