@@ -191,6 +191,18 @@ member-c：东店同学 / 城东店 / 4 节课
 
 正式或接近正式的微信登录调试，应使用 `pnpm miniapp:dev`，并在 `apps/api/.env` 中配置自己的 `MINIAPP_APP_ID` 和 `MINIAPP_APP_SECRET`。配置完成后运行 `pnpm miniapp:sync-private-config`，把真实 AppID 同步到本地 ignored 的微信开发者工具私有配置；命令只输出脱敏状态，不输出真实 AppID。这些真实值只能保存在本地 `.env`、部署平台 secret store 或微信开发者工具本地私有配置中，不能提交 GitHub。
 
+真机调试前推荐运行：
+
+```bash
+pnpm miniapp:prepare-device
+```
+
+该命令会自动选择本机局域网 IPv4，先同步本地私有 AppID，再用 `TARO_APP_API_BASE_URL=http://<LAN-IP>:4000` 重建小程序 `dist`，最后运行 `pnpm ops:manual-test:readiness`。它不会打开微信开发者工具；完成后手动打开 `apps/miniapp/dist` 做真机调试。如果自动识别的地址不对，可显式指定：
+
+```bash
+pnpm miniapp:prepare-device --api-base-url http://<你的局域网IP>:4000
+```
+
 本地假会员调试可使用：
 
 ```bash
@@ -381,6 +393,7 @@ apps/miniapp/dist
 
 - `apps/miniapp/project.config.json` 仍只提交 `touristappid` 占位。
 - 真实 AppID 放在微信开发者工具本地私有配置或部署环境中；本地可运行 `pnpm miniapp:sync-private-config` 从 `apps/api/.env` 同步到 `project.private.config.json`。
+- 本地真机调试可运行 `pnpm miniapp:prepare-device` 自动重建指向局域网 API 的 `dist` 并检查 readiness。
 - 微信后台 request 合法域名包含 API HTTPS 域名。
 - 体验版使用真实微信登录，不使用 `pnpm miniapp:dev:local` 的本地假会员模式。
 - 提交审核前完成 `docs/manual-test-checklist.md` 和 `docs/miniapp-visual-qa.md` 的人工验收。
@@ -456,6 +469,7 @@ pnpm dev:preview:stop
 pnpm api:dev
 pnpm admin:dev
 pnpm miniapp:sync-private-config
+pnpm miniapp:prepare-device
 pnpm miniapp:dev
 pnpm miniapp:dev:local
 ```

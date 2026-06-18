@@ -16,6 +16,7 @@
     "api:dev": "pnpm --filter @booking/api start:dev",
     "admin:dev": "pnpm --filter @booking/admin dev",
     "miniapp:sync-private-config": "node scripts/sync-miniapp-private-config.mjs",
+    "miniapp:prepare-device": "node scripts/prepare-miniapp-device.mjs",
     "miniapp:dev": "cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp dev:weapp",
     "miniapp:dev:local": "cross-env TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp dev:weapp",
     "miniapp:visual-qa": "node scripts/miniapp-visual-qa.mjs",
