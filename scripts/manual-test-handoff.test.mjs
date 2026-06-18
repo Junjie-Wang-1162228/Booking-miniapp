@@ -97,6 +97,10 @@ test('createManualTestHandoffMarkdown renders a safe Chinese handoff report', ()
   assert.match(markdown, /下一步：2\. 真实微信登录准备，第 22 行/);
   assert.match(markdown, /手工验收：16\/46，35%/);
   assert.match(markdown, /视觉截图：0\/12，0%/);
+  assert.match(markdown, /## 优先顺序/);
+  assert.match(markdown, /1\. 第 22 行，在微信开发者工具中打开小程序构建目录 `apps\/miniapp\/dist`/);
+  assert.match(markdown, /2\. 第 28 行，小程序账户页使用 `admin` \/ `\[已隐藏\]` 账号登录/);
+  assert.match(markdown, /3\. 切换到 iPhone SE（375 x 667），补齐 classes、bookings、profile 截图/);
   assert.match(markdown, /1\. 本地环境准备：9\/9，100%，下一步：已完成/);
   assert.match(markdown, /3\. 后台权限和排课：1\/9，11%，下一步：第 28 行，小程序账户页使用 `admin` \/ `\[已隐藏\]` 账号登录/);
   assert.match(markdown, /已有截图：3；无效截图：3/);
@@ -127,8 +131,10 @@ test('package and docs expose the manual test handoff command', () => {
   assert.match(readme, /pnpm ops:manual-test:handoff/);
   assert.match(readme, /小程序真机验收交接/);
   assert.match(readme, /visualQaNext/);
+  assert.match(readme, /优先顺序/);
   assert.match(readme, /可复制命令/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:handoff/);
   assert.match(optimizationChecklist, /visualQaNext/);
+  assert.match(optimizationChecklist, /优先顺序/);
   assert.match(optimizationChecklist, /可复制命令/);
 });

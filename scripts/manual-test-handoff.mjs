@@ -28,6 +28,29 @@ function listLines(items, formatter, emptyText) {
   return items.map(formatter);
 }
 
+function createPriorityLines(summary) {
+  const lines = [];
+  if (summary.nextHumanAction) {
+    lines.push(`1. ${actionLine(summary.nextHumanAction)}`);
+  }
+
+  const nextActionLine = summary.nextHumanAction?.line;
+  const nextSectionAction = (summary.manualTestSections ?? [])
+    .map((section) => section.next)
+    .find((action) => action && action.line !== nextActionLine);
+  if (nextSectionAction) {
+    lines.push(`2. ${actionLine(nextSectionAction)}`);
+  }
+
+  const visualQaNext = summary.visualQaNext;
+  if (visualQaNext) {
+    const labels = visualQaNext.missingLabels?.join('、') || '缺失页面';
+    lines.push(`3. 切换到 ${visualQaNext.deviceName}（${visualQaNext.viewport}），补齐 ${labels} 截图`);
+  }
+
+  return lines.length ? lines : ['1. 当前没有未完成的人工动作。'];
+}
+
 export function createManualTestHandoffMarkdown(summary) {
   const manualProgress = summary.progress?.manualTest ?? null;
   const visualProgress = summary.progress?.visualQa ?? null;
@@ -49,6 +72,10 @@ export function createManualTestHandoffMarkdown(summary) {
     `- 构建包 API：\`${summary.miniappDistApi?.kind ?? 'unknown'}\`，healthOk=\`${summary.miniappDistApi?.healthOk ?? false}\``,
     `- 手工验收：${progressText(manualProgress)}`,
     `- 视觉截图：${progressText(visualProgress)}`,
+    '',
+    '## 优先顺序',
+    '',
+    ...createPriorityLines(summary),
     '',
     '## 下一步',
     '',
