@@ -23,7 +23,7 @@
 
 ## 3. 后台权限和排课
 
-- [ ] 运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，再运行 `pnpm ops:manual-test:readiness`，确认当前数据库有小程序运营端测试账号，且 `test` 账号只管理 1 个门店。
+- [ ] 运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，再运行 `pnpm ops:manual-test:readiness`，确认当前数据库有小程序运营端测试账号，`test` 账号只管理 1 个门店，且两个运营账号都能读取运营页依赖的 metrics/classes/bookings/members API。
 - [ ] 小程序账户页使用 `admin` / `admin` 账号登录，确认可以看到“运营管理”入口。
 - [ ] 小程序账户页使用 `test` / `test` 账号登录，确认可以看到“运营管理”入口，且只管理第一个活跃门店。
 - [ ] 如需继续验收网页后台，地址以 `pnpm dev:status` 输出为准，账号 `admin` / `admin123456`。

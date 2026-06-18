@@ -85,6 +85,8 @@ function createReadyManualTestData() {
     miniappTestAccountLoginOk: true,
     miniappAdminBranchCount: 2,
     miniappTestBranchCount: 1,
+    miniappAdminOpsReadOk: true,
+    miniappTestOpsReadOk: true,
     branches: [{ name: '城东店' }, { name: '城西店' }],
     managerBranches: [{ name: '城东店' }],
     classes: [
@@ -133,6 +135,8 @@ test('manual test data readiness verifies seeded admin branches and future class
   assert.equal(readiness.miniappAdminBranchCount, 2);
   assert.equal(readiness.miniappTestBranchCount, 1);
   assert.equal(readiness.miniappTestSingleBranchOnly, true);
+  assert.equal(readiness.miniappAdminOpsReadOk, true);
+  assert.equal(readiness.miniappTestOpsReadOk, true);
   assert.equal(readiness.eastBranchPresent, true);
   assert.equal(readiness.westBranchPresent, true);
   assert.equal(readiness.managerEastBranchPresent, true);
@@ -178,6 +182,43 @@ test('manual test data readiness blocks when miniapp operation accounts are miss
     section: '3. 后台权限和排课',
     line: 26,
     text: '运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，确认当前数据库有小程序运营端测试账号。'
+  });
+});
+
+test('manual test data readiness blocks when miniapp operation read APIs fail', () => {
+  const readiness = createManualTestDataReadiness({
+    adminLoginOk: true,
+    managerLoginOk: true,
+    miniappAdminAccountLoginOk: true,
+    miniappTestAccountLoginOk: true,
+    miniappAdminBranchCount: 2,
+    miniappTestBranchCount: 1,
+    miniappAdminOpsReadOk: false,
+    miniappTestOpsReadOk: true,
+    branches: [{ name: '城东店' }, { name: '城西店' }],
+    managerBranches: [{ name: '城东店' }],
+    classes: [
+      {
+        title: '基础拳击燃脂',
+        branchName: '城东店',
+        startsAt: '2099-01-01T11:30:00.000Z',
+        status: 'SCHEDULED'
+      }
+    ],
+    now: '2026-06-14T00:00:00.000Z'
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'miniapp-admin-ops-read-failed',
+      detail: 'miniapp admin operation read APIs failed'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '3. 后台权限和排课',
+    line: 27,
+    text: '小程序账户页使用 `admin` / `admin` 账号登录，确认可以看到“运营管理”入口。'
   });
 });
 
@@ -602,6 +643,7 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /admin\/admin/);
   assert.match(readme, /test\/test/);
   assert.match(readme, /test` 只管理 1 个门店/);
+  assert.match(readme, /metrics\/classes\/bookings\/members/);
   assert.match(readme, /east-manager/);
   assert.match(readme, /店长只能访问城东店/);
   assert.match(readme, /wechatConfig/);
@@ -613,6 +655,8 @@ test('docs expose manual test readiness command', () => {
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
   assert.match(optimizationChecklist, /小程序运营端账号门禁/);
+  assert.match(optimizationChecklist, /小程序运营端只读接口门禁/);
+  assert.match(optimizationChecklist, /metrics\/classes\/bookings\/members API/);
   assert.match(optimizationChecklist, /\/auth\/account-login/);
   assert.match(optimizationChecklist, /真机 API 地址门禁/);
   assert.match(optimizationChecklist, /local-only/);

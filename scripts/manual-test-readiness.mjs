@@ -55,6 +55,11 @@ const MANUAL_TEST_CHECKLIST_ACTIONS = {
     section: '3. 后台权限和排课',
     line: 31,
     text: '确认店长只能选择 `城东店`，不能查看或操作 `城西店` 数据。'
+  },
+  miniappOpsEntry: {
+    section: '3. 后台权限和排课',
+    line: 27,
+    text: '小程序账户页使用 `admin` / `admin` 账号登录，确认可以看到“运营管理”入口。'
   }
 };
 const DEFAULT_API_BASE_URL = 'http://localhost:4000';
@@ -171,6 +176,8 @@ export function createManualTestDataReadiness({
   miniappTestAccountLoginOk = null,
   miniappAdminBranchCount = null,
   miniappTestBranchCount = null,
+  miniappAdminOpsReadOk = null,
+  miniappTestOpsReadOk = null,
   branches = [],
   managerBranches = [],
   classes = [],
@@ -233,6 +240,26 @@ export function createManualTestDataReadiness({
         id: 'miniapp-test-account-over-scoped',
         detail: 'miniapp test account must access exactly one branch',
         nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.cloudTestAccounts
+      })
+    );
+  }
+
+  if (miniappAdminOpsReadOk === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-admin-ops-read-failed',
+        detail: 'miniapp admin operation read APIs failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.miniappOpsEntry
+      })
+    );
+  }
+
+  if (miniappTestOpsReadOk === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-test-ops-read-failed',
+        detail: 'miniapp test operation read APIs failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.miniappOpsEntry
       })
     );
   }
@@ -318,6 +345,8 @@ export function createManualTestDataReadiness({
     miniappTestBranchCount,
     miniappAdminHasBranchAccess,
     miniappTestSingleBranchOnly,
+    miniappAdminOpsReadOk,
+    miniappTestOpsReadOk,
     eastBranchPresent,
     westBranchPresent,
     managerEastBranchPresent,
@@ -631,6 +660,20 @@ async function fetchJson(url, options = {}) {
   }
 }
 
+async function checkMiniappOpsReadApis(apiBaseUrl, accessToken, branchId) {
+  if (!accessToken || !branchId) return false;
+  const date = new Date().toISOString().slice(0, 10);
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const endpoints = [
+    `/admin/metrics/daily?branchId=${encodeURIComponent(branchId)}&date=${encodeURIComponent(date)}`,
+    `/admin/classes?branchId=${encodeURIComponent(branchId)}`,
+    `/admin/bookings?branchId=${encodeURIComponent(branchId)}&date=${encodeURIComponent(date)}&status=BOOKED`,
+    `/admin/members?branchId=${encodeURIComponent(branchId)}`
+  ];
+  const responses = await Promise.all(endpoints.map((endpoint) => fetchJson(`${apiBaseUrl}${endpoint}`, { headers })));
+  return responses.every((response) => response.ok);
+}
+
 function readLocalEnvValues(envPath, env = process.env) {
   const envFileExists = existsSync(envPath);
   const fileEnv = envFileExists ? parseEnvSource(readFileSync(envPath, 'utf8')) : {};
@@ -674,6 +717,16 @@ export async function readManualTestDataReadiness({
   const miniappTestBranches = Array.isArray(miniappTestLogin.body?.user?.accessibleBranches)
     ? miniappTestLogin.body.user.accessibleBranches
     : [];
+  const miniappAdminBranchId = miniappAdminBranches[0]?.id ?? null;
+  const miniappTestBranchId = miniappTestBranches[0]?.id ?? null;
+  const [miniappAdminOpsReadOk, miniappTestOpsReadOk] = await Promise.all([
+    miniappAdminAccessToken
+      ? checkMiniappOpsReadApis(apiBaseUrl, miniappAdminAccessToken, miniappAdminBranchId)
+      : Promise.resolve(false),
+    miniappTestAccessToken
+      ? checkMiniappOpsReadApis(apiBaseUrl, miniappTestAccessToken, miniappTestBranchId)
+      : Promise.resolve(false)
+  ]);
 
   if (!accessToken) {
     return createManualTestDataReadiness({
@@ -682,6 +735,8 @@ export async function readManualTestDataReadiness({
       miniappTestAccountLoginOk: miniappTestLogin.ok && Boolean(miniappTestAccessToken),
       miniappAdminBranchCount: miniappAdminBranches.length,
       miniappTestBranchCount: miniappTestBranches.length,
+      miniappAdminOpsReadOk,
+      miniappTestOpsReadOk,
       source
     });
   }
@@ -709,6 +764,8 @@ export async function readManualTestDataReadiness({
     miniappTestAccountLoginOk: miniappTestLogin.ok && Boolean(miniappTestAccessToken),
     miniappAdminBranchCount: miniappAdminBranches.length,
     miniappTestBranchCount: miniappTestBranches.length,
+    miniappAdminOpsReadOk,
+    miniappTestOpsReadOk,
     branches: Array.isArray(branches.body) ? branches.body : [],
     managerBranches: Array.isArray(managerBranches.body) ? managerBranches.body : [],
     classes: Array.isArray(classes.body) ? classes.body : [],

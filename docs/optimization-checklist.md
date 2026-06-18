@@ -119,6 +119,7 @@
 - [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist；`manual-test-status` 的每个分组会输出具体 `next`，`nextHumanAction` 会在本地门禁已通过时直接提示真实微信登录准备分组里的下一条任务和行号，`readyForRelease` 与 `releaseBlockers` 会明确发布是否仍被视觉截图或完整手工 checklist 阻断，避免重复做已验证的本地启动项或误判可发布。
 - [x] `pnpm ops:manual-test:readiness` 增加本地验收测试数据门禁：通过 API 只读验证默认后台账号、`east-manager` 店长账号、城东/城西门店、未来课程和店长只能访问城东店的门店权限，不重跑 seed、不清空本地库，并且不输出登录 token。
 - [x] `pnpm ops:manual-test:readiness` 增加小程序运营端账号门禁：通过 `/auth/account-login` 只读验证 `admin/admin` 和 `test/test` 可登录，确认 `admin` 有门店权限、`test` 只管理 1 个门店；输出只保留布尔值和门店数量，不输出 token 或账号密码。
+- [x] `pnpm ops:manual-test:readiness` 增加小程序运营端只读接口门禁：用 `admin/admin` 和 `test/test` 只读验证小程序运营页依赖的 metrics/classes/bookings/members API，确认真机进入运营页前权限和数据加载链路可用；输出只保留布尔状态，不输出 token、账号密码或接口响应明细。
 - [x] `pnpm ops:manual-test:readiness` 增加真实微信登录配置门禁：读取本地 `apps/api/.env` 和当前进程环境变量，检查 AppID 是否仍为占位、AppSecret 是否缺失、mock 登录是否开启、自动开户是否仍开启；输出只保留布尔状态和下一步行号，不泄露真实 AppID 或 Secret。
 - [x] `pnpm ops:manual-test:readiness` 增加小程序 DevTools 项目配置门禁：检查 tracked `apps/miniapp/project.config.json` 只能使用 `touristappid` 并指向 `dist/`，检查本地 `apps/miniapp/dist` 必需文件是否齐全，同时只输出本地 `project.private.config.json` 是否存在和 AppID 是否已配置等布尔状态，不泄露真实 AppID。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API 地址门禁：扫描 `apps/miniapp/dist` 里的构建产物，如果仍指向 `localhost`、`127.0.0.1`、`0.0.0.0` 或 `::1`，阻断真实微信人工验收；输出只保留 `local-only` / `device-reachable` / `unknown` 分类，不泄露具体 API URL。
