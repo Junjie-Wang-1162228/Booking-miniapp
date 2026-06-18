@@ -108,6 +108,7 @@
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
 - [x] API E2E 默认从 `apps/api/.env` 的 `DATABASE_URL` 推导测试库端口：本地开发库切到 `3308` 时，`test:e2e` 会自动使用 `localhost:3308/boxing_booking_e2e`，避免误跑到其他项目占用的 `3307` MySQL。
+- [x] API E2E 会员管理用例改用单调递增测试后缀，替代 `Date.now().slice(-6)`，避免手机号/会员号唯一值在快速连续执行时偶发碰撞导致 CI 红。
 - [x] `pnpm dev:status` 增加数据库连接目标核对：只输出 host/port/database，不泄露账号密码；当 `DATABASE_URL` 的本地端口由非当前 compose MySQL 容器发布时给出 warning，避免误判本地数据库环境。
 - [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
 - [x] 新增 `pnpm dev:status:strict` 严格本地环境门禁：普通状态查询继续用于预览可用性；严格模式会把数据库端口漂移和孤儿 Prisma query-engine 当作失败，适合截图验收或发布前使用。
@@ -122,6 +123,7 @@
 - [x] `pnpm ops:manual-test:readiness` 增加小程序运营端只读接口门禁：用 `admin/admin` 和 `test/test` 只读验证小程序运营页依赖的 metrics/classes/bookings/members API，确认真机进入运营页前权限和数据加载链路可用；输出只保留布尔状态，不输出 token、账号密码或接口响应明细。
 - [x] `pnpm ops:manual-test:readiness` 增加真实微信登录配置门禁：读取本地 `apps/api/.env` 和当前进程环境变量，检查 AppID 是否仍为占位、AppSecret 是否缺失、mock 登录是否开启、自动开户是否仍开启；输出只保留布尔状态和下一步行号，不泄露真实 AppID 或 Secret。
 - [x] `pnpm ops:manual-test:readiness` 增加小程序 DevTools 项目配置门禁：检查 tracked `apps/miniapp/project.config.json` 只能使用 `touristappid` 并指向 `dist/`，检查本地 `apps/miniapp/dist` 必需文件是否齐全，同时只输出本地 `project.private.config.json` 是否存在和 AppID 是否已配置等布尔状态，不泄露真实 AppID。
+- [x] `pnpm ops:manual-test:readiness` 增加本地私有 AppID 门禁：要求 ignored 的 `apps/miniapp/project.private.config.json` 配置真实 AppID，确保微信开发者工具以真实小程序身份打开 `dist/`；tracked `project.config.json` 仍必须保持 `touristappid`，输出不泄露真实 AppID。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API 地址门禁：扫描 `apps/miniapp/dist` 里的构建产物，如果仍指向 `localhost`、`127.0.0.1`、`0.0.0.0` 或 `::1`，阻断真实微信人工验收；输出只保留 `local-only` / `device-reachable` / `unknown` 分类，不泄露具体 API URL。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API health 门禁：当 `apps/miniapp/dist` 指向 LAN IP 或域名时，自动请求构建包 API 的 `/health`，确认扫码前后端地址真实可访问；输出只保留 `distApiHealthOk` 布尔状态，不输出具体 API URL。
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。

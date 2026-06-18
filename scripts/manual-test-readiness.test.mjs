@@ -380,12 +380,47 @@ test('miniapp project readiness keeps tracked AppID placeholder-only while hidin
   assert.doesNotMatch(JSON.stringify(readiness), new RegExp(localPrivateAppId));
 });
 
+test('miniapp project readiness blocks missing local private AppID for real-device WeChat checks', () => {
+  const readiness = createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'dist/',
+      appid: 'touristappid'
+    },
+    privateConfig: {},
+    privateConfigExists: true,
+    distFilesPresent: true,
+    missingDistFiles: [],
+    distApiBaseUrlKind: 'device-reachable',
+    distApiHealthOk: true
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.privateConfigExists, true);
+  assert.equal(readiness.privateAppIdConfigured, false);
+  assert.equal(readiness.privateAppIdRealLooking, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'missing-private-app-id',
+      detail: 'local project.private.config.json appid must be configured for real-device WeChat checks'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
+  });
+});
+
 test('miniapp project readiness blocks dist builds that still point to localhost API', () => {
   const readiness = createMiniappProjectReadiness({
     projectConfig: {
       miniprogramRoot: 'dist/',
       appid: 'touristappid'
     },
+    privateConfig: {
+      appid: ['wx', 'abcdef1234567890'].join('')
+    },
+    privateConfigExists: true,
     distFilesPresent: true,
     missingDistFiles: [],
     distApiBaseUrlKind: 'local-only'
@@ -412,6 +447,10 @@ test('miniapp project readiness blocks device API builds when health is unreacha
       miniprogramRoot: 'dist/',
       appid: 'touristappid'
     },
+    privateConfig: {
+      appid: ['wx', 'abcdef1234567890'].join('')
+    },
+    privateConfigExists: true,
     distFilesPresent: true,
     missingDistFiles: [],
     distApiBaseUrlKind: 'device-reachable',
@@ -462,6 +501,10 @@ test('miniapp project readiness blocks wrong DevTools root or tracked real AppID
       miniprogramRoot: 'src/',
       appid: trackedRealAppId
     },
+    privateConfig: {
+      appid: ['wx', 'abcdef1234567890'].join('')
+    },
+    privateConfigExists: true,
     distFilesPresent: false,
     missingDistFiles: ['app.js', 'app.json'],
     distApiBaseUrlKind: 'unknown'
@@ -692,6 +735,7 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /真实微信登录配置/);
   assert.match(readme, /miniappProject/);
   assert.match(readme, /小程序 DevTools 项目配置/);
+  assert.match(readme, /project\.private\.config\.json/);
   assert.match(readme, /真机可访问类型/);
   assert.match(readme, /\/health/);
   assert.match(readme, /localhost/);
@@ -707,4 +751,5 @@ test('docs expose manual test readiness command', () => {
   assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
   assert.match(optimizationChecklist, /小程序 DevTools 项目配置门禁/);
+  assert.match(optimizationChecklist, /本地私有 AppID 门禁/);
 });

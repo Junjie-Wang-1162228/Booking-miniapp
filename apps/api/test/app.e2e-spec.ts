@@ -526,21 +526,27 @@ describe('Boxing booking API', () => {
       return response.body.accessToken as string;
     }
 
-    async function branchIdByName(name: string) {
-      const branch = await prisma.branch.findFirstOrThrow({ where: { name }, select: { id: true } });
-      return branch.id;
-    }
+  async function branchIdByName(name: string) {
+    const branch = await prisma.branch.findFirstOrThrow({ where: { name }, select: { id: true } });
+    return branch.id;
+  }
 
-    function restoreEnv(key: string, value: string | undefined) {
-      if (value === undefined) {
-        delete process.env[key];
+  let nextUniqueSuffix = 100000;
+  function uniqueSuffix() {
+    nextUniqueSuffix += 1;
+    return String(nextUniqueSuffix).slice(-6);
+  }
+
+  function restoreEnv(key: string, value: string | undefined) {
+    if (value === undefined) {
+      delete process.env[key];
       } else {
         process.env[key] = value;
       }
     }
 
     it('lets admins create a member profile, bind a WeChat openid, and then log in through WeChat', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const phone = `18800${unique}`;
       const openid = `openid-bound-later-${unique}`;
       const originalAutoProvision = process.env.WECHAT_AUTO_PROVISION_ENABLED;
@@ -644,7 +650,7 @@ describe('Boxing booking API', () => {
     });
 
     it('lets admins unbind a mistaken WeChat openid and bind it to another member', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const openid = `openid-rebind-${unique}`;
       const admin = await adminToken();
       const branchId = await branchIdByName('城东店');
@@ -750,7 +756,7 @@ describe('Boxing booking API', () => {
     });
 
     it('lets admins update member contact details with an audit record', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const admin = await adminToken();
       const branchId = await branchIdByName('城东店');
 
@@ -795,7 +801,7 @@ describe('Boxing booking API', () => {
     });
 
     it('rejects updating a member phone to another member phone', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const admin = await adminToken();
       const branchId = await branchIdByName('城东店');
 
@@ -832,7 +838,7 @@ describe('Boxing booking API', () => {
     });
 
     it('scopes member management by admin branch access and rejects regular users', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const eastPhone = `18801${unique}`;
       const westPhone = `18802${unique}`;
       const eastManager = await adminToken('east-manager', 'manager123456');
@@ -877,7 +883,7 @@ describe('Boxing booking API', () => {
     });
 
     it('lets admins adjust branch-scoped lesson balances with adjustment and audit records', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const admin = await adminToken();
       const branchId = await branchIdByName('城东店');
 
@@ -963,7 +969,7 @@ describe('Boxing booking API', () => {
     });
 
     it('returns a member lesson ledger with adjustments and deductions scoped by branch', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const admin = await adminToken();
       const member = await userToken('member-a');
       const branchId = await branchIdByName('城东店');
@@ -1058,7 +1064,7 @@ describe('Boxing booking API', () => {
     });
 
     it('rejects lesson adjustments that would make the balance negative', async () => {
-      const unique = String(Date.now()).slice(-6);
+      const unique = uniqueSuffix();
       const admin = await adminToken();
       const branchId = await branchIdByName('城东店');
 

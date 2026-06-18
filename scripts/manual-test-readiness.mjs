@@ -582,6 +582,16 @@ export function createMiniappProjectReadiness({
     );
   }
 
+  if (!privateAppIdRealLooking) {
+    failures.push(
+      createReadinessFailure({
+        id: 'missing-private-app-id',
+        detail: 'local project.private.config.json appid must be configured for real-device WeChat checks',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
   if (!distFilesPresent) {
     failures.push(
       createReadinessFailure({
