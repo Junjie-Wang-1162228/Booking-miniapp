@@ -34,7 +34,16 @@ function createDevStatus(overrides = {}) {
     visualQa: {
       complete: false,
       existingCount: 3,
+      presentCount: 3,
+      invalidCount: 1,
       requiredCount: 12,
+      invalid: [
+        {
+          deviceName: 'iPhone 12/13 (Pro)',
+          label: 'classes',
+          reason: 'screenshot is older than latest miniapp UI source'
+        }
+      ],
       captureCommand: 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
     },
     manualTest: {
@@ -590,6 +599,11 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
   assert.deepEqual(readiness.progress.preview, { completed: 4, total: 4, percent: 100 });
   assert.deepEqual(readiness.progress.visualQa, { completed: 3, total: 12, percent: 25 });
   assert.deepEqual(readiness.progress.manualTest, { completed: 0, total: 41, percent: 0 });
+  assert.deepEqual(readiness.visualQaDiagnostics, {
+    presentCount: 3,
+    invalidCount: 1,
+    invalidReasons: ['screenshot is older than latest miniapp UI source']
+  });
   assert.deepEqual(
     readiness.gates.map((gate) => ({ id: gate.id, ok: gate.ok, requiredFor: gate.requiredFor })),
     [

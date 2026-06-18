@@ -133,6 +133,22 @@ function createReleaseBlockers(gates) {
     }));
 }
 
+function createVisualQaDiagnostics(visualQa = {}) {
+  const invalidReasons = [
+    ...new Set(
+      (visualQa.invalid ?? [])
+        .map((item) => item?.reason)
+        .filter((reason) => typeof reason === 'string' && reason.length > 0)
+    )
+  ];
+
+  return {
+    presentCount: visualQa.presentCount ?? visualQa.existingCount ?? 0,
+    invalidCount: visualQa.invalidCount ?? visualQa.invalid?.length ?? 0,
+    invalidReasons
+  };
+}
+
 function parseEnvSource(source) {
   return source
     .split(/\r?\n/)
@@ -894,6 +910,7 @@ export function createManualTestReadiness(
   const visualQa = devStatus.visualQa ?? {
     complete: progress.visualQa.total > 0 && progress.visualQa.completed === progress.visualQa.total
   };
+  const visualQaDiagnostics = createVisualQaDiagnostics(visualQa);
   const localPreviewOk = progress.preview.total > 0 && progress.preview.completed === progress.preview.total;
   const strictOk = progress.strict.passed === true;
   const readyForManualWechat =
@@ -965,6 +982,7 @@ export function createManualTestReadiness(
     readyForRelease: releaseBlockers.length === 0,
     releaseBlockers,
     progress,
+    visualQaDiagnostics,
     gates,
     testData,
     wechatConfig,

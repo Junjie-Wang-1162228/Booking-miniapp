@@ -28,6 +28,7 @@ export function createManualTestNextSummary(readiness) {
       manualTest: readiness.progress?.manualTest ?? null,
       visualQa: readiness.progress?.visualQa ?? null
     },
+    visualQaDiagnostics: readiness.visualQaDiagnostics ?? null,
     releaseBlockers: readiness.releaseBlockers ?? [],
     captureCommand: readiness.captureCommand ?? null
   };

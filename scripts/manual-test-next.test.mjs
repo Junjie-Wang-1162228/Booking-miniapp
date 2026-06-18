@@ -22,6 +22,11 @@ test('createManualTestNextSummary extracts only the next human action and safe h
       manualTest: { completed: 14, total: 46, percent: 30 },
       visualQa: { completed: 3, total: 12, percent: 25 }
     },
+    visualQaDiagnostics: {
+      presentCount: 3,
+      invalidCount: 1,
+      invalidReasons: ['screenshot is older than latest miniapp UI source']
+    },
     miniappProject: {
       source: {
         dist: '/repo/apps/miniapp/dist'
@@ -59,6 +64,11 @@ test('createManualTestNextSummary extracts only the next human action and safe h
     progress: {
       manualTest: { completed: 14, total: 46, percent: 30 },
       visualQa: { completed: 3, total: 12, percent: 25 }
+    },
+    visualQaDiagnostics: {
+      presentCount: 3,
+      invalidCount: 1,
+      invalidReasons: ['screenshot is older than latest miniapp UI source']
     },
     releaseBlockers: [
       { id: 'visual-qa-matrix', label: '多设备视觉截图矩阵', detail: '3/12' },
