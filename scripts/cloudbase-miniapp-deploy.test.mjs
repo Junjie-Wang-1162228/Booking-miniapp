@@ -65,6 +65,26 @@ test('docs explain miniapp-only CloudBase real-device testing without the web ad
   assert.match(docs, /微信授权登录/);
   assert.match(docs, /会员侧继续使用微信绑定登录/);
   assert.match(docs, /6 位绑定码/);
-  assert.match(docs, /TARO_APP_API_BASE_URL/);
+  assert.match(docs, /TARO_APP_CLOUDBASE_ENV_ID/);
+  assert.match(docs, /TARO_APP_CLOUDBASE_SERVICE_NAME/);
+  assert.match(docs, /callContainer/);
   assert.match(readme, /docs\/cloudbase-miniapp-runbook\.md/);
+});
+
+test('miniapp production requests use CloudBase callContainer instead of the default public run domain', () => {
+  const miniappConfig = readFileSync('apps/miniapp/config/index.ts', 'utf8');
+  const miniappAppConfig = readFileSync('apps/miniapp/src/app.config.ts', 'utf8');
+  const miniappApp = readFileSync('apps/miniapp/src/app.tsx', 'utf8');
+  const miniappApi = readFileSync('apps/miniapp/src/api.ts', 'utf8');
+
+  assert.match(miniappConfig, /TARO_APP_CLOUDBASE_ENV_ID/);
+  assert.match(miniappConfig, /TARO_APP_CLOUDBASE_SERVICE_NAME/);
+  assert.match(miniappAppConfig, /cloud:\s*true/);
+  assert.match(miniappApp, /Taro\.cloud\.init/);
+  assert.match(miniappApi, /Taro\.cloud\.callContainer/);
+  assert.match(miniappApi, /config:\s*{\s*env:\s*CLOUDBASE_ENV_ID\s*}/);
+  assert.match(miniappApi, /'X-WX-SERVICE':\s*CLOUDBASE_SERVICE_NAME/);
+  assert.match(miniappApi, /CLOUDBASE_ENV_ID/);
+  assert.match(miniappApi, /shouldUseCloudContainer/);
+  assert.doesNotMatch(miniappConfig, /run\.tcloudbase\.com/);
 });

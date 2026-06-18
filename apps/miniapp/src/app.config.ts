@@ -1,4 +1,5 @@
 export default defineAppConfig({
+  cloud: true,
   pages: ['pages/classes/index', 'pages/bookings/index', 'pages/profile/index', 'pages/class-detail/index', 'pages/ops/index'],
   window: {
     backgroundTextStyle: 'light',
@@ -33,4 +34,4 @@ export default defineAppConfig({
       }
     ]
   }
-});
+} as unknown as Parameters<typeof defineAppConfig>[0]);

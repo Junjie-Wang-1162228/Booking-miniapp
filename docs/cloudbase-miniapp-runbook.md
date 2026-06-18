@@ -6,7 +6,7 @@
 
 - 后端 API：部署到 CloudBase Run，运行本仓库根目录 `Dockerfile`。
 - 数据库：使用云端 MySQL，`DATABASE_URL` 指向该数据库。
-- 小程序：构建 `apps/miniapp/dist`，用微信开发者工具预览/上传。
+- 小程序：构建 `apps/miniapp/dist`，通过微信云开发 `callContainer` 调用云托管服务，用微信开发者工具预览/上传。
 - 网站后台：暂时不部署；运营管理先使用小程序内 `运营管理` 页面。
 
 CloudBase Run 是容器化服务，适合运行 NestJS 这类常驻 HTTP API。服务端口使用云托管注入的 `PORT`，本项目也兼容原来的 `API_PORT`。
@@ -36,9 +36,8 @@ BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 2. 创建 CloudBase Run 服务，选择从代码或 Git 仓库构建。
 3. 使用仓库根目录 `Dockerfile`。
 4. 服务监听端口填 `3000`。
-5. 启用公网访问，拿到 HTTPS API 域名。
-6. 在微信公众平台把该 HTTPS 域名加入 request 合法域名。
-7. 在云端执行数据库 migration：
+5. 启用云托管访问，确认服务名，例如 `booking-api`。
+6. 在云端执行数据库 migration：
 
 ```bash
 pnpm --filter @booking/api prisma:deploy
@@ -68,14 +67,17 @@ pnpm --filter @booking/api seed:cloud-test-accounts
 
 ## 小程序构建
 
-把 API 地址换成 CloudBase Run 的 HTTPS 域名：
+正式体验版不要把云托管默认 `run.tcloudbase.com` 域名填入微信公众平台 `request 合法域名`；微信会提示该域名仅可测试使用。构建体验版时改用云开发 `callContainer` 链路：
 
 ```bash
 cross-env TARO_APP_AUTH_MODE=wechat \
-  TARO_APP_API_BASE_URL=https://<cloudbase-run-domain> \
+  TARO_APP_CLOUDBASE_ENV_ID=<cloudbase-env-id> \
+  TARO_APP_CLOUDBASE_SERVICE_NAME=booking-api \
   TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 \
   pnpm --filter @booking/miniapp build:weapp
 ```
+
+本地局域网真机调试仍可继续使用 `TARO_APP_API_BASE_URL=http://<LAN-IP>:4000`，只要不设置 `TARO_APP_CLOUDBASE_ENV_ID` 和 `TARO_APP_CLOUDBASE_SERVICE_NAME`，小程序请求会回落到普通 `Taro.request`。
 
 然后在微信开发者工具打开：
 
@@ -110,15 +112,16 @@ pnpm --filter @booking/api wechat:bind-admin -- --username admin --binding-code 
 - 微信开发者工具已登录。
 - 小程序项目使用真实 AppID，不是 `touristappid`。
 - `apps/miniapp/dist` 已用云端 API 地址重新构建。
-- 云托管 API `/health` 能通过公网访问。
+- 云托管 API `/health` 可用，或小程序 `callContainer` 能访问 `booking-api`。
 
 满足后，可以在微信开发者工具中点击“预览”生成二维码；也可以用开发者工具 CLI 生成预览，但需要本机微信开发者工具已经登录并开启服务端口。
 
 ## 当前阶段验收清单
 
-- [ ] `https://<cloudbase-run-domain>/health` 返回 `{ "ok": true }`。
-- [ ] 小程序构建时 `TARO_APP_API_BASE_URL` 指向 CloudBase Run HTTPS 域名。
-- [ ] 微信后台 request 合法域名包含 CloudBase Run HTTPS 域名。
+- [ ] 云托管服务 `booking-api` 的 `/health` 返回 `{ "ok": true }`。
+- [ ] 小程序构建时 `TARO_APP_CLOUDBASE_ENV_ID` 指向当前云开发环境。
+- [ ] 小程序构建时 `TARO_APP_CLOUDBASE_SERVICE_NAME=booking-api`。
+- [ ] 微信后台无需填写 CloudBase 默认 `run.tcloudbase.com` 域名；如果未来绑定自有正式域名，再把自有 HTTPS 域名加入 request 合法域名。
 - [ ] 你的微信号首次进入小程序能看到 6 位绑定码。
 - [ ] 运行 `pnpm --filter @booking/api wechat:bind-admin -- --username admin --binding-code <code>` 后，你重新进入小程序能看到运营端。
 - [ ] 第二个微信号可以作为会员测试约课；如果没有会员档案，先走绑定码流程。

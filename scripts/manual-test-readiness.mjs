@@ -455,10 +455,41 @@ export function extractMiniappDistApiBaseUrls(sources = []) {
 }
 
 export function classifyMiniappDistApiBase(sources = []) {
+  if (isCloudbaseContainerBuild(sources.join('\n'))) return 'device-reachable';
+
   const urls = extractMiniappDistApiBaseUrls(sources);
   if (urls.some(isLocalOnlyUrl)) return 'local-only';
   if (urls.length > 0) return 'device-reachable';
   return 'unknown';
+}
+
+function isCloudbaseContainerBuild(source) {
+  const text = String(source ?? '');
+  const hasCloudCall = /cloud\.callContainer/.test(text);
+  const envExpression = text.match(/config\s*:\s*\{\s*env\s*:\s*(["'][^"']*["']|[A-Za-z_$][\w$]*)/)?.[1] ?? '';
+  const serviceExpression =
+    text.match(/["']X-WX-SERVICE["']\s*:\s*(["'][^"']*["']|[A-Za-z_$][\w$]*)/)?.[1] ?? '';
+
+  return (
+    hasCloudCall &&
+    Boolean(resolveStaticStringValue(text, envExpression)) &&
+    Boolean(resolveStaticStringValue(text, serviceExpression))
+  );
+}
+
+function resolveStaticStringValue(source, expression) {
+  const text = String(source ?? '');
+  const trimmedExpression = String(expression ?? '').trim();
+  const literal = trimmedExpression.match(/^["']([^"']+)["']$/);
+  if (literal) return literal[1];
+  if (!/^[A-Za-z_$][\w$]*$/.test(trimmedExpression)) return '';
+
+  const assignment = new RegExp(`\\b${escapeRegExp(trimmedExpression)}\\s*=\\s*["']([^"']+)["']`).exec(text);
+  return assignment?.[1] ?? '';
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function isLikelyMiniappApiBaseUrl(value) {

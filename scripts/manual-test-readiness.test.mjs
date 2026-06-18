@@ -478,6 +478,24 @@ test('miniapp dist API base classifier distinguishes local-only and device-reach
   assert.equal(classifyMiniappDistApiBase(['const API = "http://127.0.0.1:4000";']), 'local-only');
   assert.equal(classifyMiniappDistApiBase(['const API = "http://192.168.31.249:4000";']), 'device-reachable');
   assert.equal(classifyMiniappDistApiBase(['const API = "https://api.example.com";']), 'device-reachable');
+  assert.equal(
+    classifyMiniappDistApiBase([
+      'var API="http://localhost:4000", ENV="cloudbase-abc", SERVICE="booking-api"; wx.cloud.callContainer({config:{env:ENV}, header:{"X-WX-SERVICE":SERVICE}});'
+    ]),
+    'device-reachable'
+  );
+  assert.equal(
+    classifyMiniappDistApiBase([
+      'var API="http://localhost:4000", ENV="prod-abc123", SERVICE="booking-api"; wx.cloud.callContainer({config:{env:ENV}, header:{"X-WX-SERVICE":SERVICE}});'
+    ]),
+    'device-reachable'
+  );
+  assert.equal(
+    classifyMiniappDistApiBase([
+      'var API="http://localhost:4000", ENV="", SERVICE="booking-api"; wx.cloud.callContainer({config:{env:ENV}, header:{"X-WX-SERVICE":SERVICE}});'
+    ]),
+    'local-only'
+  );
   assert.equal(classifyMiniappDistApiBase(['const API = "";']), 'unknown');
 });
 

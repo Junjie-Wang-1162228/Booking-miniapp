@@ -15,6 +15,8 @@ import {
 
 const API_BASE = __API_BASE_URL__;
 const AUTH_MODE = __AUTH_MODE__;
+const CLOUDBASE_ENV_ID = __CLOUDBASE_ENV_ID__;
+const CLOUDBASE_SERVICE_NAME = __CLOUDBASE_SERVICE_NAME__;
 const WECHAT_SUBSCRIBE_TEMPLATE_ID = __WECHAT_SUBSCRIBE_TEMPLATE_ID__;
 const WECHAT_BOOKING_CREATED_TEMPLATE_ID = __WECHAT_BOOKING_CREATED_TEMPLATE_ID__;
 const TOKEN_KEY = 'member_token';
@@ -52,16 +54,33 @@ export class ApiRequestError extends Error {
 }
 
 async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await Taro.request<T>({
-    url: `${API_BASE}${path}`,
-    method: options.method || 'GET',
+  const method = options.method || 'GET';
+  const header = {
+    'Content-Type': 'application/json',
+    ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+  };
+  const cloudContainerRequest = {
+    config: { env: CLOUDBASE_ENV_ID },
+    path,
+    method,
     data: options.data,
     timeout: REQUEST_TIMEOUT_MS,
     header: {
-      'Content-Type': 'application/json',
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+      ...header,
+      'X-WX-SERVICE': CLOUDBASE_SERVICE_NAME
     }
-  });
+  };
+  const response = shouldUseCloudContainer()
+    ? await Taro.cloud.callContainer<T>(
+        cloudContainerRequest as unknown as Parameters<typeof Taro.cloud.callContainer>[0]
+      )
+    : await Taro.request<T>({
+        url: `${API_BASE}${path}`,
+        method,
+        data: options.data,
+        timeout: REQUEST_TIMEOUT_MS,
+        header
+      });
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     const data = response.data as ErrorResponse;
@@ -70,6 +89,10 @@ async function requestJson<T>(path: string, options: RequestOptions = {}): Promi
   }
 
   return response.data;
+}
+
+function shouldUseCloudContainer() {
+  return Boolean(CLOUDBASE_ENV_ID && CLOUDBASE_SERVICE_NAME);
 }
 
 export function formatApiError(error: unknown, fallback: string) {

@@ -138,6 +138,8 @@
 - [x] 运营端小程序同步轻量品牌样式：保留排课、名单、消课、会员绑定的工具密度，同时统一指标卡、表单、按钮和预约卡的红橙品牌视觉。
 - [x] 小程序 admin/test 运营账号进入约课页时改用后台课程接口展示可见课程，按钮显示“运营查看”并禁用预约，同时隐藏会员订阅提醒开关，避免运营账号被误当作会员预约。
 - [x] `pnpm miniapp:prepare-device` 构建局域网真机调试包时显式清空 CloudBase env/service，避免本地 shell 或云托管配置污染 `dist`，导致 readiness 把真机包误判为 localhost 或混用 callContainer。
+- [x] 小程序支持微信云托管 `callContainer` 调用后端：构建时配置 `TARO_APP_CLOUDBASE_ENV_ID` 和 `TARO_APP_CLOUDBASE_SERVICE_NAME` 即走云托管服务，避免把 CloudBase 默认 `run.tcloudbase.com` 域名写入正式 request 合法域名。
+- [x] `pnpm ops:manual-test:readiness` 能识别 CloudBase `callContainer` 构建包，即使 dist 中保留本地 fallback API，也不会把云托管包误判为 local-only。
 
 ## 下一步优化清单
 

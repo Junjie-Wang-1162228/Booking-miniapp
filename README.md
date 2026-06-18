@@ -282,10 +282,14 @@ VITE_API_BASE_URL=https://api.example.com
 ```bash
 TARO_APP_AUTH_MODE=wechat
 TARO_APP_API_BASE_URL=https://api.example.com
+TARO_APP_CLOUDBASE_ENV_ID=<cloudbase-env-id>
+TARO_APP_CLOUDBASE_SERVICE_NAME=booking-api
 TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id>
 TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id>
 TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480
 ```
+
+`TARO_APP_API_BASE_URL` 用于普通 HTTPS API 或本地局域网调试。部署到微信云托管并发布体验版时，优先使用 `TARO_APP_CLOUDBASE_ENV_ID` + `TARO_APP_CLOUDBASE_SERVICE_NAME`，小程序会通过 `Taro.cloud.callContainer` 调用云托管服务，避免把 CloudBase 默认 `run.tcloudbase.com` 域名填入正式 `request 合法域名`。
 
 `BUSINESS_TIMEZONE_OFFSET_MINUTES` 和 `TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES` 必须保持一致。默认 `480` 表示东八区；如果拳馆实际营业时区不是东八区，两边一起改，避免运营端“今日课程/预约名单/消课”错日。
 
@@ -325,13 +329,13 @@ set -a
 set +a
 pnpm --filter @booking/api prisma:deploy
 
-# 5. 三端构建。admin 和 miniapp 的 API 地址在构建时注入。
+# 5. 三端构建。admin 的 API 地址、miniapp 的云托管服务信息在构建时注入。
 cross-env VITE_API_BASE_URL="https://api.example.com" pnpm --filter @booking/admin build
-cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL="https://api.example.com" TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_CLOUDBASE_ENV_ID="<cloudbase-env-id>" TARO_APP_CLOUDBASE_SERVICE_NAME="booking-api" TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID="<booking-created-template-id>" TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID="<class-reminder-template-id>" TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
 pnpm --filter @booking/api build
 ```
 
-如果部署到 staging，把 `https://api.example.com` 换成 staging API 域名；如果部署到 production，则换成 production API 域名。
+如果小程序不走微信云托管 `callContainer`，则把 `TARO_APP_API_BASE_URL` 换成 staging/production API 域名，并在微信后台配置对应的正式 `request 合法域名`。
 
 ### API 服务部署
 
@@ -380,7 +384,7 @@ apps/admin/dist
 构建：
 
 ```bash
-cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_API_BASE_URL=https://api.example.com TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
+cross-env TARO_APP_AUTH_MODE=wechat TARO_APP_CLOUDBASE_ENV_ID=<cloudbase-env-id> TARO_APP_CLOUDBASE_SERVICE_NAME=booking-api TARO_APP_WECHAT_BOOKING_CREATED_TEMPLATE_ID=<booking-created-template-id> TARO_APP_WECHAT_SUBSCRIBE_TEMPLATE_ID=<class-reminder-template-id> TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES=480 pnpm --filter @booking/miniapp build:weapp
 ```
 
 微信开发者工具打开目录：
@@ -394,7 +398,7 @@ apps/miniapp/dist
 - `apps/miniapp/project.config.json` 仍只提交 `touristappid` 占位。
 - 真实 AppID 放在微信开发者工具本地私有配置或部署环境中；本地可运行 `pnpm miniapp:sync-private-config` 从 `apps/api/.env` 同步到 `project.private.config.json`。
 - 本地真机调试可运行 `pnpm miniapp:prepare-device` 自动重建指向局域网 API 的 `dist` 并检查 readiness。
-- 微信后台 request 合法域名包含 API HTTPS 域名。
+- 走自有 HTTPS API 时，微信后台 request 合法域名包含 API HTTPS 域名；走微信云托管 `callContainer` 时，不填写 CloudBase 默认 `run.tcloudbase.com` 域名。
 - 体验版使用真实微信登录，不使用 `pnpm miniapp:dev:local` 的本地假会员模式。
 - 提交审核前完成 `docs/manual-test-checklist.md` 和 `docs/miniapp-visual-qa.md` 的人工验收。
 
@@ -581,8 +585,8 @@ cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next
 正式上线前仍需完成：
 
 - 使用拳馆自己的小程序主体，不使用个人开发 AppID 正式运营。
-- 完成微信认证、备案、服务类目、隐私保护指引、request 合法域名。
-- 配置生产 HTTPS API 域名和管理后台域名。
+- 完成微信认证、备案、服务类目、隐私保护指引；如果使用自有 HTTPS API，再配置 request 合法域名。
+- 配置生产 HTTPS API 域名和管理后台域名；如果小程序走云托管 `callContainer`，生产小程序侧可先不绑定自有 API 域名。
 - 配置真实生产 AppSecret、订阅消息模板、告警 webhook 和接收人。
 - 创建真实 staging 和 production 环境，并保持数据库、域名、secret、告警路由隔离。
 - 生产数据库账号执行最小权限授权并验收 `SHOW GRANTS`。
