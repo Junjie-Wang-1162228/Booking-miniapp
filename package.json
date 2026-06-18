@@ -61,6 +61,7 @@
     "ops:manual-test-checklist:test": "node --test scripts/manual-test-checklist.test.mjs",
     "ops:manual-test:status": "node scripts/manual-test-status.mjs",
     "ops:manual-test:next": "node scripts/manual-test-next.mjs",
+    "ops:manual-test:handoff": "node scripts/manual-test-handoff.mjs",
     "ops:manual-test:readiness": "node scripts/manual-test-readiness.mjs",
     "ops:third-party-notices:test": "node --test scripts/third-party-notices.test.mjs",
     "db:backup": "node scripts/db-backup.mjs",
