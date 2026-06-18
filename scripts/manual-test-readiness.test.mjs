@@ -6,7 +6,8 @@ import {
   createMiniappProjectReadiness,
   createManualTestDataReadiness,
   createManualTestReadiness,
-  createWechatConfigReadiness
+  createWechatConfigReadiness,
+  selectMiniappDistApiBaseUrl
 } from './manual-test-readiness.mjs';
 
 const packagePath = 'package.json';
@@ -405,12 +406,53 @@ test('miniapp project readiness blocks dist builds that still point to localhost
   });
 });
 
+test('miniapp project readiness blocks device API builds when health is unreachable', () => {
+  const readiness = createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'dist/',
+      appid: 'touristappid'
+    },
+    distFilesPresent: true,
+    missingDistFiles: [],
+    distApiBaseUrlKind: 'device-reachable',
+    distApiHealthOk: false
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.distApiBaseUrlDeviceReachable, true);
+  assert.equal(readiness.distApiHealthOk, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'miniapp-dist-api-health-failed',
+      detail: 'miniapp dist API health check failed'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
+  });
+});
+
 test('miniapp dist API base classifier distinguishes local-only and device-reachable builds without exposing URLs', () => {
   assert.equal(classifyMiniappDistApiBase(['const API = "http://localhost:4000";']), 'local-only');
   assert.equal(classifyMiniappDistApiBase(['const API = "http://127.0.0.1:4000";']), 'local-only');
   assert.equal(classifyMiniappDistApiBase(['const API = "http://192.168.31.249:4000";']), 'device-reachable');
   assert.equal(classifyMiniappDistApiBase(['const API = "https://api.example.com";']), 'device-reachable');
   assert.equal(classifyMiniappDistApiBase(['const API = "";']), 'unknown');
+});
+
+test('miniapp dist API health check selects the actual API base from bundled documentation URLs', () => {
+  assert.equal(
+    selectMiniappDistApiBaseUrl([
+      'https://reactjs.org/docs/error-decoder.html?invariant=',
+      'http://192.168.31.249:4000',
+      'https://taro.com'
+    ]),
+    'http://192.168.31.249:4000'
+  );
+  assert.equal(selectMiniappDistApiBaseUrl(['https://reactjs.org/docs/error-decoder.html?invariant=']), null);
+  assert.equal(selectMiniappDistApiBaseUrl(['https://api.example.com']), 'https://api.example.com');
 });
 
 test('miniapp project readiness blocks wrong DevTools root or tracked real AppID without leaking it', () => {
@@ -651,6 +693,7 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /miniappProject/);
   assert.match(readme, /小程序 DevTools 项目配置/);
   assert.match(readme, /真机可访问类型/);
+  assert.match(readme, /\/health/);
   assert.match(readme, /localhost/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
@@ -659,6 +702,7 @@ test('docs expose manual test readiness command', () => {
   assert.match(optimizationChecklist, /metrics\/classes\/bookings\/members API/);
   assert.match(optimizationChecklist, /\/auth\/account-login/);
   assert.match(optimizationChecklist, /真机 API 地址门禁/);
+  assert.match(optimizationChecklist, /真机 API health 门禁/);
   assert.match(optimizationChecklist, /local-only/);
   assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);

@@ -444,11 +444,39 @@ function isLocalOnlyUrl(value) {
   }
 }
 
+export function extractMiniappDistApiBaseUrls(sources = []) {
+  return [
+    ...new Set(
+      sources
+        .flatMap((source) => String(source ?? '').match(/https?:\/\/[^"'`\s)]+/g) ?? [])
+        .map((url) => url.replace(/\/+$/, ''))
+    )
+  ];
+}
+
 export function classifyMiniappDistApiBase(sources = []) {
-  const urls = sources.flatMap((source) => String(source ?? '').match(/https?:\/\/[^"'`\s)]+/g) ?? []);
+  const urls = extractMiniappDistApiBaseUrls(sources);
   if (urls.some(isLocalOnlyUrl)) return 'local-only';
   if (urls.length > 0) return 'device-reachable';
   return 'unknown';
+}
+
+function isLikelyMiniappApiBaseUrl(value) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const isPrivateIpv4 =
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+    return isLocalOnlyUrl(value) || isPrivateIpv4 || Boolean(url.port) || /\bapi[.-]/.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function selectMiniappDistApiBaseUrl(urls = []) {
+  return urls.find((url) => !isLocalOnlyUrl(url) && isLikelyMiniappApiBaseUrl(url)) ?? null;
 }
 
 function readMiniappDistSources(distPath) {
@@ -498,6 +526,7 @@ export function createMiniappProjectReadiness({
   distFilesPresent = false,
   missingDistFiles = [],
   distApiBaseUrlKind = 'unknown',
+  distApiHealthOk = null,
   source = null
 } = {}) {
   const miniprogramRoot = normalizeMiniappRoot(projectConfig?.miniprogramRoot);
@@ -576,6 +605,16 @@ export function createMiniappProjectReadiness({
     );
   }
 
+  if (distApiBaseUrlKind === 'device-reachable' && distApiHealthOk === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-dist-api-health-failed',
+        detail: 'miniapp dist API health check failed',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
   return {
     checked: true,
     source,
@@ -590,22 +629,40 @@ export function createMiniappProjectReadiness({
     missingDistFiles,
     distApiBaseUrlKind,
     distApiBaseUrlDeviceReachable,
+    distApiHealthOk,
     ready: failures.length === 0,
     failures: failures.map(({ id, detail }) => ({ id, detail })),
     nextHumanAction: failures[0]?.nextHumanAction ?? null
   };
 }
 
-export function readMiniappProjectReadiness({
+function joinHealthEndpoint(apiBaseUrl) {
+  return `${String(apiBaseUrl).replace(/\/+$/, '')}/health`;
+}
+
+async function checkMiniappDistApiHealth(apiBaseUrl) {
+  const response = await fetchJson(joinHealthEndpoint(apiBaseUrl));
+  return response.ok === true;
+}
+
+export async function readMiniappProjectReadiness({
   projectConfigPath = resolve(process.cwd(), 'apps/miniapp/project.config.json'),
   privateConfigPath = resolve(process.cwd(), 'apps/miniapp/project.private.config.json'),
   distPath = resolve(process.cwd(), 'apps/miniapp/dist'),
-  requiredDistFiles = MINIAPP_REQUIRED_DIST_FILES
+  requiredDistFiles = MINIAPP_REQUIRED_DIST_FILES,
+  distApiHealthChecker = checkMiniappDistApiHealth
 } = {}) {
   const projectConfigResult = safeParseJsonFile(projectConfigPath);
   const privateConfigResult = safeParseJsonFile(privateConfigPath);
   const missingDistFiles = requiredDistFiles.filter((file) => !existsSync(resolve(distPath, file)));
-  const distApiBaseUrlKind = classifyMiniappDistApiBase(readMiniappDistSources(distPath));
+  const distSources = readMiniappDistSources(distPath);
+  const distApiBaseUrls = extractMiniappDistApiBaseUrls(distSources);
+  const distApiBaseUrlKind = classifyMiniappDistApiBase(distSources);
+  const deviceApiBaseUrl = selectMiniappDistApiBaseUrl(distApiBaseUrls);
+  const distApiHealthOk =
+    distApiBaseUrlKind === 'device-reachable' && deviceApiBaseUrl
+      ? await distApiHealthChecker(deviceApiBaseUrl).catch(() => false)
+      : null;
 
   return createMiniappProjectReadiness({
     projectConfig: projectConfigResult.value,
@@ -616,6 +673,7 @@ export function readMiniappProjectReadiness({
     distFilesPresent: missingDistFiles.length === 0,
     missingDistFiles,
     distApiBaseUrlKind,
+    distApiHealthOk,
     source: {
       projectConfig: projectConfigPath,
       privateConfig: privateConfigPath,
@@ -912,7 +970,7 @@ async function main() {
   const [testData, wechatConfig, miniappProject] = await Promise.all([
     readManualTestDataReadiness(),
     Promise.resolve(readWechatConfigReadiness()),
-    Promise.resolve(readMiniappProjectReadiness())
+    readMiniappProjectReadiness()
   ]);
   const readiness = createManualTestReadiness(readStrictDevStatus(), {
     testData,

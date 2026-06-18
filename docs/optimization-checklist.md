@@ -123,6 +123,7 @@
 - [x] `pnpm ops:manual-test:readiness` 增加真实微信登录配置门禁：读取本地 `apps/api/.env` 和当前进程环境变量，检查 AppID 是否仍为占位、AppSecret 是否缺失、mock 登录是否开启、自动开户是否仍开启；输出只保留布尔状态和下一步行号，不泄露真实 AppID 或 Secret。
 - [x] `pnpm ops:manual-test:readiness` 增加小程序 DevTools 项目配置门禁：检查 tracked `apps/miniapp/project.config.json` 只能使用 `touristappid` 并指向 `dist/`，检查本地 `apps/miniapp/dist` 必需文件是否齐全，同时只输出本地 `project.private.config.json` 是否存在和 AppID 是否已配置等布尔状态，不泄露真实 AppID。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API 地址门禁：扫描 `apps/miniapp/dist` 里的构建产物，如果仍指向 `localhost`、`127.0.0.1`、`0.0.0.0` 或 `::1`，阻断真实微信人工验收；输出只保留 `local-only` / `device-reachable` / `unknown` 分类，不泄露具体 API URL。
+- [x] `pnpm ops:manual-test:readiness` 增加真机 API health 门禁：当 `apps/miniapp/dist` 指向 LAN IP 或域名时，自动请求构建包 API 的 `/health`，确认扫码前后端地址真实可访问；输出只保留 `distApiHealthOk` 布尔状态，不输出具体 API URL。
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。
 - [x] 本地初始化迁移命令改为非交互式 `pnpm --filter @booking/api prisma:deploy`；`prisma:migrate` 保留给开发新 schema 变更时创建 migration，避免新库初始化时卡在交互式输入。
 - [x] 新增 `pnpm dev:preview:start/status/stop` 后台预览生命周期命令：缺失时补齐 API、管理端和小程序 watch，日志和 PID 写入 ignored 的 `.dev/preview`，减少依赖临时终端会话。
