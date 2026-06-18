@@ -56,6 +56,7 @@ export function createManualTestNextSummary(readiness) {
     },
     manualTestSections: createManualTestSections(readiness.manualTestSections),
     visualQaDiagnostics: readiness.visualQaDiagnostics ?? null,
+    visualQaNext: readiness.visualQaNext ?? null,
     releaseBlockers: readiness.releaseBlockers ?? [],
     captureCommand: readiness.captureCommand ?? null
   };

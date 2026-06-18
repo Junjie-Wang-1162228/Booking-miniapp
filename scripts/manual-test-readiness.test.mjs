@@ -44,6 +44,28 @@ function createDevStatus(overrides = {}) {
           reason: 'screenshot is older than latest miniapp UI source'
         }
       ],
+      next: {
+        deviceName: 'iPhone SE',
+        viewport: '375 x 667',
+        missingLabels: ['classes', 'bookings', 'profile'],
+        missingScreenshots: [
+          {
+            label: 'classes',
+            pagePath: '/pages/classes/index',
+            outputPath: '/repo/docs/manual-test-screenshots/iphone-se-classes.png'
+          },
+          {
+            label: 'bookings',
+            pagePath: '/pages/bookings/index',
+            outputPath: '/repo/docs/manual-test-screenshots/iphone-se-bookings.png'
+          },
+          {
+            label: 'profile',
+            pagePath: '/pages/profile/index',
+            outputPath: '/repo/docs/manual-test-screenshots/iphone-se-profile.png'
+          }
+        ]
+      },
       captureCommand: 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next'
     },
     manualTest: {
@@ -603,6 +625,28 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     presentCount: 3,
     invalidCount: 1,
     invalidReasons: ['screenshot is older than latest miniapp UI source']
+  });
+  assert.deepEqual(readiness.visualQaNext, {
+    deviceName: 'iPhone SE',
+    viewport: '375 x 667',
+    missingLabels: ['classes', 'bookings', 'profile'],
+    missingScreenshots: [
+      {
+        label: 'classes',
+        pagePath: '/pages/classes/index',
+        outputPath: '/repo/docs/manual-test-screenshots/iphone-se-classes.png'
+      },
+      {
+        label: 'bookings',
+        pagePath: '/pages/bookings/index',
+        outputPath: '/repo/docs/manual-test-screenshots/iphone-se-bookings.png'
+      },
+      {
+        label: 'profile',
+        pagePath: '/pages/profile/index',
+        outputPath: '/repo/docs/manual-test-screenshots/iphone-se-profile.png'
+      }
+    ]
   });
   assert.deepEqual(readiness.manualTestSections, [
     { title: '1. 本地环境准备', completed: 0, total: 9, percent: 0, next: null },

@@ -32,6 +32,7 @@ export function createManualTestHandoffMarkdown(summary) {
   const manualProgress = summary.progress?.manualTest ?? null;
   const visualProgress = summary.progress?.visualQa ?? null;
   const visualDiagnostics = summary.visualQaDiagnostics ?? {};
+  const visualQaNext = summary.visualQaNext ?? null;
   const sections = summary.manualTestSections ?? [];
   const releaseBlockers = summary.releaseBlockers ?? [];
   const invalidReasons = visualDiagnostics.invalidReasons ?? [];
@@ -67,6 +68,14 @@ export function createManualTestHandoffMarkdown(summary) {
     '',
     `- 已有截图：${visualDiagnostics.presentCount ?? 0}；无效截图：${visualDiagnostics.invalidCount ?? 0}`,
     ...listLines(invalidReasons, (reason) => `- 无效原因：${reason}`, '没有无效截图原因。'),
+    visualQaNext
+      ? `- 下一台设备：${visualQaNext.deviceName}（${visualQaNext.viewport}）`
+      : '- 下一台设备：无',
+    ...listLines(
+      visualQaNext?.missingScreenshots,
+      (screenshot) => `- ${screenshot.label}：${screenshot.pagePath} -> \`${screenshot.outputPath}\``,
+      '没有缺失截图路径。'
+    ),
     summary.captureCommand ? `- 下一条截图命令：\`${summary.captureCommand}\`` : '- 下一条截图命令：无',
     '',
     '## 发布阻断',

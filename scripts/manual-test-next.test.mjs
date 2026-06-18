@@ -58,6 +58,28 @@ test('createManualTestNextSummary extracts only the next human action and safe h
       invalidCount: 1,
       invalidReasons: ['screenshot is older than latest miniapp UI source']
     },
+    visualQaNext: {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667',
+      missingLabels: ['classes', 'bookings', 'profile'],
+      missingScreenshots: [
+        {
+          label: 'classes',
+          pagePath: '/pages/classes/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-classes.png'
+        },
+        {
+          label: 'bookings',
+          pagePath: '/pages/bookings/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-bookings.png'
+        },
+        {
+          label: 'profile',
+          pagePath: '/pages/profile/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-profile.png'
+        }
+      ]
+    },
     miniappProject: {
       source: {
         dist: '/repo/apps/miniapp/dist'
@@ -131,6 +153,28 @@ test('createManualTestNextSummary extracts only the next human action and safe h
       presentCount: 3,
       invalidCount: 1,
       invalidReasons: ['screenshot is older than latest miniapp UI source']
+    },
+    visualQaNext: {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667',
+      missingLabels: ['classes', 'bookings', 'profile'],
+      missingScreenshots: [
+        {
+          label: 'classes',
+          pagePath: '/pages/classes/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-classes.png'
+        },
+        {
+          label: 'bookings',
+          pagePath: '/pages/bookings/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-bookings.png'
+        },
+        {
+          label: 'profile',
+          pagePath: '/pages/profile/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-profile.png'
+        }
+      ]
     },
     releaseBlockers: [
       { id: 'visual-qa-matrix', label: '多设备视觉截图矩阵', detail: '3/12' },

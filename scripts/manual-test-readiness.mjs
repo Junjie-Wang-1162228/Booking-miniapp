@@ -1010,6 +1010,7 @@ export function createManualTestReadiness(
     releaseBlockers,
     progress,
     visualQaDiagnostics,
+    visualQaNext: visualQa.next ?? null,
     manualTestSections,
     gates,
     testData,

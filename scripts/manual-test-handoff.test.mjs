@@ -56,6 +56,28 @@ function createSummary() {
       invalidCount: 3,
       invalidReasons: ['screenshot is older than latest miniapp UI source']
     },
+    visualQaNext: {
+      deviceName: 'iPhone SE',
+      viewport: '375 x 667',
+      missingLabels: ['classes', 'bookings', 'profile'],
+      missingScreenshots: [
+        {
+          label: 'classes',
+          pagePath: '/pages/classes/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-classes.png'
+        },
+        {
+          label: 'bookings',
+          pagePath: '/pages/bookings/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-bookings.png'
+        },
+        {
+          label: 'profile',
+          pagePath: '/pages/profile/index',
+          outputPath: '/repo/docs/manual-test-screenshots/iphone-se-profile.png'
+        }
+      ]
+    },
     releaseBlockers: [
       { id: 'visual-qa-matrix', label: '多设备视觉截图矩阵', detail: '0/12' },
       { id: 'manual-checklist', label: '手工验收清单', detail: '16/46' }
@@ -79,6 +101,10 @@ test('createManualTestHandoffMarkdown renders a safe Chinese handoff report', ()
   assert.match(markdown, /3\. 后台权限和排课：1\/9，11%，下一步：第 28 行，小程序账户页使用 `admin` \/ `\[已隐藏\]` 账号登录/);
   assert.match(markdown, /已有截图：3；无效截图：3/);
   assert.match(markdown, /screenshot is older than latest miniapp UI source/);
+  assert.match(markdown, /下一台设备：iPhone SE（375 x 667）/);
+  assert.match(markdown, /classes：\/pages\/classes\/index -> `\/repo\/docs\/manual-test-screenshots\/iphone-se-classes\.png`/);
+  assert.match(markdown, /bookings：\/pages\/bookings\/index -> `\/repo\/docs\/manual-test-screenshots\/iphone-se-bookings\.png`/);
+  assert.match(markdown, /profile：\/pages\/profile\/index -> `\/repo\/docs\/manual-test-screenshots\/iphone-se-profile\.png`/);
   assert.match(markdown, /`cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`/);
   assert.match(markdown, /多设备视觉截图矩阵：0\/12/);
   assert.match(markdown, /手工验收清单：16\/46/);
@@ -94,5 +120,7 @@ test('package and docs expose the manual test handoff command', () => {
   assert.equal(packageJson.scripts['ops:manual-test:handoff'], 'node scripts/manual-test-handoff.mjs');
   assert.match(readme, /pnpm ops:manual-test:handoff/);
   assert.match(readme, /小程序真机验收交接/);
+  assert.match(readme, /visualQaNext/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:handoff/);
+  assert.match(optimizationChecklist, /visualQaNext/);
 });
