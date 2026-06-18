@@ -228,3 +228,28 @@
   color: #ffffff;
   opacity: 0.92;
 }
+
+@media (max-width: 380px) {
+  .reminder-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reminder-copy-wrap {
+    align-items: flex-start;
+  }
+
+  .date-filter-button {
+    min-width: 118px;
+  }
+
+  .class-action-row {
+    flex-direction: column;
+  }
+
+  .detail-action,
+  .class-action-row .primary-action {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}

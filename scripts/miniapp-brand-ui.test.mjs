@@ -79,3 +79,20 @@ test('phase two brand treatment carries through bookings profile and detail page
   assert.match(appStyles, /training-strip__track/);
   assert.match(detailStyles, /detail-hero__brand-line/);
 });
+
+test('phase two brand surfaces keep compact layouts for narrow phone screens', () => {
+  const appStyles = readFileSync(appStylePath, 'utf8');
+  const bookingsStyles = readFileSync(bookingsStylePath, 'utf8');
+  const classesStyles = readFileSync('apps/miniapp/src/pages/classes/index.scss', 'utf8');
+  const opsStyles = readFileSync('apps/miniapp/src/pages/ops/index.scss', 'utf8');
+
+  assert.match(appStyles, /@media \(max-width: 380px\)/);
+  assert.match(appStyles, /\.venue-strip,\s*\.training-strip\s*{[^}]*grid-template-columns: 1fr/s);
+  assert.match(appStyles, /\.member-switch\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/s);
+  assert.match(bookingsStyles, /@media \(max-width: 380px\)/);
+  assert.match(bookingsStyles, /\.booking-footer\s*{[^}]*align-items: stretch/s);
+  assert.match(classesStyles, /@media \(max-width: 380px\)/);
+  assert.match(classesStyles, /\.class-action-row\s*{[^}]*flex-direction: column/s);
+  assert.match(opsStyles, /@media \(max-width: 380px\)/);
+  assert.match(opsStyles, /\.ops-two-inputs,\s*\.ops-search-row,\s*\.ops-action-row\s*{[^}]*flex-direction: column/s);
+});

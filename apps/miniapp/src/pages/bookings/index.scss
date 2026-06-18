@@ -35,3 +35,15 @@
   line-height: 1;
   box-shadow: inset 0 0 0 1px rgba(242, 138, 36, 0.12);
 }
+
+@media (max-width: 380px) {
+  .booking-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ghost-action {
+    width: 100%;
+    min-width: 0;
+  }
+}

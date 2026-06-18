@@ -211,3 +211,21 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 380px) {
+  .ops-nav,
+  .ops-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-two-inputs,
+  .ops-search-row,
+  .ops-action-row {
+    flex-direction: column;
+  }
+
+  .ops-action,
+  .ops-picker-wrap {
+    width: 100%;
+  }
+}
