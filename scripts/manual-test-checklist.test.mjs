@@ -31,6 +31,16 @@ test('manual test checklist opens the built miniapp dist and guards visual captu
   assert.match(source, /pnpm miniapp:visual-qa:check/);
 });
 
+test('manual test checklist separates automated device prep from human DevTools action', () => {
+  const source = read(manualChecklistPath);
+  const status = createManualTestStatus();
+
+  assert.match(source, /- \[x\] 运行 `pnpm miniapp:prepare-device`/);
+  assert.match(source, /- \[ \] 在微信开发者工具中打开小程序构建目录 `apps\/miniapp\/dist`/);
+  assert.match(status.next?.text ?? '', /微信开发者工具/);
+  assert.doesNotMatch(status.next?.text ?? '', /pnpm miniapp:prepare-device/);
+});
+
 test('package exposes the manual test checklist guard', () => {
   const packageJson = JSON.parse(read(packagePath));
 

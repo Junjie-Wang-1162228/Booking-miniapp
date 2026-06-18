@@ -126,6 +126,7 @@
 - [x] `pnpm ops:manual-test:readiness` 增加本地私有 AppID 门禁：要求 ignored 的 `apps/miniapp/project.private.config.json` 配置真实 AppID，确保微信开发者工具以真实小程序身份打开 `dist/`；tracked `project.config.json` 仍必须保持 `touristappid`，输出不泄露真实 AppID。
 - [x] 新增 `pnpm miniapp:sync-private-config`：从本地 `apps/api/.env` 读取真实 `MINIAPP_APP_ID` 并写入 ignored 的 `apps/miniapp/project.private.config.json`，方便协作者一键补齐微信开发者工具私有 AppID；输出只保留脱敏状态，不输出真实 AppID 或 AppSecret。
 - [x] 新增 `pnpm miniapp:prepare-device`：自动选择本机局域网 IPv4，同步本地私有 AppID，用局域网 API 重建微信真实登录模式小程序 `dist`，再运行 readiness；不打开微信开发者工具，输出不包含 AppID 或 AppSecret。
+- [x] 手工验收清单拆分“自动真机准备”和“人工打开 DevTools”：`pnpm miniapp:prepare-device` 已有脚本证据时单独计入完成项，下一步只提示人工打开 `apps/miniapp/dist` 做真机调试，避免重复执行已通过的本地准备。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API 地址门禁：扫描 `apps/miniapp/dist` 里的构建产物，如果仍指向 `localhost`、`127.0.0.1`、`0.0.0.0` 或 `::1`，阻断真实微信人工验收；输出只保留 `local-only` / `device-reachable` / `unknown` 分类，不泄露具体 API URL。
 - [x] `pnpm ops:manual-test:readiness` 增加真机 API health 门禁：当 `apps/miniapp/dist` 指向 LAN IP 或域名时，自动请求构建包 API 的 `/health`，确认扫码前后端地址真实可访问；输出只保留 `distApiHealthOk` 布尔状态，不输出具体 API URL。
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。

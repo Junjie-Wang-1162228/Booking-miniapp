@@ -406,7 +406,7 @@ test('miniapp project readiness blocks missing local private AppID for real-devi
   ]);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   });
 });
@@ -436,7 +436,7 @@ test('miniapp project readiness blocks dist builds that still point to localhost
   ]);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   });
 });
@@ -468,7 +468,7 @@ test('miniapp project readiness blocks device API builds when health is unreacha
   ]);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   });
 });
@@ -530,7 +530,7 @@ test('miniapp project readiness blocks wrong DevTools root or tracked real AppID
   ]);
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   });
   assert.doesNotMatch(JSON.stringify(readiness), new RegExp(trackedRealAppId));
@@ -554,7 +554,7 @@ test('manual test readiness blocks manual start when miniapp DevTools project co
   );
   assert.deepEqual(readiness.nextHumanAction, {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   });
 });

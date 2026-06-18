@@ -18,7 +18,8 @@
 - [x] 在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。
 - [x] 确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。
 - [x] 运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。
-- [ ] 运行 `pnpm miniapp:prepare-device`，它会先执行 `pnpm miniapp:sync-private-config` 再重建真机 `dist`；在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`；确认本地 `apps/miniapp/project.private.config.json` 已配置真实 AppID；确认命令输出 `readyForManualWechat: true`，构建包 API 地址不是 `localhost`，且构建包 API 的 `/health` 可访问。
+- [x] 运行 `pnpm miniapp:prepare-device`，它会先执行 `pnpm miniapp:sync-private-config` 再重建真机 `dist`；确认本地 `apps/miniapp/project.private.config.json` 已配置真实 AppID；确认命令输出 `readyForManualWechat: true`，构建包 API 地址不是 `localhost`，且构建包 API 的 `/health` 可访问。
+- [ ] 在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`；使用真机调试确认当前 AppID 可以进入小程序。
 - [ ] 在当前 AppID 下添加至少两个测试微信账号。
 
 ## 3. 后台权限和排课

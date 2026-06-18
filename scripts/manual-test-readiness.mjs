@@ -36,7 +36,7 @@ const WECHAT_CHECKLIST_ACTIONS = {
 const MINIAPP_CHECKLIST_ACTIONS = {
   devtoolsOpen: {
     section: '2. 真实微信登录准备',
-    line: 21,
+    line: 22,
     text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
   }
 };
