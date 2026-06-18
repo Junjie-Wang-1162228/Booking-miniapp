@@ -224,6 +224,12 @@ export function createDevStatusReport({
       `${degradedPreviewServices.join('、')} preview is not ready. Run pnpm dev:preview:start, then pnpm dev:preview:status.`
     );
   }
+  const visualInvalidCount = visualQa.invalidCount ?? visualQa.invalid?.length ?? 0;
+  if (visualInvalidCount > 0) {
+    notes.push(
+      `${visualInvalidCount} visual QA screenshot(s) are present but invalid. Re-capture them after the latest miniapp UI source changes.`
+    );
+  }
   if (diagnostics.prismaEngines?.orphanCount > 0) {
     notes.push(
       `Found ${diagnostics.prismaEngines.orphanCount} orphaned Prisma query-engine process(es): PIDs ${diagnostics.prismaEngines.orphanPids.join(', ')}. These can make local API E2E flaky.`
@@ -461,7 +467,10 @@ async function main() {
     visualQa: {
       complete: visualReport.complete,
       existingCount: visualReport.existingCount,
+      presentCount: visualReport.presentCount,
+      invalidCount: visualReport.invalid.length,
       requiredCount: visualReport.requiredCount,
+      invalid: visualReport.invalid,
       next: createNextMissingDeviceReport(visualReport)
     },
     manualTest: createManualTestStatus(),

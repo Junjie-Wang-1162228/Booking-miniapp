@@ -117,6 +117,7 @@
 - [x] `pnpm dev:status` 的视觉 QA 下一步补充 `missingScreenshots` 和截图保存路径，手工补图时无需再切到单独的 visual-qa 命令查目标文件。
 - [x] `pnpm dev:status` 的视觉 QA 下一步补充安全截图命令 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`，手工切到目标模拟器后可直接按状态输出继续补图。
 - [x] `pnpm dev:status` 的 `visualQa.captureCommand` 增加结构化安全截图命令，后续人工补图脚本或前端状态面板无需解析自然语言 `nextAction`。
+- [x] `pnpm miniapp:visual-qa:check` 增加过期截图识别：截图早于最新小程序 UI 源码变更时标记为 invalid，`pnpm dev:status` 同步输出 present/invalid 计数和诊断，避免旧 UI 截图被误当作新 UI 验收证据。
 - [x] 新增 `pnpm ops:manual-test:status` 手工验收清单状态命令：读取 `docs/manual-test-checklist.md` 勾选项并输出 `manual-test-status` JSON，汇总总项数、完成数、分组进度、全局下一条未完成项和每个分组自己的 `next`；不打开微信开发者工具，也不把未完成清单当作 shell 失败。
 - [x] 新增 `pnpm ops:manual-test:next` 精简下一步命令：复用 readiness 检查，只输出下一条人工动作、微信开发者工具打开路径、真机构建包 API 状态、视觉/手工进度、发布阻断项和截图命令；不打开微信开发者工具，不输出 AppID、Secret、token 或账号密码。
 - [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist；`manual-test-status` 的每个分组会输出具体 `next`，`nextHumanAction` 会在本地门禁已通过时直接提示真实微信登录准备分组里的下一条任务和行号，`readyForRelease` 与 `releaseBlockers` 会明确发布是否仍被视觉截图或完整手工 checklist 阻断，避免重复做已验证的本地启动项或误判可发布。
@@ -145,7 +146,7 @@
 ## 下一步优化清单
 
 - [ ] 在微信开发者工具做多设备视觉走查，补充真实截图到手测记录。
-  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；普通 `pnpm miniapp:visual-qa:capture` 和 `pnpm miniapp:visual-qa:capture-next` 都会先拒绝执行，只有显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 或传入 `--allow-devtools` 后才会连接微信开发者工具截图。已新增 `pnpm miniapp:visual-qa:plan` 人工补图步骤、`pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查；状态、计划和下一设备输出会显示完成度、缺失页面和截图保存路径。`pnpm dev:status` / `pnpm dev:preview:status` 的下一步动作也会直接显示 `capture-next` 安全截图命令。`capture-next` 会校验当前模拟器设备和下一台缺失设备一致，避免手动设备未切换时误采。矩阵检查现在会拒绝非 PNG、空文件和尺寸明显不匹配目标设备的截图。当前已自动采集 iPhone 12/13 Pro 的课程、预约、我的三页截图；矩阵检查显示 12 张必需截图中已存在 3 张，剩余 iPhone SE、iPhone 15 Pro Max、Nexus 6 共 9 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
+  - 当前状态：服务端口已开启，CLI 可打开 `apps/miniapp/dist`。`pnpm miniapp:visual-qa` 现在只输出状态、不打开微信开发者工具；普通 `pnpm miniapp:visual-qa:capture` 和 `pnpm miniapp:visual-qa:capture-next` 都会先拒绝执行，只有显式设置 `MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1` 或传入 `--allow-devtools` 后才会连接微信开发者工具截图。已新增 `pnpm miniapp:visual-qa:plan` 人工补图步骤、`pnpm miniapp:visual-qa:next` 下一缺失设备提示、`pnpm miniapp:visual-qa:check` 矩阵完整性检查；状态、计划和下一设备输出会显示完成度、缺失页面和截图保存路径。`pnpm dev:status` / `pnpm dev:preview:status` 的下一步动作也会直接显示 `capture-next` 安全截图命令。`capture-next` 会校验当前模拟器设备和下一台缺失设备一致，避免手动设备未切换时误采。矩阵检查现在会拒绝非 PNG、空文件、尺寸明显不匹配目标设备、以及早于最新小程序 UI 源码变更的旧截图。当前 iPhone 12/13 Pro 的 3 张旧截图已被标记为过期无效；有效截图为 0/12，需重新采集 iPhone SE、iPhone 12/13 Pro、iPhone 15 Pro Max、Nexus 6 共 12 张。已验证 `project.config.json` 的 `simulatorType` 字段无法直接驱动当前 automator 设备切换。
   - 手测记录模板：`docs/miniapp-visual-qa.md`。
 
 ## 当前验证命令
@@ -243,6 +244,6 @@
 - [x] `pnpm dev:status`
 - [x] `pnpm dev:status:strict`：当前通过，API、管理端、小程序 dist/watch、MySQL 端口归属和 Prisma 进程检查均无失败。
 - [x] `pnpm ops:manual-test:readiness`：当前通过本地人工验收启动门禁，包含本地验收测试数据、真实微信登录配置和小程序 DevTools 项目配置脱敏门禁；视觉截图矩阵和完整手工 checklist 仍显示为发布前剩余项。
-- [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 3/12 有效截图、9/12 缺失；多设备 PNG 截图补齐且尺寸检查通过后应通过。
+- [ ] `pnpm miniapp:visual-qa:check`：当前按设计失败，输出 0/12 有效截图、9 张缺失、3 张旧截图过期无效；多设备 PNG 截图重新补齐、尺寸检查通过且截图时间晚于最新 UI 源码后应通过。
 - [x] `pnpm --filter @booking/api prisma:seed`
 - [x] `curl -s http://localhost:4000/health`

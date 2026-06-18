@@ -569,7 +569,7 @@ cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next
 
 `capture-next` 会校验当前模拟器设备必须等于下一台缺失设备，避免还停在其他设备时误采截图。
 
-`pnpm miniapp:visual-qa:check` 会检查截图矩阵、PNG 有效性和基础尺寸匹配。截图属于本地手工验收产物，不提交 GitHub。
+`pnpm miniapp:visual-qa:check` 会检查截图矩阵、PNG 有效性、基础尺寸匹配，以及截图是否早于最新小程序 UI 源码变更。截图属于本地手工验收产物，不提交 GitHub。
 
 ## 发布和商用状态
 

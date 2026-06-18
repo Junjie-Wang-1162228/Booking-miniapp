@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -135,6 +135,37 @@ test('verifyScreenshotMatrix rejects fake or wrong-size screenshot files', () =>
       viewport: '375 x 667',
       missingLabels: ['classes']
     });
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('verifyScreenshotMatrix rejects screenshots captured before the latest miniapp UI change', () => {
+  const outputDir = mkdtempSync(path.join(tmpdir(), 'miniapp-visual-qa-stale-'));
+  try {
+    for (const device of createScreenshotMatrix(outputDir)) {
+      for (const screenshot of device.screenshots) {
+        writeValidScreenshot(screenshot.outputPath);
+      }
+    }
+
+    const [staleScreenshot] = createScreenshotPlan('iPhone 12/13 (Pro)', outputDir);
+    const capturedBeforeUiChange = new Date('2026-06-17T12:00:00Z');
+    utimesSync(staleScreenshot.outputPath, capturedBeforeUiChange, capturedBeforeUiChange);
+
+    const report = verifyScreenshotMatrix(outputDir, { staleAfter: new Date(Date.now() - 1000) });
+    assert.equal(report.complete, false);
+    assert.equal(report.invalid.length, 1);
+    assert.deepEqual(
+      report.invalid.map((item) => ({ deviceName: item.deviceName, label: item.label, reason: item.reason })),
+      [
+        {
+          deviceName: 'iPhone 12/13 (Pro)',
+          label: 'classes',
+          reason: 'screenshot is older than latest miniapp UI source'
+        }
+      ]
+    );
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
   }

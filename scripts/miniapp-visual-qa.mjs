@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -10,6 +10,11 @@ const automator = require('miniprogram-automator');
 const DEFAULT_CLI_PATH = '/Applications/wechatwebdevtools.app/Contents/MacOS/cli';
 const DEFAULT_PROJECT_PATH = path.resolve('apps/miniapp/dist');
 const DEFAULT_OUTPUT_DIR = path.resolve('docs/manual-test-screenshots');
+const DEFAULT_STALE_SOURCE_PATHS = [
+  path.resolve('apps/miniapp/src'),
+  path.resolve('apps/miniapp/config'),
+  path.resolve('apps/miniapp/package.json')
+];
 const DEFAULT_AUTO_PORT = 19000;
 const DEVTOOLS_CONFIRM_ENV = 'MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS';
 const DEVTOOLS_CONFIRM_FLAG = '--allow-devtools';
@@ -79,7 +84,7 @@ function readPngDimensions(outputPath) {
   return { valid: true, width, height };
 }
 
-function validateScreenshotFile(outputPath, viewport) {
+function validateScreenshotFile(outputPath, viewport, options = {}) {
   if (!existsSync(outputPath)) return { exists: false, valid: false };
 
   const dimensions = readPngDimensions(outputPath);
@@ -110,7 +115,41 @@ function validateScreenshotFile(outputPath, viewport) {
     };
   }
 
+  if (options.staleAfter) {
+    const screenshotMtimeMs = statSync(outputPath).mtimeMs;
+    if (screenshotMtimeMs < options.staleAfter.getTime()) {
+      return {
+        exists: true,
+        valid: false,
+        width: dimensions.width,
+        height: dimensions.height,
+        reason: 'screenshot is older than latest miniapp UI source'
+      };
+    }
+  }
+
   return { exists: true, valid: true, width: dimensions.width, height: dimensions.height };
+}
+
+function resolveLatestMtime(paths) {
+  let latestMtimeMs = 0;
+
+  function visit(targetPath) {
+    if (!existsSync(targetPath)) return;
+
+    const stat = statSync(targetPath);
+    latestMtimeMs = Math.max(latestMtimeMs, stat.mtimeMs);
+
+    if (!stat.isDirectory()) return;
+
+    for (const name of readdirSync(targetPath)) {
+      if (name === 'dist' || name === 'node_modules') continue;
+      visit(path.join(targetPath, name));
+    }
+  }
+
+  paths.forEach(visit);
+  return latestMtimeMs > 0 ? new Date(latestMtimeMs) : null;
 }
 
 function percent(completed, total) {
@@ -128,11 +167,12 @@ function createProgress(report) {
   };
 }
 
-export function verifyScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR) {
+export function verifyScreenshotMatrix(outputDir = DEFAULT_OUTPUT_DIR, options = {}) {
+  const staleAfter = options.staleAfter ?? resolveLatestMtime(DEFAULT_STALE_SOURCE_PATHS);
   const devices = createScreenshotMatrix(outputDir).map((device) => {
     const screenshots = device.screenshots.map((screenshot) => ({
       ...screenshot,
-      ...validateScreenshotFile(screenshot.outputPath, device.viewport)
+      ...validateScreenshotFile(screenshot.outputPath, device.viewport, { staleAfter })
     }));
 
     return {

@@ -260,6 +260,57 @@ test('createDevStatusReport includes manual checklist progress after visual QA i
   assert.match(report.progress.nextAction, /会员端小程序 line 18: 完成约课成功路径/);
 });
 
+test('createDevStatusReport exposes invalid visual QA screenshots for stale capture follow-up', () => {
+  const report = createDevStatusReport({
+    mysql: {
+      ok: true,
+      service: 'mysql',
+      status: 'Up 5 hours (healthy)'
+    },
+    api: {
+      ok: true,
+      url: 'http://localhost:4000/health',
+      body: { ok: true }
+    },
+    admin: {
+      ok: true,
+      url: 'http://localhost:5174',
+      checkedPorts: [5173, 5174]
+    },
+    miniapp: {
+      ok: true,
+      distPath: 'apps/miniapp/dist',
+      watchRunning: true,
+      latestBuildAt: '2026-06-18T09:21:18.000Z'
+    },
+    visualQa: {
+      complete: false,
+      existingCount: 0,
+      presentCount: 3,
+      invalidCount: 3,
+      requiredCount: 12,
+      invalid: [
+        {
+          deviceName: 'iPhone 12/13 (Pro)',
+          label: 'classes',
+          reason: 'screenshot is older than latest miniapp UI source'
+        }
+      ],
+      next: {
+        deviceName: 'iPhone SE',
+        viewport: '375 x 667',
+        missingLabels: ['classes'],
+        missingScreenshots: []
+      }
+    }
+  });
+
+  assert.equal(report.visualQa.presentCount, 3);
+  assert.equal(report.visualQa.invalidCount, 3);
+  assert.equal(report.visualQa.invalid[0].reason, 'screenshot is older than latest miniapp UI source');
+  assert.match(report.notes.join(' '), /3 visual QA screenshot/);
+});
+
 test('createDevStatusReport warns when DATABASE_URL is served by another mysql container', () => {
   const remediation = createDatabasePortDriftRemediation({
     database: {
