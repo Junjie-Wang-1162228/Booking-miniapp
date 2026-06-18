@@ -124,6 +124,8 @@ export default function ClassesPage() {
   const devAuthMode = isDevAuthMode();
   const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
   const selectedBalance = selectedBranch?.lessonBalance?.remaining ?? user?.lessonBalance?.remaining ?? 0;
+  const venueAddress = selectedBranch?.address || '灰色训练垫区 · 橙色落点 · 沙袋训练';
+  const venueContact = selectedBranch?.phone || '到店前可联系拳馆确认课程';
   const dateFilters = createClassDateFilters(classes);
   const filteredClasses =
     selectedDateKey === 'all' ? classes : classes.filter((item) => getClassDateKey(item.startsAt) === selectedDateKey);
@@ -276,6 +278,21 @@ export default function ClassesPage() {
         <View className="hero__brand-line">
           <Text className="mat-lane" />
           <Text>拳击 · 体能 · 实战节奏</Text>
+        </View>
+      </View>
+
+      <View className="venue-strip">
+        <View className="venue-strip__mat-zone">
+          <View className="venue-strip__mat-lane" />
+          <View className="venue-strip__mat-dot venue-strip__mat-dot-a" />
+          <View className="venue-strip__mat-dot venue-strip__mat-dot-b" />
+          <View className="venue-strip__mat-dot venue-strip__mat-dot-c" />
+        </View>
+        <View className="venue-strip__content">
+          <Text className="venue-strip__eyebrow">训练馆信息</Text>
+          <Text className="venue-strip__name">{selectedBranch?.name ?? '真知格斗训练馆'}</Text>
+          <Text className="venue-strip__meta">{venueAddress}</Text>
+          <Text className="venue-strip__contact">{venueContact}</Text>
         </View>
       </View>
 

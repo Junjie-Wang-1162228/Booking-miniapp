@@ -129,6 +129,108 @@ button::after {
   line-height: 1.5;
 }
 
+.venue-strip {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgba(242, 138, 36, 0.25);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(255, 138, 42, 0.14), rgba(255, 255, 255, 0.98) 42%),
+    #f6f7f5;
+  color: #151515;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.2);
+}
+
+.venue-strip__mat-zone {
+  position: relative;
+  min-height: 126px;
+  overflow: hidden;
+  border: 3px solid #232323;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 34px),
+    repeating-linear-gradient(0deg, #5f6368 0 18px, #4e5358 18px 22px, #363a3e 22px 40px);
+}
+
+.venue-strip__mat-lane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 10px;
+  background: #232323;
+  transform: translateX(-50%);
+}
+
+.venue-strip__mat-dot {
+  position: absolute;
+  width: 42px;
+  height: 30px;
+  border-radius: 30px;
+  background: #ff8a2a;
+}
+
+.venue-strip__mat-dot-a {
+  top: 18px;
+  left: 15px;
+}
+
+.venue-strip__mat-dot-b {
+  right: 16px;
+  bottom: 20px;
+}
+
+.venue-strip__mat-dot-c {
+  bottom: 18px;
+  left: 18px;
+  width: 34px;
+}
+
+.venue-strip__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.venue-strip__eyebrow,
+.venue-strip__name,
+.venue-strip__meta,
+.venue-strip__contact {
+  display: block;
+}
+
+.venue-strip__eyebrow {
+  color: #e31b23;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.venue-strip__name {
+  overflow: hidden;
+  margin-top: 8px;
+  color: #151515;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.venue-strip__meta,
+.venue-strip__contact {
+  margin-top: 6px;
+  color: #5f6368;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .section-title {
   display: block;
   margin: 34px 0 18px;

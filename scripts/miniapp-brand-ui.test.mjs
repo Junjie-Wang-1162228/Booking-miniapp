@@ -46,3 +46,15 @@ test('member-facing pages carry the ZHENZHIGEDOU brand treatment without changin
   assert.match(bookingsStyles, /booking-card/);
   assert.match(bookingsStyles, /#f28a24/);
 });
+
+test('classes landing page surfaces venue context from the gym reference style', () => {
+  const classesSource = readFileSync(classesPath, 'utf8');
+  const appStyles = readFileSync(appStylePath, 'utf8');
+
+  assert.match(classesSource, /venue-strip/);
+  assert.match(classesSource, /selectedBranch\?\.address/);
+  assert.match(classesSource, /训练馆信息/);
+  assert.match(appStyles, /venue-strip__mat-zone/);
+  assert.match(appStyles, /#5f6368/);
+  assert.match(appStyles, /#ff8a2a/);
+});

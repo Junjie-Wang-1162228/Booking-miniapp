@@ -135,6 +135,7 @@
 - [x] 本地初始化迁移命令改为非交互式 `pnpm --filter @booking/api prisma:deploy`；`prisma:migrate` 保留给开发新 schema 变更时创建 migration，避免新库初始化时卡在交互式输入。
 - [x] 新增 `pnpm dev:preview:start/status/stop` 后台预览生命周期命令：缺失时补齐 API、管理端和小程序 watch，日志和 PID 写入 ignored 的 `.dev/preview`，减少依赖临时终端会话。
 - [x] 按真知格斗参考 Logo 和场地照片完成用户端小程序品牌 UI 刷新：统一 `真知格斗 / ZHENZHIGEDOU` Logo、红黑底色、橙色训练垫/灯光点缀、课程首页品牌线、课程卡、预约卡、详情页、账户页和底部导航选中色。
+- [x] 约课首页补充“训练馆信息”场地条：从当前门店读取名称、地址和电话，用灰色训练垫、橙色落点、黑色分道线呼应真知格斗场地照片，同时保留会员/运营约课流程不变。
 - [x] 运营端小程序同步轻量品牌样式：保留排课、名单、消课、会员绑定的工具密度，同时统一指标卡、表单、按钮和预约卡的红橙品牌视觉。
 - [x] 小程序 admin/test 运营账号进入约课页时改用后台课程接口展示可见课程，按钮显示“运营查看”并禁用预约，同时隐藏会员订阅提醒开关，避免运营账号被误当作会员预约。
 - [x] `pnpm miniapp:prepare-device` 构建局域网真机调试包时显式清空 CloudBase env/service，避免本地 shell 或云托管配置污染 `dist`，导致 readiness 把真机包误判为 localhost 或混用 callContainer。
