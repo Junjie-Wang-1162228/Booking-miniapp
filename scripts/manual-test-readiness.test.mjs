@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  classifyMiniappDistApiBase,
   createMiniappProjectReadiness,
   createManualTestDataReadiness,
   createManualTestReadiness,
@@ -318,7 +319,8 @@ test('miniapp project readiness keeps tracked AppID placeholder-only while hidin
     },
     privateConfigExists: true,
     distFilesPresent: true,
-    missingDistFiles: []
+    missingDistFiles: [],
+    distApiBaseUrlKind: 'device-reachable'
   });
 
   assert.equal(readiness.ready, true);
@@ -330,8 +332,44 @@ test('miniapp project readiness keeps tracked AppID placeholder-only while hidin
   assert.equal(readiness.privateAppIdPlaceholder, false);
   assert.equal(readiness.privateAppIdRealLooking, true);
   assert.equal(readiness.distFilesPresent, true);
+  assert.equal(readiness.distApiBaseUrlKind, 'device-reachable');
+  assert.equal(readiness.distApiBaseUrlDeviceReachable, true);
   assert.deepEqual(readiness.failures, []);
   assert.doesNotMatch(JSON.stringify(readiness), new RegExp(localPrivateAppId));
+});
+
+test('miniapp project readiness blocks dist builds that still point to localhost API', () => {
+  const readiness = createMiniappProjectReadiness({
+    projectConfig: {
+      miniprogramRoot: 'dist/',
+      appid: 'touristappid'
+    },
+    distFilesPresent: true,
+    missingDistFiles: [],
+    distApiBaseUrlKind: 'local-only'
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.distApiBaseUrlDeviceReachable, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'miniapp-dist-local-api',
+      detail: 'miniapp dist API base URL must be reachable from a real device'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '2. 真实微信登录准备',
+    line: 21,
+    text: '在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。'
+  });
+});
+
+test('miniapp dist API base classifier distinguishes local-only and device-reachable builds without exposing URLs', () => {
+  assert.equal(classifyMiniappDistApiBase(['const API = "http://localhost:4000";']), 'local-only');
+  assert.equal(classifyMiniappDistApiBase(['const API = "http://127.0.0.1:4000";']), 'local-only');
+  assert.equal(classifyMiniappDistApiBase(['const API = "http://192.168.31.249:4000";']), 'device-reachable');
+  assert.equal(classifyMiniappDistApiBase(['const API = "https://api.example.com";']), 'device-reachable');
+  assert.equal(classifyMiniappDistApiBase(['const API = "";']), 'unknown');
 });
 
 test('miniapp project readiness blocks wrong DevTools root or tracked real AppID without leaking it', () => {
@@ -342,7 +380,8 @@ test('miniapp project readiness blocks wrong DevTools root or tracked real AppID
       appid: trackedRealAppId
     },
     distFilesPresent: false,
-    missingDistFiles: ['app.js', 'app.json']
+    missingDistFiles: ['app.js', 'app.json'],
+    distApiBaseUrlKind: 'unknown'
   });
 
   assert.equal(readiness.ready, false);
@@ -569,10 +608,14 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /真实微信登录配置/);
   assert.match(readme, /miniappProject/);
   assert.match(readme, /小程序 DevTools 项目配置/);
+  assert.match(readme, /真机可访问类型/);
+  assert.match(readme, /localhost/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
   assert.match(optimizationChecklist, /小程序运营端账号门禁/);
   assert.match(optimizationChecklist, /\/auth\/account-login/);
+  assert.match(optimizationChecklist, /真机 API 地址门禁/);
+  assert.match(optimizationChecklist, /local-only/);
   assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
   assert.match(optimizationChecklist, /小程序 DevTools 项目配置门禁/);

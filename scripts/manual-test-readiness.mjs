@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -405,6 +405,43 @@ function isRealLookingWechatAppId(value) {
   return /\bwx[0-9a-z]{16,}\b/i.test(String(value ?? '').trim());
 }
 
+function isLocalOnlyUrl(value) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    return ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function classifyMiniappDistApiBase(sources = []) {
+  const urls = sources.flatMap((source) => String(source ?? '').match(/https?:\/\/[^"'`\s)]+/g) ?? []);
+  if (urls.some(isLocalOnlyUrl)) return 'local-only';
+  if (urls.length > 0) return 'device-reachable';
+  return 'unknown';
+}
+
+function readMiniappDistSources(distPath) {
+  if (!existsSync(distPath)) return [];
+  const sources = [];
+
+  function walk(directory) {
+    for (const name of readdirSync(directory)) {
+      const path = resolve(directory, name);
+      const stat = statSync(path);
+      if (stat.isDirectory()) {
+        walk(path);
+      } else if (/\.(js|json|wxml|wxss)$/.test(name)) {
+        sources.push(readFileSync(path, 'utf8'));
+      }
+    }
+  }
+
+  walk(distPath);
+  return sources;
+}
+
 function safeParseJsonFile(path) {
   if (!existsSync(path)) return { exists: false, value: null, error: null };
 
@@ -431,6 +468,7 @@ export function createMiniappProjectReadiness({
   privateConfigParseError = null,
   distFilesPresent = false,
   missingDistFiles = [],
+  distApiBaseUrlKind = 'unknown',
   source = null
 } = {}) {
   const miniprogramRoot = normalizeMiniappRoot(projectConfig?.miniprogramRoot);
@@ -442,6 +480,8 @@ export function createMiniappProjectReadiness({
   const privateAppIdConfigured = privateAppId !== '' && !PLACEHOLDER_APP_IDS.has(privateAppId);
   const privateAppIdPlaceholder = privateAppId !== '' && PLACEHOLDER_APP_IDS.has(privateAppId);
   const privateAppIdRealLooking = isRealLookingWechatAppId(privateAppId);
+  const distApiBaseUrlDeviceReachable =
+    distApiBaseUrlKind === 'device-reachable' ? true : distApiBaseUrlKind === 'local-only' ? false : null;
   const failures = [];
 
   if (projectConfigParseError) {
@@ -497,6 +537,16 @@ export function createMiniappProjectReadiness({
     );
   }
 
+  if (distApiBaseUrlKind === 'local-only') {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-dist-local-api',
+        detail: 'miniapp dist API base URL must be reachable from a real device',
+        nextHumanAction: MINIAPP_CHECKLIST_ACTIONS.devtoolsOpen
+      })
+    );
+  }
+
   return {
     checked: true,
     source,
@@ -509,6 +559,8 @@ export function createMiniappProjectReadiness({
     privateAppIdRealLooking,
     distFilesPresent,
     missingDistFiles,
+    distApiBaseUrlKind,
+    distApiBaseUrlDeviceReachable,
     ready: failures.length === 0,
     failures: failures.map(({ id, detail }) => ({ id, detail })),
     nextHumanAction: failures[0]?.nextHumanAction ?? null
@@ -524,6 +576,7 @@ export function readMiniappProjectReadiness({
   const projectConfigResult = safeParseJsonFile(projectConfigPath);
   const privateConfigResult = safeParseJsonFile(privateConfigPath);
   const missingDistFiles = requiredDistFiles.filter((file) => !existsSync(resolve(distPath, file)));
+  const distApiBaseUrlKind = classifyMiniappDistApiBase(readMiniappDistSources(distPath));
 
   return createMiniappProjectReadiness({
     projectConfig: projectConfigResult.value,
@@ -533,6 +586,7 @@ export function readMiniappProjectReadiness({
     privateConfigParseError: privateConfigResult.error,
     distFilesPresent: missingDistFiles.length === 0,
     missingDistFiles,
+    distApiBaseUrlKind,
     source: {
       projectConfig: projectConfigPath,
       privateConfig: privateConfigPath,

@@ -18,7 +18,7 @@
 - [x] 在 `apps/api/.env` 中配置微信小程序后台的 `MINIAPP_APP_SECRET`。
 - [x] 确认接近生产的测试使用 `WECHAT_AUTO_PROVISION_ENABLED="false"`，未知微信账号必须由后台绑定会员。
 - [x] 运行 `pnpm --filter @booking/api wechat:check`，确认 AppID、AppSecret 和登录模式检查通过。
-- [ ] 在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`。
+- [ ] 在微信开发者工具中打开小程序构建目录 `apps/miniapp/dist`，不要打开源码目录 `apps/miniapp`；运行 `pnpm ops:manual-test:readiness` 确认构建包 API 地址不是 `localhost`。
 - [ ] 在当前 AppID 下添加至少两个测试微信账号。
 
 ## 3. 后台权限和排课
