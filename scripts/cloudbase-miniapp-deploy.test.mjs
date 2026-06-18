@@ -61,6 +61,9 @@ test('docs explain miniapp-only CloudBase real-device testing without the web ad
   assert.match(docs, /admin\/admin/);
   assert.match(docs, /test\/test/);
   assert.match(docs, /临时测试账号/);
+  assert.match(docs, /账号登录/);
+  assert.match(docs, /微信授权登录/);
+  assert.match(docs, /会员侧继续使用微信绑定登录/);
   assert.match(docs, /6 位绑定码/);
   assert.match(docs, /TARO_APP_API_BASE_URL/);
   assert.match(readme, /docs\/cloudbase-miniapp-runbook\.md/);

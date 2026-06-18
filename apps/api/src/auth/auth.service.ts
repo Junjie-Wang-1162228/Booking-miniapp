@@ -37,24 +37,33 @@ export class AuthService {
   ) {}
 
   async adminLogin(username: string, password: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { username }
-    });
-
-    if (!user || user.role !== UserRole.ADMIN || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid admin credentials');
-    }
-
-    if (isDefaultSeedAdminPassword(this.config, password)) {
-      throw new UnauthorizedException('Invalid admin credentials');
-    }
-
-    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-    if (!passwordMatches) {
+    const user = await this.validateAdminAccountCredentials(username, password);
+    if (!user) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
     return this.createSession(user);
+  }
+
+  async accountLogin(user: User) {
+    return this.createSession(user);
+  }
+
+  async validateAdminAccountCredentials(username: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username: username.trim() }
+    });
+
+    if (!user || user.role !== UserRole.ADMIN || user.status !== 'ACTIVE' || !user.passwordHash) {
+      return null;
+    }
+
+    if (isDefaultSeedAdminPassword(this.config, password)) {
+      return null;
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    return passwordMatches ? user : null;
   }
 
   async devLogin(member: DevelopmentMember) {

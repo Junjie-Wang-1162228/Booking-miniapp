@@ -1,13 +1,16 @@
-import { Button, Text, View } from '@tarojs/components';
+import { Button, Input, Text, View } from '@tarojs/components';
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
 import { useState } from 'react';
 import {
+  accountLogin,
+  clearStoredSession,
   getMyDeductions,
   formatApiError,
   getStoredMember,
   getStoredToken,
   isDevAuthMode,
-  setStoredBranchId
+  setStoredBranchId,
+  wechatLogin
 } from '../../api';
 import { developmentMembers, loadMemberSession, memberNames, switchDevelopmentMember } from '../../member-session';
 import { AuthUser, Deduction, MemberBranch, MemberKey } from '../../types';
@@ -33,6 +36,9 @@ export default function ProfilePage() {
   const [deductions, setDeductions] = useState<Deduction[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
   const { runLocked, isActionLocked } = useActionLock();
   const devAuthMode = isDevAuthMode();
   const canOpenOps = user?.role === 'ADMIN' && branches.length > 0;
@@ -43,9 +49,23 @@ export default function ProfilePage() {
   const branchNameText = selectedBranch?.name || '未选择门店';
   const roleText = user?.role === 'ADMIN' ? selectedBranch?.staffRole || 'ADMIN' : '会员';
 
+  function clearProfileSession() {
+    setToken('');
+    setUser(null);
+    setBranches([]);
+    setSelectedBranchId('');
+    setDeductions([]);
+  }
+
   async function load(currentToken = token, preferredBranchId?: string) {
+    if (!currentToken && !devAuthMode) {
+      clearProfileSession();
+      return;
+    }
+
     setLoading(true);
     setLoadError('');
+    setLoginError('');
     try {
       const session = await loadMemberSession({ token: currentToken, member, preferredBranchId });
       const deductionList = session.user.role !== 'ADMIN' && session.selectedBranchId
@@ -61,6 +81,50 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitWechatLogin() {
+    setLoading(true);
+    setLoadError('');
+    setLoginError('');
+    try {
+      const session = await wechatLogin();
+      await load(session.accessToken);
+    } catch (error) {
+      setLoginError(formatApiError(error, '微信授权登录失败'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitAccountLogin() {
+    const username = loginUsername.trim();
+    const password = loginPassword.trim();
+    if (!username || !password) {
+      setLoginError('请输入账号和密码');
+      return;
+    }
+
+    setLoading(true);
+    setLoadError('');
+    setLoginError('');
+    try {
+      const session = await accountLogin(username, password);
+      setLoginPassword('');
+      await load(session.accessToken);
+    } catch (error) {
+      setLoginError(formatApiError(error, '账号或密码错误'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function logout() {
+    clearStoredSession();
+    clearProfileSession();
+    setLoginPassword('');
+    setLoadError('');
+    setLoginError('');
   }
 
   async function switchMember(nextMember: MemberKey) {
@@ -151,7 +215,11 @@ export default function ProfilePage() {
   useDidShow(() => {
     const stored = getStoredToken();
     setToken(stored);
-    void load(stored);
+    if (stored || devAuthMode) {
+      void load(stored);
+    } else {
+      clearProfileSession();
+    }
   });
 
   usePullDownRefresh(() => {
@@ -167,6 +235,50 @@ export default function ProfilePage() {
           {selectedBranch?.name ?? '当前门店'} · {user?.role === 'ADMIN' ? '运营管理' : `剩余课时 ${selectedBalance} 节`}
         </Text>
       </View>
+
+      {!devAuthMode && !user && (
+        <View className="account-login-panel">
+          <View className="notice-title-row">
+            <AppIcon name="account" />
+            <Text className="notice-title">登录方式</Text>
+          </View>
+          <Text className="notice-copy">会员使用微信授权登录；运营测试账号可使用账号登录。</Text>
+          <View className="login-methods">
+            <Button
+              className="login-method primary"
+              disabled={loading || isActionLocked('wechat-login')}
+              onClick={() => void runLocked('wechat-login', submitWechatLogin)}
+            >
+              微信授权登录
+            </Button>
+          </View>
+          <View className="account-login-form">
+            <Input
+              className="account-input"
+              value={loginUsername}
+              placeholder="账号：admin 或 test"
+              maxlength={32}
+              onInput={(event) => setLoginUsername(String(event.detail.value || ''))}
+            />
+            <Input
+              className="account-input"
+              value={loginPassword}
+              password
+              placeholder="密码"
+              maxlength={64}
+              onInput={(event) => setLoginPassword(String(event.detail.value || ''))}
+            />
+            <Button
+              className="login-method"
+              disabled={loading || isActionLocked('account-login')}
+              onClick={() => void runLocked('account-login', submitAccountLogin)}
+            >
+              账号登录
+            </Button>
+          </View>
+          {loginError && <Text className="login-error">{loginError}</Text>}
+        </View>
+      )}
 
       {devAuthMode && (
         <View className="member-switch profile-switch">
@@ -207,30 +319,42 @@ export default function ProfilePage() {
         </View>
       )}
 
-      <View className="profile-summary">
-        <View className="notice-title-row">
-          <AppIcon name="account" />
-          <Text className="notice-title">会员资料</Text>
+      {user && (
+        <View className="profile-summary">
+          <View className="notice-title-row">
+            <AppIcon name="account" />
+            <Text className="notice-title">会员资料</Text>
+          </View>
+          <View className="profile-summary__grid">
+            <View className="profile-summary__item">
+              <Text className="profile-summary__label">手机号</Text>
+              <Text className="profile-summary__value">{phoneText}</Text>
+            </View>
+            <View className="profile-summary__item">
+              <Text className="profile-summary__label">{user.role === 'ADMIN' ? '运营角色' : '会员编号'}</Text>
+              <Text className="profile-summary__value">{user.role === 'ADMIN' ? roleText : memberNoText}</Text>
+            </View>
+            <View className="profile-summary__item">
+              <Text className="profile-summary__label">当前门店</Text>
+              <Text className="profile-summary__value">{branchNameText}</Text>
+            </View>
+            <View className="profile-summary__item">
+              <Text className="profile-summary__label">{user.role === 'ADMIN' ? '操作范围' : '剩余课时'}</Text>
+              <Text className="profile-summary__value">{user.role === 'ADMIN' ? '当前门店' : `${selectedBalance} 节`}</Text>
+            </View>
+          </View>
         </View>
-        <View className="profile-summary__grid">
-          <View className="profile-summary__item">
-            <Text className="profile-summary__label">手机号</Text>
-            <Text className="profile-summary__value">{phoneText}</Text>
-          </View>
-          <View className="profile-summary__item">
-            <Text className="profile-summary__label">{user?.role === 'ADMIN' ? '运营角色' : '会员编号'}</Text>
-            <Text className="profile-summary__value">{user?.role === 'ADMIN' ? roleText : memberNoText}</Text>
-          </View>
-          <View className="profile-summary__item">
-            <Text className="profile-summary__label">当前门店</Text>
-            <Text className="profile-summary__value">{branchNameText}</Text>
-          </View>
-          <View className="profile-summary__item">
-            <Text className="profile-summary__label">{user?.role === 'ADMIN' ? '操作范围' : '剩余课时'}</Text>
-            <Text className="profile-summary__value">{user?.role === 'ADMIN' ? '当前门店' : `${selectedBalance} 节`}</Text>
-          </View>
-        </View>
-      </View>
+      )}
+
+      {user && (
+        <Button
+          className="logout-action"
+          disabled={isActionLocked('logout')}
+          onClick={() => void runLocked('logout', logout)}
+        >
+          退出登录
+        </Button>
+      )}
 
       {canOpenOps && (
         <Button
@@ -307,7 +431,7 @@ export default function ProfilePage() {
         </Button>
       </View>
 
-      {user?.role !== 'ADMIN' && (
+      {user && user.role !== 'ADMIN' && (
         <>
           <Text className="section-title">消课记录</Text>
           {loading && deductions.length === 0 ? (

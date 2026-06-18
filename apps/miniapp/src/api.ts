@@ -122,6 +122,11 @@ export function clearStoredToken() {
   Taro.removeStorageSync(TOKEN_KEY);
 }
 
+export function clearStoredSession() {
+  Taro.removeStorageSync(TOKEN_KEY);
+  Taro.removeStorageSync(BRANCH_KEY);
+}
+
 export function getStoredMember(): MemberKey {
   return (Taro.getStorageSync<MemberKey>(MEMBER_KEY) || 'member-a') as MemberKey;
 }
@@ -224,6 +229,15 @@ export async function wechatLogin() {
   const response = await requestJson<AuthResponse>('/auth/wechat-login', {
     method: 'POST',
     data: { code: login.code }
+  });
+  storeSession(response);
+  return response;
+}
+
+export async function accountLogin(username: string, password: string) {
+  const response = await requestJson<AuthResponse>('/auth/account-login', {
+    method: 'POST',
+    data: { username, password }
   });
   storeSession(response);
   return response;

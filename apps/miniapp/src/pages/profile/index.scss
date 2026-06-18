@@ -35,6 +35,67 @@
   line-height: 1.5;
 }
 
+.account-login-panel {
+  margin-top: 22px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #181818;
+}
+
+.login-methods,
+.account-login-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.login-method,
+.logout-action {
+  min-height: 84px;
+  padding: 18px 22px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.login-method {
+  background: #2a2a2a;
+}
+
+.login-method.primary {
+  background: #e73535;
+}
+
+.account-input {
+  box-sizing: border-box;
+  min-height: 84px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #101010;
+  color: #ffffff;
+  font-size: 27px;
+  line-height: 84px;
+}
+
+.login-error {
+  display: block;
+  margin-top: 14px;
+  color: #ff8585;
+  font-size: 23px;
+  line-height: 1.45;
+}
+
+.logout-action {
+  margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #2a2a2a;
+}
+
 .profile-summary {
   margin-top: 22px;
   padding: 24px;

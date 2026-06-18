@@ -259,6 +259,84 @@ describe('Boxing booking API', () => {
     });
   });
 
+  it('logs in an active admin account through the shared account login endpoint', async () => {
+    const eastBranch = await prisma.branch.findFirstOrThrow({ where: { name: '城东店' } });
+    const passwordHash = await bcrypt.hash('test', 10);
+    const operator = await prisma.user.create({
+      data: {
+        username: 'test-account-login',
+        displayName: '测试账号登录',
+        role: UserRole.ADMIN,
+        passwordHash
+      }
+    });
+    await prisma.staffBranchAssignment.create({
+      data: {
+        gymId: eastBranch.gymId,
+        branchId: eastBranch.id,
+        userId: operator.id,
+        role: StaffRole.MANAGER,
+        startsAt: new Date()
+      }
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/account-login')
+      .send({ username: 'test-account-login', password: 'test' })
+      .expect(201);
+
+    expect(response.body.accessToken).toEqual(expect.any(String));
+    expect(response.body.user).toMatchObject({
+      role: 'ADMIN',
+      displayName: '测试账号登录'
+    });
+    expect(response.body.user.accessibleBranches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '城东店',
+          staffRole: 'MANAGER'
+        })
+      ])
+    );
+  });
+
+  it('rejects invalid account login credentials with one generic response', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/account-login')
+      .send({ username: 'admin', password: 'wrong-password' })
+      .expect(401);
+
+    expect(response.body.message).toBe('Invalid account credentials');
+  });
+
+  it('rejects member accounts from the account login endpoint in the MVP', async () => {
+    const eastBranch = await prisma.branch.findFirstOrThrow({ where: { name: '城东店' } });
+    const passwordHash = await bcrypt.hash('member-test', 10);
+    const member = await prisma.user.create({
+      data: {
+        username: 'member-account-login',
+        displayName: '会员账号登录',
+        role: UserRole.USER,
+        passwordHash
+      }
+    });
+    await prisma.memberBranch.create({
+      data: {
+        gymId: eastBranch.gymId,
+        branchId: eastBranch.id,
+        userId: member.id,
+        isDefault: true
+      }
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/account-login')
+      .send({ username: 'member-account-login', password: 'member-test' })
+      .expect(401);
+
+    expect(response.body.message).toBe('Invalid account credentials');
+  });
+
   it('logs in seeded member A through the development mini program login', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/dev-login')
