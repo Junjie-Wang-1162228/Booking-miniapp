@@ -1,5 +1,12 @@
 .booking-card {
-  border-left: 6px solid #e73535;
+  border-left: 6px solid #f28a24;
+  background:
+    linear-gradient(90deg, rgba(242, 138, 36, 0.12), rgba(255, 255, 255, 0) 128px),
+    #f7f7f7;
+}
+
+.booking-card .pill.red {
+  background: #e31b23;
 }
 
 .booking-footer {
@@ -17,11 +24,14 @@
   gap: 8px;
   min-width: 180px;
   min-height: 72px;
-  border: 1px solid #e73535;
+  border: 1px solid rgba(227, 27, 35, 0.72);
   border-radius: 8px;
-  background: #ffffff;
-  color: #e73535;
+  background:
+    linear-gradient(180deg, #ffffff, #fff7ee),
+    #ffffff;
+  color: #e31b23;
   font-size: 24px;
   font-weight: 800;
   line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(242, 138, 36, 0.12);
 }

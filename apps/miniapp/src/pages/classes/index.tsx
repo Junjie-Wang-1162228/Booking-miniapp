@@ -193,7 +193,7 @@ export default function ClassesPage() {
       content: reminderEnabled && !remindBeforeMinutes ? '已完成预约。本次未开启课前提醒，可在“我的预约”查看记录。' : '已完成预约，可在“我的预约”查看记录。',
       confirmText: '查看预约',
       cancelText: '继续约课',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
 
     if (result.confirm) {
@@ -251,12 +251,16 @@ export default function ClassesPage() {
     <View className="page classes-page">
       <View className="hero">
         <BrandLogo />
-        <Text className="title">今天想打哪节课？</Text>
+        <Text className="title">训练场开放中</Text>
         <Text className="subtitle">
           {user
             ? `${user.displayName} · ${selectedBranch?.name ?? '当前门店'} · 剩余 ${selectedBalance} 节课`
             : '选择会员后开始预约'}
         </Text>
+        <View className="hero__brand-line">
+          <Text className="mat-lane" />
+          <Text>拳击 · 体能 · 实战节奏</Text>
+        </View>
       </View>
 
       {devAuthMode && (
@@ -306,7 +310,7 @@ export default function ClassesPage() {
             <Text className="reminder-copy">需要微信订阅消息授权后发送</Text>
           </View>
         </View>
-        <Switch checked={reminder} color="#e73535" onChange={(event) => setReminder(event.detail.value)} />
+        <Switch checked={reminder} color="#e31b23" onChange={(event) => setReminder(event.detail.value)} />
       </View>
 
       <Text className="section-title">可预约课程</Text>

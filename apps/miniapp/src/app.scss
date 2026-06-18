@@ -1,6 +1,6 @@
 page {
   min-height: 100%;
-  background: #101010;
+  background: #0b0b0b;
   color: #f7f7f7;
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -23,14 +23,43 @@ button::after {
 .page {
   min-height: 100vh;
   padding: 28px 28px 48px;
-  background: #101010;
+  background:
+    linear-gradient(180deg, rgba(227, 27, 35, 0.08) 0, rgba(11, 11, 11, 0) 260px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 56px),
+    #0b0b0b;
 }
 
 .hero {
-  padding: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  padding: 30px 28px 28px;
+  border: 1px solid rgba(242, 138, 36, 0.22);
   border-radius: 8px;
-  background: #181818;
+  background:
+    linear-gradient(135deg, rgba(227, 27, 35, 0.22) 0, rgba(242, 138, 36, 0.11) 40%, rgba(18, 18, 18, 0.92) 74%),
+    repeating-linear-gradient(0deg, rgba(242, 138, 36, 0.13) 0 2px, transparent 2px 68px),
+    #151515;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.hero__brand-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  color: #f28a24;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.mat-lane {
+  display: block;
+  width: 56px;
+  height: 6px;
+  border-radius: 6px;
+  background: #f28a24;
+  box-shadow: 68px 0 0 rgba(227, 27, 35, 0.82);
 }
 
 .brand-logo {
@@ -43,17 +72,19 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.86);
   border-radius: 8px;
-  background: #e73535;
+  background: #ffffff;
+  box-shadow: 8px 8px 0 rgba(227, 27, 35, 0.92);
 }
 
-.brand-logo__mark-text {
-  color: #ffffff;
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1;
+.brand-logo__image {
+  display: block;
+  width: 74px;
+  height: 74px;
 }
 
 .brand-logo__copy {
@@ -69,14 +100,16 @@ button::after {
 
 .brand-logo__label {
   color: #ffffff;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 900;
+  letter-spacing: 0;
 }
 
 .brand-logo__sub-label {
-  color: #909090;
+  color: #f28a24;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .title {
@@ -107,10 +140,14 @@ button::after {
 .card {
   margin-bottom: 20px;
   padding: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(242, 138, 36, 0.18);
+  border-left: 6px solid #f28a24;
   border-radius: 8px;
-  background: #f7f7f7;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 243, 243, 0.98)),
+    #f7f7f7;
   color: #151515;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.2);
 }
 
 .card-title {
@@ -170,7 +207,7 @@ button::after {
 }
 
 .pill.red {
-  background: #e73535;
+  background: #e31b23;
 }
 
 .pill.booked {
@@ -197,12 +234,14 @@ button::after {
   padding: 52px 24px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  background: #181818;
+  background:
+    linear-gradient(135deg, rgba(242, 138, 36, 0.08), rgba(24, 24, 24, 0.96)),
+    #181818;
   text-align: center;
 }
 
 .page-state--error {
-  border-color: rgba(231, 53, 53, 0.45);
+  border-color: rgba(227, 27, 35, 0.45);
 }
 
 .page-state__mark {
@@ -211,7 +250,7 @@ button::after {
   height: 52px;
   border: 3px solid currentColor;
   border-radius: 50%;
-  color: #e73535;
+  color: #e31b23;
 }
 
 .page-state--empty .page-state__mark {
@@ -260,7 +299,7 @@ button::after {
   margin-top: 6px;
   padding: 0 28px;
   border-radius: 8px;
-  background: #e73535;
+  background: #e31b23;
   color: #ffffff;
   font-size: 26px;
   font-weight: 800;
@@ -334,7 +373,7 @@ button::after {
 }
 
 .member-button.active {
-  background: #e73535;
+  background: #e31b23;
 }
 
 .branch-selector {
@@ -364,8 +403,8 @@ button::after {
 }
 
 .branch-button.active {
-  border-color: #e73535;
-  background: #e73535;
+  border-color: #f28a24;
+  background: #e31b23;
 }
 
 .app-icon {

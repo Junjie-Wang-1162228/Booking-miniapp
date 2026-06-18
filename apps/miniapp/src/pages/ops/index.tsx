@@ -229,7 +229,7 @@ export default function OpsPage() {
       content: `${item.title}\n${formatTime(item.startsAt)}\n\n会同步取消有效预约并释放名额。`,
       cancelText: '再想想',
       confirmText: '取消课程',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
     if (!result.confirm || !token) return;
 
@@ -251,7 +251,7 @@ export default function OpsPage() {
       content: `${item.member.displayName}\n${item.boxingClass.title}\n${formatTime(item.boxingClass.startsAt)}\n\n确认后会扣减会员 1 节课时。`,
       cancelText: '再核对',
       confirmText: '确认消课',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
     if (!result.confirm || !token) return;
 
@@ -273,7 +273,7 @@ export default function OpsPage() {
       content: `${item.member.displayName}\n${item.boxingClass.title}\n\n取消后会释放课程名额，不扣课时。`,
       cancelText: '再想想',
       confirmText: '取消预约',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
     if (!result.confirm || !token) return;
 
@@ -305,7 +305,7 @@ export default function OpsPage() {
       content: `${member.displayName}\n绑定码：${bindingCode}\n\n确认后该微信号会绑定到此会员。`,
       cancelText: '再核对',
       confirmText: '确认绑定',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
     if (!result.confirm || !token) return;
 

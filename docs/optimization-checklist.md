@@ -134,6 +134,8 @@
 - [x] 本项目 MySQL compose 端口支持 `BOOKING_MYSQL_HOST_PORT` 覆盖；当 `3307` 被其他本地容器占用时，可用 `3308` 等独立端口重建本项目 MySQL，并同步更新本地 `apps/api/.env`，不需要停掉归属不明的其他容器。
 - [x] 本地初始化迁移命令改为非交互式 `pnpm --filter @booking/api prisma:deploy`；`prisma:migrate` 保留给开发新 schema 变更时创建 migration，避免新库初始化时卡在交互式输入。
 - [x] 新增 `pnpm dev:preview:start/status/stop` 后台预览生命周期命令：缺失时补齐 API、管理端和小程序 watch，日志和 PID 写入 ignored 的 `.dev/preview`，减少依赖临时终端会话。
+- [x] 按真知格斗参考 Logo 和场地照片完成用户端小程序品牌 UI 刷新：统一 `真知格斗 / ZHENZHIGEDOU` Logo、红黑底色、橙色训练垫/灯光点缀、课程首页品牌线、课程卡、预约卡、详情页、账户页和底部导航选中色。
+- [x] 运营端小程序同步轻量品牌样式：保留排课、名单、消课、会员绑定的工具密度，同时统一指标卡、表单、按钮和预约卡的红橙品牌视觉。
 
 ## 下一步优化清单
 
@@ -151,6 +153,7 @@
 - [x] `cross-env TARO_APP_AUTH_MODE=wechat pnpm --filter @booking/miniapp build:weapp`
 - [x] `cross-env TARO_APP_AUTH_MODE=dev pnpm --filter @booking/miniapp build:weapp`
 - [x] `pnpm miniapp:visual-qa:test`
+- [x] `pnpm miniapp:brand-ui:test`
 - [x] `pnpm miniapp:compliance:test`
 - [x] `pnpm miniapp:booking-rules:test`
 - [x] `pnpm miniapp:booking-success:test`

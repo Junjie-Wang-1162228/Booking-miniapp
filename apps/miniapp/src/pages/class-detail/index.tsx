@@ -121,7 +121,7 @@ export default function ClassDetailPage() {
           : '已完成预约，可在“我的预约”查看记录。',
       confirmText: '查看预约',
       cancelText: '继续查看',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
 
     if (result.confirm) {

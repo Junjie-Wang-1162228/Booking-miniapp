@@ -66,7 +66,7 @@ export default function BookingsPage() {
       content: `${item.boxingClass.title}\n${formatTime(item.boxingClass.startsAt)}\n\n${cancelBookingRuleText}`,
       cancelText: '再想想',
       confirmText: '取消预约',
-      confirmColor: '#e73535'
+      confirmColor: '#e31b23'
     });
 
     if (!result.confirm || !token) return;

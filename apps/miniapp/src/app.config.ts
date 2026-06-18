@@ -3,13 +3,13 @@ export default defineAppConfig({
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#111111',
-    navigationBarTitleText: '拳馆约课',
+    navigationBarTitleText: '真知格斗',
     navigationBarTextStyle: 'white',
     backgroundColor: '#111111'
   },
   tabBar: {
     color: '#8f8f8f',
-    selectedColor: '#e73535',
+    selectedColor: '#e31b23',
     backgroundColor: '#111111',
     borderStyle: 'black',
     list: [

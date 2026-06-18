@@ -26,6 +26,7 @@
     "miniapp:visual-qa:plan": "node scripts/miniapp-visual-qa.mjs --manual-plan",
     "miniapp:visual-qa:next": "node scripts/miniapp-visual-qa.mjs --next-missing",
     "miniapp:visual-qa:test": "node --test scripts/miniapp-visual-qa.test.mjs",
+    "miniapp:brand-ui:test": "node --test scripts/miniapp-brand-ui.test.mjs",
     "miniapp:compliance:test": "node --test scripts/miniapp-compliance-entry.test.mjs",
     "miniapp:booking-rules:test": "node --test scripts/miniapp-booking-rules.test.mjs",
     "miniapp:booking-success:test": "node --test scripts/miniapp-booking-success.test.mjs",

@@ -3,10 +3,16 @@
 }
 
 .detail-hero {
+  position: relative;
+  overflow: hidden;
   padding: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(242, 138, 36, 0.22);
   border-radius: 8px;
-  background: #181818;
+  background:
+    linear-gradient(135deg, rgba(227, 27, 35, 0.24), rgba(242, 138, 36, 0.10) 44%, rgba(24, 24, 24, 0.96) 76%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 54px),
+    #181818;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
 }
 
 .detail-kicker,
@@ -20,7 +26,7 @@
 }
 
 .detail-kicker {
-  color: #e73535;
+  color: #f28a24;
   font-size: 24px;
   font-weight: 900;
 }
@@ -45,6 +51,7 @@
   min-height: 44px;
   margin-top: 20px;
   padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   background: #4a4a4a;
   color: #ffffff;
@@ -54,7 +61,8 @@
 }
 
 .detail-pill.is-open {
-  background: #e73535;
+  border-color: rgba(242, 138, 36, 0.66);
+  background: #e31b23;
 }
 
 .detail-pill.is-booked {
@@ -63,8 +71,11 @@
 
 .detail-section {
   margin-top: 22px;
-  padding: 24px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  border: 1px solid rgba(242, 138, 36, 0.12);
+  border-left: 6px solid #f28a24;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .detail-section-title {
@@ -76,7 +87,7 @@
 
 .detail-section-copy {
   margin-top: 12px;
-  color: #cfcfcf;
+  color: #d5d5d5;
   font-size: 24px;
   line-height: 1.58;
 }
@@ -95,7 +106,7 @@
   flex: 1;
   min-height: 72px;
   margin: 0;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(242, 138, 36, 0.24);
   border-radius: 8px;
   background: #202020;
   color: #ffffff;
@@ -110,9 +121,11 @@
   gap: 16px;
   margin-top: 16px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(242, 138, 36, 0.18);
   border-radius: 8px;
-  background: #181818;
+  background:
+    linear-gradient(90deg, rgba(242, 138, 36, 0.08), rgba(24, 24, 24, 0.96)),
+    #181818;
 }
 
 .coach-avatar {
@@ -124,7 +137,8 @@
   min-width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #e73535;
+  border: 2px solid rgba(242, 138, 36, 0.58);
+  background: #e31b23;
   color: #ffffff;
 }
 
@@ -188,7 +202,7 @@
 
 .detail-secondary-action {
   flex: 0 0 34%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(242, 138, 36, 0.24);
   background: #202020;
   color: #ffffff;
 }
@@ -196,7 +210,8 @@
 .detail-primary-action {
   gap: 10px;
   flex: 1;
-  background: #e73535;
+  border: 1px solid rgba(242, 138, 36, 0.36);
+  background: #e31b23;
   color: #ffffff;
 }
 
