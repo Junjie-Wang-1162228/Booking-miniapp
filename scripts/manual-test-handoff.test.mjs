@@ -106,6 +106,11 @@ test('createManualTestHandoffMarkdown renders a safe Chinese handoff report', ()
   assert.match(markdown, /bookings：\/pages\/bookings\/index -> `\/repo\/docs\/manual-test-screenshots\/iphone-se-bookings\.png`/);
   assert.match(markdown, /profile：\/pages\/profile\/index -> `\/repo\/docs\/manual-test-screenshots\/iphone-se-profile\.png`/);
   assert.match(markdown, /`cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`/);
+  assert.match(markdown, /## 可复制命令/);
+  assert.match(markdown, /`pnpm dev:preview:status`/);
+  assert.match(markdown, /`pnpm miniapp:prepare-device`/);
+  assert.match(markdown, /`pnpm ops:manual-test:handoff`/);
+  assert.match(markdown, /`pnpm miniapp:visual-qa:check`/);
   assert.match(markdown, /多设备视觉截图矩阵：0\/12/);
   assert.match(markdown, /手工验收清单：16\/46/);
   assert.doesNotMatch(markdown, /`admin`\s*\/\s*`admin`/);
@@ -121,6 +126,8 @@ test('package and docs expose the manual test handoff command', () => {
   assert.match(readme, /pnpm ops:manual-test:handoff/);
   assert.match(readme, /小程序真机验收交接/);
   assert.match(readme, /visualQaNext/);
+  assert.match(readme, /可复制命令/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:handoff/);
   assert.match(optimizationChecklist, /visualQaNext/);
+  assert.match(optimizationChecklist, /可复制命令/);
 });

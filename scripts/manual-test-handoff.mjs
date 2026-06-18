@@ -36,6 +36,7 @@ export function createManualTestHandoffMarkdown(summary) {
   const sections = summary.manualTestSections ?? [];
   const releaseBlockers = summary.releaseBlockers ?? [];
   const invalidReasons = visualDiagnostics.invalidReasons ?? [];
+  const captureCommand = summary.captureCommand ?? 'cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next';
 
   return [
     '# 小程序真机验收交接',
@@ -77,6 +78,14 @@ export function createManualTestHandoffMarkdown(summary) {
       '没有缺失截图路径。'
     ),
     summary.captureCommand ? `- 下一条截图命令：\`${summary.captureCommand}\`` : '- 下一条截图命令：无',
+    '',
+    '## 可复制命令',
+    '',
+    '- `pnpm dev:preview:status`：刷新本地预览、真机包和验收进度。',
+    '- `pnpm miniapp:prepare-device`：重建真机调试包并确认后端可被手机访问。',
+    '- `pnpm ops:manual-test:handoff`：重新生成这份中文交接报告。',
+    `- \`${captureCommand}\`：手动切到目标模拟器设备后采集下一组截图。`,
+    '- `pnpm miniapp:visual-qa:check`：补图后检查截图矩阵是否完整有效。',
     '',
     '## 发布阻断',
     '',
