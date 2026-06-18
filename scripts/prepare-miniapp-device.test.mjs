@@ -46,6 +46,8 @@ test('createMiniappDevicePrepPlan builds a device-reachable miniapp dist plan wi
     env: {
       TARO_APP_AUTH_MODE: 'wechat',
       TARO_APP_API_BASE_URL: 'http://192.168.31.249:4000',
+      TARO_APP_CLOUDBASE_ENV_ID: '',
+      TARO_APP_CLOUDBASE_SERVICE_NAME: '',
       TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES: '480'
     }
   });
@@ -106,6 +108,8 @@ test('runMiniappDevicePrep syncs private config, rebuilds dist, then runs readin
     ]
   );
   assert.equal(calls[1].env.TARO_APP_API_BASE_URL, 'http://192.168.31.249:4000');
+  assert.equal(calls[1].env.TARO_APP_CLOUDBASE_ENV_ID, '');
+  assert.equal(calls[1].env.TARO_APP_CLOUDBASE_SERVICE_NAME, '');
   assert.equal(result.readyForManualWechat, true);
   assert.equal(result.opensDevTools, false);
   assert.equal(result.nextHumanAction, 'Open /repo/apps/miniapp/dist in WeChat DevTools, then use real-device debugging.');

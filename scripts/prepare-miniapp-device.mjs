@@ -87,6 +87,8 @@ export function createMiniappDevicePrepPlan({
         env: {
           TARO_APP_AUTH_MODE: 'wechat',
           TARO_APP_API_BASE_URL: resolvedApiBaseUrl,
+          TARO_APP_CLOUDBASE_ENV_ID: '',
+          TARO_APP_CLOUDBASE_SERVICE_NAME: '',
           TARO_APP_BUSINESS_TIMEZONE_OFFSET_MINUTES: String(timezoneOffsetMinutes)
         }
       },
