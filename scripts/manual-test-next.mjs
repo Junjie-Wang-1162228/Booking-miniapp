@@ -12,13 +12,39 @@ export function parseJsonFromCommandOutput(output) {
   return JSON.parse(source.slice(start, end + 1));
 }
 
+function redactManualActionText(text) {
+  return String(text ?? '')
+    .replace(/`([^`]+)`\s*\/\s*`([^`]+)`/g, '`$1` / `[已隐藏]`')
+    .replace(/\b(admin123456|manager123456)\b/g, '[已隐藏]');
+}
+
+function sanitizeHumanAction(action) {
+  if (!action) return null;
+
+  return {
+    section: action.section,
+    line: action.line,
+    text: redactManualActionText(action.text)
+  };
+}
+
+function createManualTestSections(sections = []) {
+  return sections.map((section) => ({
+    title: section.title,
+    completed: section.completed,
+    total: section.total,
+    percent: section.percent,
+    next: sanitizeHumanAction(section.next)
+  }));
+}
+
 export function createManualTestNextSummary(readiness) {
   return {
     mode: 'manual-test-next',
     opensDevTools: false,
     readyForManualWechat: readiness.readyForManualWechat === true,
     readyForRelease: readiness.readyForRelease === true,
-    nextHumanAction: readiness.nextHumanAction ?? null,
+    nextHumanAction: sanitizeHumanAction(readiness.nextHumanAction),
     devtoolsProjectPath: readiness.miniappProject?.source?.dist ?? null,
     miniappDistApi: {
       kind: readiness.miniappProject?.distApiBaseUrlKind ?? null,
@@ -28,6 +54,7 @@ export function createManualTestNextSummary(readiness) {
       manualTest: readiness.progress?.manualTest ?? null,
       visualQa: readiness.progress?.visualQa ?? null
     },
+    manualTestSections: createManualTestSections(readiness.manualTestSections),
     visualQaDiagnostics: readiness.visualQaDiagnostics ?? null,
     releaseBlockers: readiness.releaseBlockers ?? [],
     captureCommand: readiness.captureCommand ?? null

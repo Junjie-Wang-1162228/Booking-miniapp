@@ -120,6 +120,7 @@
 - [x] `pnpm miniapp:visual-qa:check` 增加过期截图识别：截图早于最新小程序 UI 源码变更时标记为 invalid，`pnpm dev:status` 同步输出 present/invalid 计数和诊断，避免旧 UI 截图被误当作新 UI 验收证据。
 - [x] 新增 `pnpm ops:manual-test:status` 手工验收清单状态命令：读取 `docs/manual-test-checklist.md` 勾选项并输出 `manual-test-status` JSON，汇总总项数、完成数、分组进度、全局下一条未完成项和每个分组自己的 `next`；不打开微信开发者工具，也不把未完成清单当作 shell 失败。
 - [x] 新增 `pnpm ops:manual-test:next` 精简下一步命令：复用 readiness 检查，只输出下一条人工动作、微信开发者工具打开路径、真机构建包 API 状态、视觉/手工进度、发布阻断项和截图命令；不打开微信开发者工具，不输出 AppID、Secret、token 或账号密码。
+- [x] `pnpm ops:manual-test:next` 增加 `manualTestSections`：按手工验收分组输出完成数、总数、百分比和下一条未完成项，密码类文本自动隐藏，方便协作者按阶段继续测试。
 - [x] `pnpm ops:manual-test:next` 和 `pnpm ops:manual-test:readiness` 增加 `visualQaDiagnostics`：输出已有截图数、无效截图数和无效原因，方便继续真机调试时识别旧截图过期，而不需要再打开完整 `dev:status`。
 - [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist；`manual-test-status` 的每个分组会输出具体 `next`，`nextHumanAction` 会在本地门禁已通过时直接提示真实微信登录准备分组里的下一条任务和行号，`readyForRelease` 与 `releaseBlockers` 会明确发布是否仍被视觉截图或完整手工 checklist 阻断，避免重复做已验证的本地启动项或误判可发布。
 - [x] `pnpm ops:manual-test:readiness` 增加本地验收测试数据门禁：通过 API 只读验证默认后台账号、`east-manager` 店长账号、城东/城西门店、未来课程和店长只能访问城东店的门店权限，不重跑 seed、不清空本地库，并且不输出登录 token。

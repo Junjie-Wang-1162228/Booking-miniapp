@@ -86,6 +86,32 @@ function findSection(sections = [], titlePattern) {
   return sections.find((section) => titlePattern.test(section.title));
 }
 
+function redactManualActionText(text) {
+  return String(text ?? '')
+    .replace(/`([^`]+)`\s*\/\s*`([^`]+)`/g, '`$1` / `[已隐藏]`')
+    .replace(/\b(admin123456|manager123456)\b/g, '[已隐藏]');
+}
+
+function sanitizeHumanAction(action) {
+  if (!action) return null;
+
+  return {
+    section: action.section,
+    line: action.line,
+    text: redactManualActionText(action.text)
+  };
+}
+
+function createManualTestSectionSummaries(sections = []) {
+  return sections.map((section) => ({
+    title: section.title,
+    completed: section.completed,
+    total: section.total,
+    percent: section.percent,
+    next: sanitizeHumanAction(section.next)
+  }));
+}
+
 function createNextHumanAction({
   localPreviewOk,
   strictOk,
@@ -911,6 +937,7 @@ export function createManualTestReadiness(
     complete: progress.visualQa.total > 0 && progress.visualQa.completed === progress.visualQa.total
   };
   const visualQaDiagnostics = createVisualQaDiagnostics(visualQa);
+  const manualTestSections = createManualTestSectionSummaries(manualTest.sections);
   const localPreviewOk = progress.preview.total > 0 && progress.preview.completed === progress.preview.total;
   const strictOk = progress.strict.passed === true;
   const readyForManualWechat =
@@ -983,21 +1010,24 @@ export function createManualTestReadiness(
     releaseBlockers,
     progress,
     visualQaDiagnostics,
+    manualTestSections,
     gates,
     testData,
     wechatConfig,
     miniappProject,
     nextAction: devStatus.progress?.nextAction ?? null,
-    manualTestNext: manualTest.next ?? null,
-    nextHumanAction: createNextHumanAction({
-      localPreviewOk,
-      strictOk,
-      readyForManualWechat,
-      manualTest,
-      testData,
-      wechatConfig,
-      miniappProject
-    }),
+    manualTestNext: sanitizeHumanAction(manualTest.next),
+    nextHumanAction: sanitizeHumanAction(
+      createNextHumanAction({
+        localPreviewOk,
+        strictOk,
+        readyForManualWechat,
+        manualTest,
+        testData,
+        wechatConfig,
+        miniappProject
+      })
+    ),
     captureCommand: devStatus.visualQa?.captureCommand ?? null
   };
 }

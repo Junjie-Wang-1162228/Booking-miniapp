@@ -604,6 +604,20 @@ test('manual test readiness allows starting manual WeChat checks when strict loc
     invalidCount: 1,
     invalidReasons: ['screenshot is older than latest miniapp UI source']
   });
+  assert.deepEqual(readiness.manualTestSections, [
+    { title: '1. 本地环境准备', completed: 0, total: 9, percent: 0, next: null },
+    {
+      title: '2. 真实微信登录准备',
+      completed: 0,
+      total: 6,
+      percent: 0,
+      next: {
+        section: '2. 真实微信登录准备',
+        line: 17,
+        text: '在 `apps/api/.env` 中配置当前微信开发者工具使用的 `MINIAPP_APP_ID`。'
+      }
+    }
+  ]);
   assert.deepEqual(
     readiness.gates.map((gate) => ({ id: gate.id, ok: gate.ok, requiredFor: gate.requiredFor })),
     [
