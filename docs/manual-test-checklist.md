@@ -24,7 +24,7 @@
 
 ## 3. 后台权限和排课
 
-- [ ] 运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，再运行 `pnpm ops:manual-test:readiness`，确认当前数据库有小程序运营端测试账号，`test` 账号只管理 1 个门店，且两个运营账号都能读取运营页依赖的 metrics/classes/bookings/members API。
+- [x] 运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，再运行 `pnpm ops:manual-test:readiness`，确认当前数据库有小程序运营端测试账号，`test` 账号只管理 1 个门店，且两个运营账号都能读取运营页依赖的 metrics/classes/bookings/members API。
 - [ ] 小程序账户页使用 `admin` / `admin` 账号登录，确认可以看到“运营管理”入口。
 - [ ] 小程序账户页使用 `test` / `test` 账号登录，确认可以看到“运营管理”入口，且只管理第一个活跃门店。
 - [ ] 如需继续验收网页后台，地址以 `pnpm dev:status` 输出为准，账号 `admin` / `admin123456`。
@@ -55,7 +55,7 @@
 
 ## 6. 视觉走查
 
-- [ ] 运行 `pnpm miniapp:visual-qa`，确认当前截图矩阵状态、完成度和下一台缺失设备；该命令不会打开微信开发者工具。
+- [x] 运行 `pnpm miniapp:visual-qa`，确认当前截图矩阵状态、完成度和下一台缺失设备；该命令不会打开微信开发者工具。
 - [ ] 按 `pnpm miniapp:visual-qa:plan` 输出的下一台设备和截图保存路径，在微信开发者工具中手动切换模拟器设备。
 - [ ] 切到目标设备后，再显式执行 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next` 采集截图；如果当前模拟器设备不等于下一台缺失设备，命令应拒绝保存。
 - [ ] 每采集一台设备后运行 `pnpm miniapp:visual-qa:next`，确认输出中的完成度、缺失页面和截图保存路径，直到 4 台设备 x 3 个页面都补齐。
