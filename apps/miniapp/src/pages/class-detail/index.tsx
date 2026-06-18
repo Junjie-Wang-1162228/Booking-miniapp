@@ -249,6 +249,10 @@ export default function ClassDetailPage() {
         <Text className="detail-meta">
           {formatTime(boxingClass.startsAt)} · {boxingClass.durationMin} 分钟 · 教练 {boxingClass.coach}
         </Text>
+        <View className="detail-hero__brand-line">
+          <Text className="mat-lane" />
+          <Text>训练计划 · 装备准备 · 门店联系</Text>
+        </View>
         <Text className={`detail-pill ${boxingClass.isBookedByMe ? 'is-booked' : boxingClass.remainingSpots > 0 ? 'is-open' : ''}`}>
           {boxingClass.isBookedByMe ? '已预约' : `剩 ${boxingClass.remainingSpots} 位 / 共 ${boxingClass.capacity} 位`}
         </Text>

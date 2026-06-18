@@ -231,6 +231,102 @@ button::after {
   word-break: break-word;
 }
 
+.training-strip {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgba(242, 138, 36, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(227, 27, 35, 0.16), rgba(242, 138, 36, 0.08) 42%, rgba(24, 24, 24, 0.98) 78%),
+    #181818;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22);
+}
+
+.training-strip__track {
+  position: relative;
+  min-height: 100px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 2px, transparent 2px 28px),
+    repeating-linear-gradient(0deg, #595f64 0 16px, #4b5055 16px 20px, #34383c 20px 36px);
+}
+
+.training-strip__lane,
+.training-strip__dot {
+  position: absolute;
+  display: block;
+}
+
+.training-strip__lane {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 8px;
+  background: #1d1d1d;
+  transform: translateX(-50%);
+}
+
+.training-strip__dot {
+  width: 34px;
+  height: 24px;
+  border-radius: 24px;
+  background: #ff8a2a;
+  box-shadow: 0 0 0 4px rgba(255, 138, 42, 0.12);
+}
+
+.training-strip__dot-a {
+  top: 17px;
+  left: 14px;
+}
+
+.training-strip__dot-b {
+  right: 14px;
+  bottom: 16px;
+  background: #e31b23;
+}
+
+.training-strip__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.training-strip__eyebrow,
+.training-strip__title,
+.training-strip__meta {
+  display: block;
+  word-break: break-word;
+}
+
+.training-strip__eyebrow {
+  color: #f28a24;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.training-strip__title {
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.training-strip__meta {
+  margin-top: 8px;
+  color: #bdbdbd;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.38;
+}
+
 .section-title {
   display: block;
   margin: 34px 0 18px;

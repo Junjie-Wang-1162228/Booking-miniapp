@@ -48,6 +48,11 @@ export default function ProfilePage() {
   const memberNoText = selectedBranch?.memberNo || '未登记';
   const branchNameText = selectedBranch?.name || '未选择门店';
   const roleText = user?.role === 'ADMIN' ? selectedBranch?.staffRole || 'ADMIN' : '会员';
+  const profileTrainingMeta = user
+    ? user.role === 'ADMIN'
+      ? `${roleText} · 管理当前门店课程和会员`
+      : `剩余 ${selectedBalance} 节课 · 课时按门店独立计算`
+    : '微信授权或账号登录后查看课时、预约和门店服务';
 
   function clearProfileSession() {
     setToken('');
@@ -234,6 +239,23 @@ export default function ProfilePage() {
         <Text className="subtitle">
           {selectedBranch?.name ?? '当前门店'} · {user?.role === 'ADMIN' ? '运营管理' : `剩余课时 ${selectedBalance} 节`}
         </Text>
+        <View className="hero__brand-line">
+          <Text className="mat-lane" />
+          <Text>会员课时 · 运营权限 · 场馆联系</Text>
+        </View>
+      </View>
+
+      <View className="training-strip profile-training-strip">
+        <View className="training-strip__track">
+          <Text className="training-strip__lane" />
+          <Text className="training-strip__dot training-strip__dot-a" />
+          <Text className="training-strip__dot training-strip__dot-b" />
+        </View>
+        <View className="training-strip__content">
+          <Text className="training-strip__eyebrow">账户状态</Text>
+          <Text className="training-strip__title">{branchNameText}</Text>
+          <Text className="training-strip__meta">{profileTrainingMeta}</Text>
+        </View>
       </View>
 
       {!devAuthMode && !user && (

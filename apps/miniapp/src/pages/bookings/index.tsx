@@ -25,6 +25,11 @@ export default function BookingsPage() {
   const [loadError, setLoadError] = useState('');
   const { runLocked, isActionLocked } = useActionLock();
   const selectedBranch = branches.find((branch) => branch.id === selectedBranchId) ?? null;
+  const bookingTrainingTitle = selectedBranch?.name ?? '真知格斗训练馆';
+  const bookingTrainingMeta =
+    bookings.length > 0
+      ? `${bookings.length} 条预约记录 · 开课前 2 小时外可取消`
+      : '暂无预约记录 · 先去约课页选择训练课程';
 
   async function load(preferredBranchId?: string) {
     setLoading(true);
@@ -113,6 +118,23 @@ export default function BookingsPage() {
         <Text className="subtitle">
           {user ? `${user.displayName} · ${selectedBranch?.name ?? '当前门店'}` : '只显示当前登录会员自己的预约记录'}
         </Text>
+        <View className="hero__brand-line">
+          <Text className="mat-lane" />
+          <Text>预约排程 · 到课记录 · 取消规则</Text>
+        </View>
+      </View>
+
+      <View className="training-strip booking-training-strip">
+        <View className="training-strip__track">
+          <Text className="training-strip__lane" />
+          <Text className="training-strip__dot training-strip__dot-a" />
+          <Text className="training-strip__dot training-strip__dot-b" />
+        </View>
+        <View className="training-strip__content">
+          <Text className="training-strip__eyebrow">到课节奏</Text>
+          <Text className="training-strip__title">{bookingTrainingTitle}</Text>
+          <Text className="training-strip__meta">{bookingTrainingMeta}</Text>
+        </View>
       </View>
 
       {branches.length > 0 && (

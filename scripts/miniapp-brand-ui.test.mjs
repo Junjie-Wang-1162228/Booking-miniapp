@@ -6,8 +6,11 @@ const logoAssetPath = 'apps/miniapp/src/assets/brand/zhenzhi-logo.jpg';
 const brandLogoPath = 'apps/miniapp/src/components/BrandLogo.tsx';
 const appStylePath = 'apps/miniapp/src/app.scss';
 const classesPath = 'apps/miniapp/src/pages/classes/index.tsx';
+const detailPath = 'apps/miniapp/src/pages/class-detail/index.tsx';
 const detailStylePath = 'apps/miniapp/src/pages/class-detail/index.scss';
+const profilePath = 'apps/miniapp/src/pages/profile/index.tsx';
 const profileStylePath = 'apps/miniapp/src/pages/profile/index.scss';
+const bookingsPath = 'apps/miniapp/src/pages/bookings/index.tsx';
 const bookingsStylePath = 'apps/miniapp/src/pages/bookings/index.scss';
 
 test('miniapp uses the ZHENZHIGEDOU logo asset in the shared brand component', () => {
@@ -57,4 +60,22 @@ test('classes landing page surfaces venue context from the gym reference style',
   assert.match(appStyles, /venue-strip__mat-zone/);
   assert.match(appStyles, /#5f6368/);
   assert.match(appStyles, /#ff8a2a/);
+});
+
+test('phase two brand treatment carries through bookings profile and detail pages', () => {
+  const bookingsSource = readFileSync(bookingsPath, 'utf8');
+  const detailSource = readFileSync(detailPath, 'utf8');
+  const profileSource = readFileSync(profilePath, 'utf8');
+  const appStyles = readFileSync(appStylePath, 'utf8');
+  const detailStyles = readFileSync(detailStylePath, 'utf8');
+
+  assert.match(bookingsSource, /training-strip booking-training-strip/);
+  assert.match(bookingsSource, /到课节奏/);
+  assert.match(profileSource, /training-strip profile-training-strip/);
+  assert.match(profileSource, /会员课时 · 运营权限 · 场馆联系/);
+  assert.match(detailSource, /detail-hero__brand-line/);
+  assert.match(detailSource, /训练计划 · 装备准备 · 门店联系/);
+  assert.match(appStyles, /\.training-strip/);
+  assert.match(appStyles, /training-strip__track/);
+  assert.match(detailStyles, /detail-hero__brand-line/);
 });

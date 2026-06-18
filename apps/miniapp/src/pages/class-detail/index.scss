@@ -46,6 +46,17 @@
   line-height: 1.45;
 }
 
+.detail-hero__brand-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  color: #f28a24;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
 .detail-pill {
   width: fit-content;
   min-height: 44px;
