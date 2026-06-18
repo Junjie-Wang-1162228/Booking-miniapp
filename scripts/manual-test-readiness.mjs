@@ -46,6 +46,11 @@ const MANUAL_TEST_CHECKLIST_ACTIONS = {
     line: 7,
     text: '执行现有迁移和种子数据：`pnpm --filter @booking/api prisma:deploy && pnpm --filter @booking/api prisma:seed`。'
   },
+  cloudTestAccounts: {
+    section: '3. 后台权限和排课',
+    line: 26,
+    text: '运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，确认当前数据库有小程序运营端测试账号。'
+  },
   managerScope: {
     section: '3. 后台权限和排课',
     line: 31,
@@ -162,6 +167,10 @@ function createReadinessFailure({ id, detail, nextHumanAction }) {
 export function createManualTestDataReadiness({
   adminLoginOk = false,
   managerLoginOk = false,
+  miniappAdminAccountLoginOk = null,
+  miniappTestAccountLoginOk = null,
+  miniappAdminBranchCount = null,
+  miniappTestBranchCount = null,
   branches = [],
   managerBranches = [],
   classes = [],
@@ -176,6 +185,10 @@ export function createManualTestDataReadiness({
   const westBranchPresent = branchNames.has('城西店');
   const managerEastBranchPresent = managerBranchNames.has('城东店');
   const managerWestBranchAbsent = !managerBranchNames.has('城西店');
+  const miniappAdminHasBranchAccess =
+    typeof miniappAdminBranchCount === 'number' ? miniappAdminBranchCount > 0 : null;
+  const miniappTestSingleBranchOnly =
+    typeof miniappTestBranchCount === 'number' ? miniappTestBranchCount === 1 : null;
   const nowMs = Date.parse(now);
   const futureClassCount = classes.filter((boxingClass) => {
     if (boxingClass.status && boxingClass.status !== 'SCHEDULED') return false;
@@ -183,6 +196,46 @@ export function createManualTestDataReadiness({
     return Number.isFinite(startsAtMs) && startsAtMs > nowMs;
   }).length;
   const failures = [];
+
+  if (miniappAdminAccountLoginOk === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-admin-account-login-failed',
+        detail: 'miniapp admin account login failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.cloudTestAccounts
+      })
+    );
+  }
+
+  if (miniappAdminAccountLoginOk === true && miniappAdminHasBranchAccess === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-admin-account-no-branch',
+        detail: 'miniapp admin account has no branch access',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.cloudTestAccounts
+      })
+    );
+  }
+
+  if (miniappTestAccountLoginOk === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-test-account-login-failed',
+        detail: 'miniapp test account login failed',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.cloudTestAccounts
+      })
+    );
+  }
+
+  if (miniappTestAccountLoginOk === true && miniappTestSingleBranchOnly === false) {
+    failures.push(
+      createReadinessFailure({
+        id: 'miniapp-test-account-over-scoped',
+        detail: 'miniapp test account must access exactly one branch',
+        nextHumanAction: MANUAL_TEST_CHECKLIST_ACTIONS.cloudTestAccounts
+      })
+    );
+  }
 
   if (!adminLoginOk) {
     failures.push(
@@ -259,6 +312,12 @@ export function createManualTestDataReadiness({
     source,
     adminLoginOk,
     managerLoginOk,
+    miniappAdminAccountLoginOk,
+    miniappTestAccountLoginOk,
+    miniappAdminBranchCount,
+    miniappTestBranchCount,
+    miniappAdminHasBranchAccess,
+    miniappTestSingleBranchOnly,
     eastBranchPresent,
     westBranchPresent,
     managerEastBranchPresent,
@@ -535,16 +594,40 @@ export async function readManualTestDataReadiness({
   const managerUsername = 'east-manager';
   const managerPassword = values.MANAGER_PASSWORD || 'manager123456';
   const source = { apiBaseUrl };
-  const login = await fetchJson(`${apiBaseUrl}/auth/admin-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const accessToken = login.body?.accessToken;
+  const [login, miniappAdminLogin, miniappTestLogin] = await Promise.all([
+    fetchJson(`${apiBaseUrl}/auth/admin-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    }),
+    fetchJson(`${apiBaseUrl}/auth/account-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin' })
+    }),
+    fetchJson(`${apiBaseUrl}/auth/account-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test', password: 'test' })
+    })
+  ]);
+  const miniappAdminAccessToken = miniappAdminLogin.body?.accessToken;
+  const miniappTestAccessToken = miniappTestLogin.body?.accessToken;
+  const accessToken = login.body?.accessToken ?? miniappAdminAccessToken;
+  const miniappAdminBranches = Array.isArray(miniappAdminLogin.body?.user?.accessibleBranches)
+    ? miniappAdminLogin.body.user.accessibleBranches
+    : [];
+  const miniappTestBranches = Array.isArray(miniappTestLogin.body?.user?.accessibleBranches)
+    ? miniappTestLogin.body.user.accessibleBranches
+    : [];
 
-  if (!login.ok || !accessToken) {
+  if (!accessToken) {
     return createManualTestDataReadiness({
-      adminLoginOk: false,
+      adminLoginOk: Boolean(miniappAdminAccessToken),
+      miniappAdminAccountLoginOk: miniappAdminLogin.ok && Boolean(miniappAdminAccessToken),
+      miniappTestAccountLoginOk: miniappTestLogin.ok && Boolean(miniappTestAccessToken),
+      miniappAdminBranchCount: miniappAdminBranches.length,
+      miniappTestBranchCount: miniappTestBranches.length,
       source
     });
   }
@@ -568,6 +651,10 @@ export async function readManualTestDataReadiness({
   return createManualTestDataReadiness({
     adminLoginOk: true,
     managerLoginOk: managerLogin.ok && Boolean(managerAccessToken),
+    miniappAdminAccountLoginOk: miniappAdminLogin.ok && Boolean(miniappAdminAccessToken),
+    miniappTestAccountLoginOk: miniappTestLogin.ok && Boolean(miniappTestAccessToken),
+    miniappAdminBranchCount: miniappAdminBranches.length,
+    miniappTestBranchCount: miniappTestBranches.length,
     branches: Array.isArray(branches.body) ? branches.body : [],
     managerBranches: Array.isArray(managerBranches.body) ? managerBranches.body : [],
     classes: Array.isArray(classes.body) ? classes.body : [],

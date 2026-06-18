@@ -80,6 +80,10 @@ function createReadyManualTestData() {
   return createManualTestDataReadiness({
     adminLoginOk: true,
     managerLoginOk: true,
+    miniappAdminAccountLoginOk: true,
+    miniappTestAccountLoginOk: true,
+    miniappAdminBranchCount: 2,
+    miniappTestBranchCount: 1,
     branches: [{ name: '城东店' }, { name: '城西店' }],
     managerBranches: [{ name: '城东店' }],
     classes: [
@@ -123,13 +127,57 @@ test('manual test data readiness verifies seeded admin branches and future class
   assert.equal(readiness.ready, true);
   assert.equal(readiness.adminLoginOk, true);
   assert.equal(readiness.managerLoginOk, true);
+  assert.equal(readiness.miniappAdminAccountLoginOk, true);
+  assert.equal(readiness.miniappTestAccountLoginOk, true);
+  assert.equal(readiness.miniappAdminBranchCount, 2);
+  assert.equal(readiness.miniappTestBranchCount, 1);
+  assert.equal(readiness.miniappTestSingleBranchOnly, true);
   assert.equal(readiness.eastBranchPresent, true);
   assert.equal(readiness.westBranchPresent, true);
   assert.equal(readiness.managerEastBranchPresent, true);
   assert.equal(readiness.managerWestBranchAbsent, true);
   assert.equal(readiness.futureClassCount, 2);
   assert.deepEqual(readiness.failures, []);
-  assert.doesNotMatch(JSON.stringify(readiness), /accessToken|Bearer|admin123456|manager123456/);
+  assert.doesNotMatch(JSON.stringify(readiness), /accessToken|Bearer|admin123456|manager123456|admin\/admin|test\/test/);
+});
+
+test('manual test data readiness blocks when miniapp operation accounts are missing or over-scoped', () => {
+  const readiness = createManualTestDataReadiness({
+    adminLoginOk: true,
+    managerLoginOk: true,
+    miniappAdminAccountLoginOk: false,
+    miniappTestAccountLoginOk: true,
+    miniappAdminBranchCount: 0,
+    miniappTestBranchCount: 2,
+    branches: [{ name: '城东店' }, { name: '城西店' }],
+    managerBranches: [{ name: '城东店' }],
+    classes: [
+      {
+        title: '基础拳击燃脂',
+        branchName: '城东店',
+        startsAt: '2099-01-01T11:30:00.000Z',
+        status: 'SCHEDULED'
+      }
+    ],
+    now: '2026-06-14T00:00:00.000Z'
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.deepEqual(readiness.failures, [
+    {
+      id: 'miniapp-admin-account-login-failed',
+      detail: 'miniapp admin account login failed'
+    },
+    {
+      id: 'miniapp-test-account-over-scoped',
+      detail: 'miniapp test account must access exactly one branch'
+    }
+  ]);
+  assert.deepEqual(readiness.nextHumanAction, {
+    section: '3. 后台权限和排课',
+    line: 26,
+    text: '运行 `pnpm --filter @booking/api seed:cloud-test-accounts`，确认当前数据库有小程序运营端测试账号。'
+  });
 });
 
 test('manual test data readiness points to the non-destructive seed verification step when data is missing', () => {
@@ -512,6 +560,9 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /manual-test-readiness/);
   assert.match(readme, /testData/);
   assert.match(readme, /本地验收测试数据/);
+  assert.match(readme, /admin\/admin/);
+  assert.match(readme, /test\/test/);
+  assert.match(readme, /test` 只管理 1 个门店/);
   assert.match(readme, /east-manager/);
   assert.match(readme, /店长只能访问城东店/);
   assert.match(readme, /wechatConfig/);
@@ -520,6 +571,8 @@ test('docs expose manual test readiness command', () => {
   assert.match(readme, /小程序 DevTools 项目配置/);
   assert.match(optimizationChecklist, /pnpm ops:manual-test:readiness/);
   assert.match(optimizationChecklist, /本地验收测试数据门禁/);
+  assert.match(optimizationChecklist, /小程序运营端账号门禁/);
+  assert.match(optimizationChecklist, /\/auth\/account-login/);
   assert.match(optimizationChecklist, /店长只能访问城东店/);
   assert.match(optimizationChecklist, /真实微信登录配置门禁/);
   assert.match(optimizationChecklist, /小程序 DevTools 项目配置门禁/);
