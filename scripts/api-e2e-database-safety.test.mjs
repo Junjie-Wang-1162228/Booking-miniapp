@@ -9,6 +9,7 @@ const e2eSpec = readFileSync('apps/api/test/app.e2e-spec.ts', 'utf8');
 const apiPackage = JSON.parse(readFileSync('apps/api/package.json', 'utf8'));
 const dockerMysqlInit = readFileSync('docker/mysql/init/01-shadow-database.sql', 'utf8');
 const prepareE2eDatabaseScript = readFileSync('apps/api/scripts/prepare-e2e-database.ts', 'utf8');
+const runE2eScript = readFileSync('apps/api/scripts/run-e2e.ts', 'utf8');
 const readme = readFileSync('README.md', 'utf8');
 const optimizationChecklist = readFileSync('docs/optimization-checklist.md', 'utf8');
 
@@ -77,6 +78,11 @@ test('api e2e package script prepares and uses an isolated database', () => {
   assert.equal(apiPackage.scripts['test:e2e'], 'tsx scripts/run-e2e.ts');
 });
 
+test('api e2e package script forwards targeted jest arguments', () => {
+  assert.match(runE2eScript, /const jestArgs = process\.argv\.slice\(2\)/);
+  assert.match(runE2eScript, /\['exec', 'jest', '--config', '\.\/test\/jest-e2e\.json', '--runInBand', \.\.\.jestArgs\]/);
+});
+
 test('api e2e default database url follows the local development database port', () => {
   const tempDir = mkdtempSync(path.join(tmpdir(), 'booking-e2e-env-'));
   const envPath = path.join(tempDir, '.env');
@@ -97,7 +103,9 @@ test('api e2e default database url follows the local development database port',
 test('docs explain that local api e2e follows the configured development mysql port', () => {
   assert.match(readme, /默认会读取 `apps\/api\/\.env` 的 `DATABASE_URL`/);
   assert.match(readme, /本地开发库是 `localhost:3308\/boxing_booking` 时，E2E 库会自动变成 `localhost:3308\/boxing_booking_e2e`/);
+  assert.match(readme, /pnpm --filter @booking\/api test:e2e -- --runTestsByPath test\/app\.e2e-spec\.ts -t/);
   assert.match(optimizationChecklist, /E2E 默认从 `apps\/api\/\.env` 的 `DATABASE_URL` 推导/);
+  assert.match(optimizationChecklist, /API E2E 入口支持转发 Jest 定向参数/);
 });
 
 test('local mysql init grants the isolated e2e database to the app user', () => {

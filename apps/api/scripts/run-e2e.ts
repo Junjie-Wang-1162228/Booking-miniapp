@@ -9,8 +9,12 @@ function apiRoot() {
 
 async function main() {
   const databaseUrl = await prepareE2eDatabase();
+  const jestArgs = process.argv.slice(2);
+  if (jestArgs[0] === '--') {
+    jestArgs.shift();
+  }
 
-  execFileSync('pnpm', ['exec', 'jest', '--config', './test/jest-e2e.json', '--runInBand'], {
+  execFileSync('pnpm', ['exec', 'jest', '--config', './test/jest-e2e.json', '--runInBand', ...jestArgs], {
     cwd: apiRoot(),
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: 'inherit'

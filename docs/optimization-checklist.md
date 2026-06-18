@@ -108,6 +108,7 @@
 - [x] 敏感信息守卫扩展到 git 暂存区内容：`pnpm security:check` 会读取 staged 版本，避免真实 AppID 已暂存后又从工作区改回占位值而漏检。
 - [x] API E2E 默认切到独立测试库 `boxing_booking_e2e`：测试前自动创建、授权并执行 Prisma migration，清库不再影响本地预览库 `boxing_booking`。
 - [x] API E2E 默认从 `apps/api/.env` 的 `DATABASE_URL` 推导测试库端口：本地开发库切到 `3308` 时，`test:e2e` 会自动使用 `localhost:3308/boxing_booking_e2e`，避免误跑到其他项目占用的 `3307` MySQL。
+- [x] API E2E 入口支持转发 Jest 定向参数：`pnpm --filter @booking/api test:e2e -- --runTestsByPath test/app.e2e-spec.ts -t "..."` 仍会先准备隔离测试库，再只跑目标用例，便于定位失败且不绕过数据库安全守卫。
 - [x] API E2E 会员管理用例改用单调递增测试后缀，替代 `Date.now().slice(-6)`，避免手机号/会员号唯一值在快速连续执行时偶发碰撞导致 CI 红。
 - [x] `pnpm dev:status` 增加数据库连接目标核对：只输出 host/port/database，不泄露账号密码；当 `DATABASE_URL` 的本地端口由非当前 compose MySQL 容器发布时给出 warning，避免误判本地数据库环境。
 - [x] `pnpm dev:status` 增加孤儿 Prisma query-engine 检测：只统计本项目残留进程和 PID，提示人工确认后处理，避免本地端口/连接资源堆积导致 E2E 偶发超时或 404。
@@ -117,6 +118,7 @@
 - [x] `pnpm dev:status` 的视觉 QA 下一步补充安全截图命令 `cross-env MINIAPP_VISUAL_QA_ALLOW_DEVTOOLS=1 pnpm miniapp:visual-qa:capture-next`，手工切到目标模拟器后可直接按状态输出继续补图。
 - [x] `pnpm dev:status` 的 `visualQa.captureCommand` 增加结构化安全截图命令，后续人工补图脚本或前端状态面板无需解析自然语言 `nextAction`。
 - [x] 新增 `pnpm ops:manual-test:status` 手工验收清单状态命令：读取 `docs/manual-test-checklist.md` 勾选项并输出 `manual-test-status` JSON，汇总总项数、完成数、分组进度、全局下一条未完成项和每个分组自己的 `next`；不打开微信开发者工具，也不把未完成清单当作 shell 失败。
+- [x] 新增 `pnpm ops:manual-test:next` 精简下一步命令：复用 readiness 检查，只输出下一条人工动作、微信开发者工具打开路径、真机构建包 API 状态、视觉/手工进度、发布阻断项和截图命令；不打开微信开发者工具，不输出 AppID、Secret、token 或账号密码。
 - [x] 新增 `pnpm ops:manual-test:readiness` 人工验收准备状态命令：复用严格本地状态检查并输出 `manual-test-readiness` JSON，区分“可以开始真实微信人工验收”的本地门禁和“发布前必须补齐”的视觉截图/手工 checklist；`manual-test-status` 的每个分组会输出具体 `next`，`nextHumanAction` 会在本地门禁已通过时直接提示真实微信登录准备分组里的下一条任务和行号，`readyForRelease` 与 `releaseBlockers` 会明确发布是否仍被视觉截图或完整手工 checklist 阻断，避免重复做已验证的本地启动项或误判可发布。
 - [x] `pnpm ops:manual-test:readiness` 增加本地验收测试数据门禁：通过 API 只读验证默认后台账号、`east-manager` 店长账号、城东/城西门店、未来课程和店长只能访问城东店的门店权限，不重跑 seed、不清空本地库，并且不输出登录 token。
 - [x] `pnpm ops:manual-test:readiness` 增加小程序运营端账号门禁：通过 `/auth/account-login` 只读验证 `admin/admin` 和 `test/test` 可登录，确认 `admin` 有门店权限、`test` 只管理 1 个门店；输出只保留布尔值和门店数量，不输出 token 或账号密码。

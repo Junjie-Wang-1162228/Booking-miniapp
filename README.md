@@ -498,6 +498,8 @@ pnpm build
 
 `pnpm --filter @booking/api test:e2e` 会自动准备并迁移本地独立测试库 `boxing_booking_e2e`，然后只重置该 E2E 库的数据，不清空本地预览库 `boxing_booking`。未显式设置 `E2E_DATABASE_URL` 时，默认会读取 `apps/api/.env` 的 `DATABASE_URL` 并只把库名替换为 `boxing_booking_e2e`；例如本地开发库是 `localhost:3308/boxing_booking` 时，E2E 库会自动变成 `localhost:3308/boxing_booking_e2e`。测试启动时会拒绝非白名单测试库，避免误清远程、生产或本地开发数据。受控 CI 如已自行创建临时库，可设置 `E2E_DATABASE_URL` 指向该库，并在需要时设置 `E2E_SKIP_DATABASE_CREATE=true`；只有确认目标是隔离临时库时才使用 `E2E_ALLOW_DATABASE_RESET=true`。
 
+如果只想复现某个后端 E2E 用例，可以继续复用同一个安全入口并把 Jest 参数放在 `--` 后面，例如：`pnpm --filter @booking/api test:e2e -- --runTestsByPath test/app.e2e-spec.ts -t "rejects member cancellation inside the cutoff window"`。
+
 当前仓库已接入 GitHub Actions：`.github/workflows/verify.yml` 会在 push 到 `main`、PR 和手动触发时启动 MySQL 8.4 service，并运行同一条 `pnpm verify` 门禁。
 
 单项检查：
@@ -510,11 +512,14 @@ pnpm ops:alerting:test
 pnpm ops:staging:test
 pnpm ops:release-checklist:test
 pnpm ops:manual-test:status
+pnpm ops:manual-test:next
 pnpm ops:manual-test:readiness
 pnpm ops:third-party-notices:test
 ```
 
 `pnpm ops:manual-test:status` 会读取 `docs/manual-test-checklist.md` 的勾选状态，输出 `manual-test-status` JSON，包括总项数、完成数、分组进度、全局下一条未完成项，以及每个分组自己的 `next`；它不打开微信开发者工具，也不会因为清单未完成而返回失败。
+
+`pnpm ops:manual-test:next` 会复用 readiness 检查并输出更短的 `manual-test-next` JSON，只保留下一条人工动作、微信开发者工具应打开的 `apps/miniapp/dist` 路径、构建包 API 是否为真机可访问、视觉截图和手工清单进度、发布阻断项，以及下一条截图命令。它不打开微信开发者工具，也不输出真实 AppID、AppSecret、token 或账号密码。
 
 `pnpm ops:manual-test:readiness` 会执行严格本地状态检查并输出 `manual-test-readiness` JSON，把本地预览、strict 环境门禁、本地验收测试数据、真实微信登录配置、小程序 DevTools 项目配置、视觉截图矩阵和手工验收清单汇总到一起。它不打开微信开发者工具；只有本地预览、strict 门禁、本地验收测试数据、本地微信登录配置和小程序 DevTools 项目配置都通过时才表示可以开始真实微信人工验收，视觉截图和完整 checklist 仍作为发布前剩余项继续展示。输出里的 `testData` 会通过 API 只读验证小程序运营端 `admin/admin`、`test/test`、`test` 只管理 1 个门店、两个运营账号都能读取小程序运营页依赖的 metrics/classes/bookings/members 接口、默认后台或运营 token、`east-manager` 店长账号、城东/城西门店、未来课程和店长只能访问城东店的门店权限，不重跑 seed、不重置数据库，也不输出登录 token 或账号密码。输出里的 `wechatConfig` 只包含 AppID 是否已配置、是否仍为占位、AppSecret 是否已配置、mock 登录和自动开户开关等布尔状态，不输出真实 AppID 或 Secret。输出里的 `miniappProject` 只包含 `project.config.json` 是否指向 `dist/`、tracked AppID 是否仍为占位、本地 `project.private.config.json` 是否存在及其 AppID 是否已配置、`dist` 必需文件是否齐全、`dist` API 地址是否为真机可访问类型，以及构建包 API 的 `/health` 是否可访问等布尔/分类状态；如果本地 `project.private.config.json` 没有真实 AppID、构建包仍指向 `localhost`、`127.0.0.1`、`0.0.0.0` 或 `::1`，或构建包 API 的 `/health` 请求失败，会阻断真实微信人工验收，但不会输出真实 AppID 或具体 API URL。`nextHumanAction` 会在本地门禁已通过时跳过重复的本地启动步骤，直接提示真实微信登录准备分组里的具体下一条任务和行号；`readyForRelease` 只会在所有 readiness 门禁、视觉截图矩阵和完整手工 checklist 都通过时为 `true`，未满足时会在 `releaseBlockers` 中列出发布阻断项。
 
